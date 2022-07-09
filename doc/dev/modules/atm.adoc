@@ -1,0 +1,18 @@
+= ATM
+
+This module spawns ATMs to interact with the bank.
+
+== Extension
+
+=== Server
+
+[source,lua]
+----
+self.cfg
+----
+
+== Menu
+
+=== ATM
+
+ATM menu.

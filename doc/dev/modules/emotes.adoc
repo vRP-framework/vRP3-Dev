@@ -1,0 +1,29 @@
+= Emotes
+
+This module adds an emotes menu.
+
+== Extension
+
+=== User
+
+[source,lua]
+----
+self.emotes_action -- emotes action delay
+----
+
+=== Server
+
+[source,lua]
+----
+self.cfg
+
+-- add a new emote
+-- see cfg/emotes.lua
+Emotes:add(config)
+----
+
+== Menu
+
+=== emotes
+
+Emotes menu.

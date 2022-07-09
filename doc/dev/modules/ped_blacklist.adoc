@@ -1,0 +1,20 @@
+= PedBlacklist
+
+This module adds a ped blacklist (remove peds from the game).
+
+== Extension
+
+=== Server
+
+[source,lua]
+----
+self.cfg
+----
+
+=== Client
+
+[source,lua]
+----
+self.ped_models -- map of model hash
+self.interval
+----

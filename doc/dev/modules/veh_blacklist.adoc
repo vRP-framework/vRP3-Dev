@@ -1,0 +1,20 @@
+= VehBlacklist
+
+This module adds a vehicle blacklist (remove vehicles from the game).
+
+== Extension
+
+=== Server
+
+[source,lua]
+----
+self.cfg
+----
+
+=== Client
+
+[source,lua]
+----
+self.veh_models -- map of model hash
+self.interval
+----
