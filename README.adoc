@@ -26,7 +26,8 @@ NOTE: If you wish to help with the next version, please contact Sharky on the Di
 
 .Current Features
 * Basic weather control
-* ...
+* Commands and miscellaneous module (for all general commands and functions)
+* Lua Object-Oriented-Programming (OOP) for optimization
 
 .Planned Features
 * https://trello.com/b/2bKmvr9M/vrp-version-3[For all planned features, please check out our Trello board]
