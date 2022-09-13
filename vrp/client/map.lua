@@ -267,6 +267,7 @@ end
 -- ent: registered entity name
 -- cfg: entity config
 -- return id (number) or nil on failure
+-- creates permanent marker
 function Map:addEntity(ent, cfg)
   local cent = self.def_entities[ent]
 
@@ -299,6 +300,7 @@ end
 -- id: number (update added entity) or string (create/update named entity)
 -- ent: registered entity name
 -- cfg: entity config
+-- creates removable marker
 function Map:setEntity(id, ent, cfg)
   local cent = self.def_entities[ent]
   if cent then

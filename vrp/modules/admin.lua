@@ -101,6 +101,7 @@ local function menu_admin_users_user(self)		-- individual user options
 	
 	menu.css.header_color = "rgba(200,0,0,0.75)"
 	
+	-- player info
 	menu:addOption(lang.admin.users.user.info.title(), function(menu)
       local user = menu.user
       local id = menu.data.id
@@ -113,19 +114,35 @@ local function menu_admin_users_user(self)		-- individual user options
     }))
 	
 	if tuser then
+		-- kick player
 		if user:hasPermission("player.kick") then
 			menu:addOption(lang.admin.users.user.kick.title(), function(menu)
 			  local user = menu.user
-			  local tuser = vRP.users[menu.data.id]
+			  local id = menu.data.id
+			  local tuser = vRP.users[id]
+			  
 			  if tuser then
 			    local reason = user:prompt(lang.admin.users.user.kick.prompt(), "")
 			    vRP:kick(tuser, reason)
 			  end
 			end)
 		end
-		
-		if user:hasPermission("player.kick") then
-			local tuser = vRP.users[menu.data.id]
+		-- revive player
+		if user:hasPermission("player.revive") then
+			menu:addOption(lang.admin.users.user.revive.title(), function(menu)
+				local id = menu.data.id
+				local tuser = vRP.users[id]
+				
+				if tuser then
+					vRP.EXT.Base.remote._notify(user.source,"Not Created yet")
+				end
+			end)
+		end
+		-- spectate player
+		if user:hasPermission("player.spectate") then
+			local id = menu.data.id
+			local tuser = vRP.users[id]
+			
 			if tuser ~= menu.user then
 			  menu:addOption(lang.admin.users.user.spectate.title(), function(menu)
 			    self.remote._toggleSpectate(menu.user.source, tuser)
@@ -133,7 +150,20 @@ local function menu_admin_users_user(self)		-- individual user options
 			  end)
 			end
 		end
-		
+		-- Give player weapon
+		if user:hasPermission("player.giveweapon") then
+			menu:addOption("Give Weapon", function(menu)
+				local user = menu.user
+				local id = menu.data.id
+				local tuser = vRP.users[id]
+				
+				if tuser then
+					local weapon = user:prompt("give user a weapon by name no spaces", "")
+					vRP.EXT.Weapon.remote._giveWeapon(menu.user.source, tuser.source, string.upper("weapon_"..weapon))
+				end
+			end)
+		end
+		-- telepoert player to me
 		if user:hasPermission("player.tptome") then
 			menu:addOption(lang.admin.users.user.tptome.title(), function(menu)
 			  local user = menu.user
@@ -146,7 +176,7 @@ local function menu_admin_users_user(self)		-- individual user options
 			  end
 			end)
 		end
-		
+		-- teleport to player
 		if user:hasPermission("player.tpto") then
 			menu:addOption(lang.admin.users.user.tpto.title(), function(menu)
 			  local user = menu.user
@@ -170,36 +200,37 @@ local function menu_admin(self)
     menu.title = lang.admin.title()
     menu.css.header_color = "rgba(200,0,0,0.75)"
 	
-	menu:addOption(lang.admin.call_admin.title(), function(menu)
-      local user = menu.user
-	  local desc = user:prompt(lang.admin.call_admin.prompt(),"") or ""
-	  local answered = false
+	if not user:hasPermission("player.kick") then	-- only shows to non admins
+		menu:addOption(lang.admin.call_admin.title(), function(menu)
+		  local user = menu.user
+		  local desc = user:prompt(lang.admin.call_admin.prompt(),"") or ""
+		  local answered = false
 
-	  local admins = {} 
-	  for id,user in pairs(vRP.users) do
-		-- check admin
-		if user:isReady() and user:hasPermission("admin.tickets") then
-			table.insert(admins, user)
-		end
-	  end
-
-	  -- send notify and alert to all admins
-	  for _,admin in pairs(admins) do
-		async(function()
-			local ok = admin:request(lang.admin.call_admin.request({user.id, htmlEntities.encode(desc)}), 60)
-			if ok then -- take the call
-			  if not answered then
-				-- answer the call
-				vRP.EXT.Base.remote._notify(user.source,lang.admin.call_admin.notify_taken())
-				vRP.EXT.Base.remote._teleport(admin.source, vRP.EXT.Base.remote.getPosition(user.source))
-				answered = true
-			  else
-				vRP.EXT.Base.remote._notify(admin.source,lang.admin.call_admin.notify_already_taken())
-			  end
+		  local admins = {} 
+		  for id,user in pairs(vRP.users) do
+			-- check admin
+			if user:isReady() and user:hasPermission("admin.tickets") then
+				table.insert(admins, user)
 			end
+		  end
+		  -- send notify and alert to all admins
+		  for _,admin in pairs(admins) do
+			async(function()
+				local ok = admin:request(lang.admin.call_admin.request({user.id, htmlEntities.encode(desc)}), 60)
+				if ok then -- take the call
+				  if not answered then
+					-- answer the call
+					vRP.EXT.Base.remote._notify(user.source,lang.admin.call_admin.notify_taken())
+					vRP.EXT.Base.remote._teleport(admin.source, vRP.EXT.Base.remote.getPosition(user.source))
+					answered = true
+				  else
+					vRP.EXT.Base.remote._notify(admin.source,lang.admin.call_admin.notify_already_taken())
+				  end
+				end
+			end)
+		  end
 		end)
-	  end
-    end)
+	end
 	
 	menu:addOption(lang.admin.users.title(), function(menu)
       menu.user:openMenu("admin.users")

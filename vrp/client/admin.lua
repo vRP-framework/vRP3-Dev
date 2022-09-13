@@ -13,6 +13,7 @@ function Admin:__construct()
   self.noclip = false
   self.spectate = false
   self.lastCoord = nil
+  self.target = nil
   self.noclipEntity = nil
   self.noclip_speed = 1.0
 
