@@ -77,7 +77,6 @@ function Weapon:giveWeapons(weapons, clear_before)
   local player = GetPlayerPed(-1)
 
   -- give weapons to player
-
   if clear_before then
     RemoveAllPedWeapons(player,true)
   end
@@ -116,21 +115,6 @@ function Weapon:giveComponent(player, weapon, component, clear_before)
 end
 
 -- give specific weapon to player
-function Weapon:getComponent(weapon, component)
-  local comp_1  = ""..weapon..""..component
-  local comp_2  = ""..component
-  local comp_3  = component
-
-  local w_Hash  = GetHashKey(weapon)
-  local c_Hash  = GetHashKey(component)
-
-  local checked = DoesWeaponTakeWeaponComponent(w_Hash, c_Hash)
-  local temp = {}
-
-  notification(comp_1)
-end
-
--- give specific weapon to player
 function Weapon:giveAmmo(player, weapon, ammo, clear_before)
   local playerIdx = GetPlayerFromServerId(player)
   local ped = GetPlayerPed(playerIdx)
@@ -163,6 +147,5 @@ Weapon.tunnel.replaceWeapons = Weapon.replaceWeapons
 Weapon.tunnel.giveWeapons = Weapon.giveWeapons
 Weapon.tunnel.giveWeapon = Weapon.giveWeapon
 Weapon.tunnel.giveComponent = Weapon.giveComponent
-Weapon.tunnel.getComponent = Weapon.getComponent
 
 vRP:registerExtension(Weapon)
