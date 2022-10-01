@@ -62,12 +62,12 @@ function PlayerState.event:playerSpawn(user, first_spawn)
     user.cdata.state.customization = self.cfg.default_customization
   end
 
-  -- default position
+  --- default position
   if not user.cdata.state.position and self.cfg.spawn_enabled then
-    local x = self.cfg.spawn_position[1] + math.random() * self.cfg.spawn_radius * 2 - self.cfg.spawn_radius
-    local y = self.cfg.spawn_position[2] + math.random() * self.cfg.spawn_radius * 2 - self.cfg.spawn_radius
+    local x = self.cfg.spawn_position[1]+math.random()*self.cfg.spawn_radius*2-self.cfg.spawn_radius
+    local y = self.cfg.spawn_position[2]+math.random()*self.cfg.spawn_radius*2-self.cfg.spawn_radius
     local z = self.cfg.spawn_position[3]
-    user.cdata.state.position = { x = x, y = y, z = z }
+    user.cdata.state.position = {x=x,y=y,z=z}
   end
 
   if user.cdata.state.position then -- teleport to saved pos
@@ -80,7 +80,8 @@ function PlayerState.event:playerSpawn(user, first_spawn)
   end
 
   -- weapons
-  --vRP.EXT.Weapon.remote._getWeapons(user.source,user.cdata.state.weapons or {},true)
+  vRP.EXT.Weapon.remote._getWeapons(user.source,user.cdata.state.weapons or {},true)
+  vRP.EXT.Weapon.remote._giveComponents(user.source,user.cdata.state.components or {},true)
 
   if user.cdata.state.health then -- health
     self.remote.setHealth(user.source, user.cdata.state.health)
@@ -96,6 +97,7 @@ function PlayerState.event:playerDeath(user)
   user.cdata.state.heading = nil
   user.cdata.state.health = nil
   user.cdata.state.weapons = nil
+  user.cdata.state.components = nil
 end
 
 function PlayerState.event:characterLoad(user)
