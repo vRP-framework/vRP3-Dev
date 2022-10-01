@@ -10,7 +10,9 @@ local modules = {
   map = true,
   weather = true,
   misc = true,
-  command = true
+  command = true,
+  player_state = true,
+  weapon = true
 }
 
 return modules

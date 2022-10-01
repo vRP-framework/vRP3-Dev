@@ -181,8 +181,8 @@ local function menu_group_selector(self)
 end
 
 -- menu: admin users user
-local function menu_admin_users_user(self)
-  local function m_groups(menu, value, mod, index)
+local function menu_user_groups(self)
+  local function m_groups(menu, index)
     local user = menu.user
     local tuser = vRP.users[menu.data.id]
 
@@ -216,7 +216,8 @@ local function menu_admin_users_user(self)
     end
   end
 
-  vRP.EXT.GUI:registerMenuBuilder("admin.users.user", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder("user.groups", function(menu)
+    menu.title = "Groups"
     local user = menu.user
     local tuser = vRP.users[menu.data.id]
 
@@ -258,8 +259,15 @@ function Group:__construct()
 
   -- menu
   menu_group_selector(self)
-  menu_admin_users_user(self)
-
+  menu_user_groups(self)
+  
+  -- main menu
+  vRP.EXT.GUI:registerMenuBuilder("admin.users.user", function(menu)
+    menu:addOption("Groups", function(menu)
+      menu.user:openMenu("user.groups", menu.data)
+    end)
+  end)
+  
   -- task: group count display
   if next(self.cfg.count_display_permissions) then
     Citizen.CreateThread(function()
@@ -366,8 +374,10 @@ function Group.event:playerSpawn(user, first_spawn)
 
     -- group count display
     if next(self.cfg.count_display_permissions) then
-      vRP.EXT.GUI.remote.setDiv(user.source, "group_count_display", self.cfg.count_display_css, "")
-    end
+	  if self.cfg.display then
+        vRP.EXT.GUI.remote.setDiv(user.source, "group_count_display", self.cfg.count_display_css, "")
+      end
+	end
   end
 
   -- call group onspawn callback at spawn

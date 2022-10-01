@@ -18,7 +18,9 @@ server_script {
   "modules/group.lua",
   "modules/weather.lua",
   "modules/commands.lua",
-  "modules/misc.lua"
+  "modules/misc.lua",
+  "modules/player_state.lua",
+  "modules/weapon.lua"
 }
 
 client_scripts {
@@ -28,7 +30,9 @@ client_scripts {
   "client/admin.lua",
   "client/weather.lua",
   "client/commands.lua",
-  "client/misc.lua"
+  "client/misc.lua",
+  "client/player_state.lua",
+  "client/weapon.lua"
 }
 
 files {
