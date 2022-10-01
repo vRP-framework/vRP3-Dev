@@ -13,7 +13,7 @@ Map.Entity = class("Map.Entity")
 
 -- Entity.command for command methods
 
-function Map.Entity:__construct(id,cfg)
+function Map.Entity:__construct(id, cfg)
   self.id = id
   self.cfg = cfg
 end
@@ -35,9 +35,8 @@ end
 
 -- called at each render frame if the entity is active
 -- time: seconds since last frame
-function Map.Entity:frame(time) 
+function Map.Entity:frame(time)
 end
-
 
 -- basic entities
 
@@ -49,8 +48,8 @@ function PosEntity:load()
   self.pos = self.cfg.pos
 end
 
-function PosEntity:active(px,py,pz)
-  local dist = GetDistanceBetweenCoords(self.pos[1],self.pos[2],self.pos[3],px,py,pz,true)
+function PosEntity:active(px, py, pz)
+  local dist = GetDistanceBetweenCoords(self.pos[1], self.pos[2], self.pos[3], px, py, pz, true)
   return (dist <= self.active_distance)
 end
 
@@ -62,7 +61,7 @@ function PoI:load()
 
   -- blip
   if self.cfg.blip_id and self.cfg.blip_color then
-    self.blip = AddBlipForCoord(self.cfg.pos[1],self.cfg.pos[2],self.cfg.pos[3])
+    self.blip = AddBlipForCoord(self.cfg.pos[1], self.cfg.pos[2], self.cfg.pos[3])
     SetBlipSprite(self.blip, self.cfg.blip_id)
     SetBlipAsShortRange(self.blip, true)
     SetBlipColour(self.blip, self.cfg.blip_color)
@@ -87,8 +86,8 @@ function PoI:load()
   end
 
   -- prepare marker
-  self.scale = self.cfg.scale or {0.7,0.7,0.5}
-  self.color = self.cfg.color or {0,255,125,125}
+  self.scale = self.cfg.scale or { 0.7, 0.7, 0.5 }
+  self.color = self.cfg.color or { 0, 255, 125, 125 }
   self.marker_id = self.cfg.marker_id
   self.height = self.cfg.height or 0
   self.rotate_speed = self.cfg.rotate_speed
@@ -101,23 +100,24 @@ function PoI:unload()
   end
 end
 
-function PoI:active(px,py,pz)
-  return (PosEntity.active(self, px,py,pz) and self.marker_id)
+function PoI:active(px, py, pz)
+  return (PosEntity.active(self, px, py, pz) and self.marker_id)
 end
 
 function PoI:frame(time)
   if self.rotate_speed then
-    self.rz = (self.rz+360*self.rotate_speed*time)%360
+    self.rz = (self.rz + 360 * self.rotate_speed * time) % 360
   end
 
-  DrawMarker(self.marker_id,self.pos[1],self.pos[2],self.pos[3]+self.height,0,0,0,0,0,self.rz,self.scale[1],self.scale[2],self.scale[3],self.color[1],self.color[2],self.color[3],self.color[4],0)
+  DrawMarker(self.marker_id, self.pos[1], self.pos[2], self.pos[3] + self.height, 0, 0, 0, 0, 0, self.rz, self.scale[1],
+    self.scale[2], self.scale[3], self.color[1], self.color[2], self.color[3], self.color[4], 0)
 end
 
 PoI.command = {}
 
 function PoI.command:setBlipRoute()
   if self.blip then
-    SetBlipRoute(self.blip,true)
+    SetBlipRoute(self.blip, true)
   end
 end
 
@@ -197,11 +197,11 @@ function Map:__construct()
     while true do
       Citizen.Wait(100)
 
-      local px,py,pz = vRP.EXT.Base:getPosition()
+      local px, py, pz = vRP.EXT.Base:getPosition()
       self.frame_entities = {}
 
-      for id,entity in pairs(self.entities) do
-        if entity:active(px,py,pz) then
+      for id, entity in pairs(self.entities) do
+        if entity:active(px, py, pz) then
           self.frame_entities[entity] = true
         end
       end
@@ -216,7 +216,7 @@ function Map:__construct()
       Citizen.Wait(0)
 
       local time = GetGameTimer()
-      local elapsed = (last_time-time)*0.001
+      local elapsed = (last_time - time) * 0.001
       last_time = time
 
       for entity in pairs(self.frame_entities) do
@@ -230,12 +230,13 @@ function Map:__construct()
     while true do
       Citizen.Wait(250)
 
-      local px,py,pz = vRP.EXT.Base:getPosition()
+      local px, py, pz = vRP.EXT.Base:getPosition()
 
-      for k,v in pairs(self.areas) do
+      for k, v in pairs(self.areas) do
         -- detect enter/leave
 
-        local player_in = (GetDistanceBetweenCoords(v.x,v.y,v.z,px,py,pz,true) <= v.radius and math.abs(pz-v.z) <= v.height)
+        local player_in = (
+            GetDistanceBetweenCoords(v.x, v.y, v.z, px, py, pz, true) <= v.radius and math.abs(pz - v.z) <= v.height)
 
         if v.player_in and not player_in then -- was in: leave
           self.remote._leaveArea(k)
@@ -254,7 +255,7 @@ function Map:registerEntity(ent)
   if class.is(ent, Map.Entity) then
     local id = class.name(ent)
     if self.def_entities[id] then
-      self:log("WARNING: re-registered entity \""..id.."\"")
+      self:log("WARNING: re-registered entity \"" .. id .. "\"")
     end
 
     self.def_entities[id] = ent
@@ -335,15 +336,15 @@ end
 -- GPS
 
 -- set the GPS destination marker coordinates
-function Map:setGPS(x,y)
-  SetNewWaypoint(x,y)
+function Map:setGPS(x, y)
+  SetNewWaypoint(x, y)
 end
 
 -- AREA
 
 -- create/update a cylinder area
-function Map:setArea(name,x,y,z,radius,height)
-  local area = {x=x,y=y,z=z,radius=radius,height=height}
+function Map:setArea(name, x, y, z, radius, height)
+  local area = { x = x, y = y, z = z, radius = radius, height = height }
 
   -- default values
   if area.height == nil then area.height = 6 end
@@ -363,13 +364,13 @@ end
 -- locked: boolean
 -- doorswing: -1 to 1
 function Map:setStateOfClosestDoor(doordef, locked, doorswing)
-  local x,y,z = vRP.EXT.Base:getPosition()
+  local x, y, z = vRP.EXT.Base:getPosition()
   local hash = doordef.modelhash
   if hash == nil then
     hash = GetHashKey(doordef.model)
   end
 
-  SetStateOfClosestDoorOfType(hash,x,y,z,locked,doorswing)
+  SetStateOfClosestDoorOfType(hash, x, y, z, locked, doorswing)
 end
 
 -- TUNNEL
