@@ -15,7 +15,7 @@ local function menu_admin(self)
     local user = menu.user
 
     if user:hasPermission("player.custom_model") then
-      local model = user:prompt(lang.admin.custom_model.prompt(),"")
+      local model = user:prompt(lang.admin.custom_model.prompt(), "")
       local hash = tonumber(model)
       local custom = {}
       if hash then
@@ -64,22 +64,26 @@ function PlayerState.event:playerSpawn(user, first_spawn)
 
   -- default position
   if not user.cdata.state.position and self.cfg.spawn_enabled then
-    local x = self.cfg.spawn_position[1]+math.random()*self.cfg.spawn_radius*2-self.cfg.spawn_radius
-    local y = self.cfg.spawn_position[2]+math.random()*self.cfg.spawn_radius*2-self.cfg.spawn_radius
+    local x = self.cfg.spawn_position[1] + math.random() * self.cfg.spawn_radius * 2 - self.cfg.spawn_radius
+    local y = self.cfg.spawn_position[2] + math.random() * self.cfg.spawn_radius * 2 - self.cfg.spawn_radius
     local z = self.cfg.spawn_position[3]
-    user.cdata.state.position = {x=x,y=y,z=z}
+    user.cdata.state.position = { x = x, y = y, z = z }
   end
 
   if user.cdata.state.position then -- teleport to saved pos
-    vRP.EXT.Base.remote.teleport(user.source,user.cdata.state.position.x,user.cdata.state.position.y,user.cdata.state.position.z, user.cdata.state.heading)
+    vRP.EXT.Base.remote.teleport(user.source, user.cdata.state.position.x, user.cdata.state.position.y,
+      user.cdata.state.position.z, user.cdata.state.heading)
   end
 
   if user.cdata.state.customization then -- customization
-    self.remote.setCustomization(user.source,user.cdata.state.customization) 
+    self.remote.setCustomization(user.source, user.cdata.state.customization)
   end
 
+  -- weapons
+  --vRP.EXT.Weapon.remote._getWeapons(user.source,user.cdata.state.weapons or {},true)
+
   if user.cdata.state.health then -- health
-    self.remote.setHealth(user.source,user.cdata.state.health)
+    self.remote.setHealth(user.source, user.cdata.state.health)
   end
 
   self.remote._setStateReady(user.source, true)
@@ -91,6 +95,7 @@ function PlayerState.event:playerDeath(user)
   user.cdata.state.position = nil
   user.cdata.state.heading = nil
   user.cdata.state.health = nil
+  user.cdata.state.weapons = nil
 end
 
 function PlayerState.event:characterLoad(user)
@@ -109,7 +114,7 @@ PlayerState.tunnel = {}
 function PlayerState.tunnel:update(state)
   local user = vRP.users_by_source[source]
   if user and user:isReady() then
-    for k,v in pairs(state) do
+    for k, v in pairs(state) do
       user.cdata.state[k] = v
     end
 

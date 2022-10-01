@@ -190,7 +190,7 @@ cfg.weapons = {
         Name = "Incendiary Rounds",
         Description = "Bullets which set targets on fire when shot. Reduced capacity.",
         AmmoType = "AMMO_SNIPER_INCENDIARY",
-        Enabled = true,
+        Enabled = false,
       },
       ["277524638"] = {
         HashKey = "COMPONENT_AT_SR_BARREL_02",
@@ -215,7 +215,7 @@ cfg.weapons = {
         Name = "Full Metal Jacket Rounds",
         Description = "Increased damage to vehicles. Also penetrates bullet resistant and bulletproof vehicle glass. Reduced capacity.",
         AmmoType = "AMMO_SNIPER_FMJ",
-        Enabled = true,
+        Enabled = false,
       },
       ["1602080333"] = {
         HashKey = "COMPONENT_AT_MUZZLE_08",
@@ -240,7 +240,7 @@ cfg.weapons = {
         Name = "Explosive Rounds",
         Description = "Bullets which explode on impact. Reduced capacity.",
         AmmoType = "AMMO_SNIPER_EXPLOSIVE",
-        Enabled = true,
+        Enabled = false,
       },
       ["2425761975"] = {
         HashKey = "COMPONENT_AT_SR_BARREL_01",
@@ -271,7 +271,7 @@ cfg.weapons = {
         Name = "Armor Piercing Rounds",
         Description = "Increased penetration of Body Armor. Reduced capacity.",
         AmmoType = "AMMO_SNIPER_ARMORPIERCING",
-        Enabled = true,
+        Enabled = false,
       },
       ["4196276776"] = {
         HashKey = "COMPONENT_HEAVYSNIPER_MK2_CLIP_01",
@@ -645,7 +645,7 @@ cfg.weapons = {
         Name = "Full Metal Jacket Rounds",
         Description = "Increased damage to vehicles. Also penetrates bullet resistant and bulletproof vehicle glass. Reduced capacity.",
         AmmoType = "AMMO_RIFLE_FMJ",
-        Enabled = true,
+        Enabled = false,
       },
       ["2076495324"] = {
         HashKey = "COMPONENT_AT_AR_FLSH",
@@ -676,7 +676,7 @@ cfg.weapons = {
         Name = "Armor Piercing Rounds",
         Description = "Increased penetration of Body Armor. Reduced capacity.",
         AmmoType = "AMMO_RIFLE_ARMORPIERCING",
-        Enabled = true,
+        Enabled = false,
       },
       ["3113485012"] = {
         HashKey = "COMPONENT_AT_MUZZLE_01",
@@ -719,14 +719,14 @@ cfg.weapons = {
         Name = "Tracer Rounds",
         Description = "Bullets with bright visible markers that match the tint of the gun. Standard capacity.",
         AmmoType = "AMMO_RIFLE_TRACER",
-        Enabled = true,
+        Enabled = false,
       },
       ["4218476627"] = {
         HashKey = "COMPONENT_ASSAULTRIFLE_MK2_CLIP_INCENDIARY",
         Name = "Incendiary Rounds",
         Description = "Bullets which include a chance to set targets on fire when shot. Reduced capacity.",
         AmmoType = "AMMO_RIFLE_INCENDIARY",
-        Enabled = true,
+        Enabled = false,
       },
     },
   },
@@ -837,33 +837,6 @@ cfg.weapons = {
     Enabled = true,
     Components = { },
   },
-  ["1305664598"] = {
-    HashKey = "WEAPON_GRENADELAUNCHER_SMOKE",
-    Name = "Tear Gas Launcher",
-    Description = "",
-    Group = "GROUP_HEAVY",
-    Enabled = true,
-    Components = {
-      ["202788691"] = {
-        HashKey = "COMPONENT_AT_AR_AFGRIP",
-        Name = "Grip",
-        Description = "Improves weapon accuracy.",
-        Enabled = true,
-      },
-      ["2076495324"] = {
-        HashKey = "COMPONENT_AT_AR_FLSH",
-        Name = "Flashlight",
-        Description = "Aids low light target acquisition.",
-        Enabled = true,
-      },
-      ["2855028148"] = {
-        HashKey = "COMPONENT_AT_SCOPE_SMALL",
-        Name = "Scope",
-        Description = "Medium-range zoom functionality.",
-        Enabled = true,
-      }
-    },
-  },
   ["1317494643"] = {
     HashKey = "WEAPON_HAMMER",
     Name = "Hammer",
@@ -890,7 +863,7 @@ cfg.weapons = {
         Name = "Explosive Slugs",
         Description = "Projectile which explodes on impact.",
         AmmoType = "AMMO_SHOTGUN_EXPLOSIVE",
-        Enabled = true,
+        Enabled = false,
       },
       ["1060929921"] = {
         HashKey = "COMPONENT_AT_SCOPE_SMALL_MK2",
@@ -909,7 +882,7 @@ cfg.weapons = {
         Name = "Steel Buckshot Shells",
         Description = "Increased penetration of Body Armor.",
         AmmoType = "AMMO_SHOTGUN_ARMORPIERCING",
-        Enabled = true,
+        Enabled = false,
       },
       ["1602080333"] = {
         HashKey = "COMPONENT_AT_MUZZLE_08",
@@ -928,7 +901,7 @@ cfg.weapons = {
         Name = "Dragon's Breath Shells",
         Description = "Has a chance to set targets on fire when shot.",
         AmmoType = "AMMO_SHOTGUN_INCENDIARY",
-        Enabled = true,
+        Enabled = false,
       },
       ["2890063729"] = {
         HashKey = "COMPONENT_AT_SR_SUPP_03",
@@ -947,7 +920,7 @@ cfg.weapons = {
         Name = "Flechette Shells",
         Description = "Increased damage to targets without Body Armor.",
         AmmoType = "AMMO_SHOTGUN_HOLLOWPOINT",
-        Enabled = true,
+        Enabled = false,
       },
     },
   },
@@ -1124,7 +1097,7 @@ cfg.weapons = {
         Name = "Incendiary Rounds",
         Description = "Bullets which include a chance to set targets on fire when shot. Reduced capacity.",
         AmmoType = "AMMO_SNIPER_INCENDIARY",
-        Enabled = true,
+        Enabled = false,
       },
       ["2076495324"] = {
         HashKey = "COMPONENT_AT_AR_FLSH",
@@ -1173,7 +1146,7 @@ cfg.weapons = {
         Name = "Tracer Rounds",
         Description = "Bullets with bright visible markers that match the tint of the gun. Standard capacity.",
         AmmoType = "AMMO_SNIPER_TRACER",
-        Enabled = true,
+        Enabled = false,
       },
       ["3725708239"] = {
         HashKey = "COMPONENT_AT_MUZZLE_03",
@@ -1186,7 +1159,7 @@ cfg.weapons = {
         Name = "Full Metal Jacket Rounds",
         Description = "Increased damage to vehicles. Also penetrates bullet resistant and bulletproof vehicle glass. Reduced capacity.",
         AmmoType = "AMMO_SNIPER_FMJ",
-        Enabled = true,
+        Enabled = false,
       },
       ["3872379306"] = {
         HashKey = "COMPONENT_MARKSMANRIFLE_MK2_CLIP_02",
@@ -1205,7 +1178,7 @@ cfg.weapons = {
         Name = "Armor Piercing Rounds",
         Description = "Increased penetration of Body Armor. Reduced capacity.",
         AmmoType = "AMMO_SNIPER_ARMORPIERCING",
-        Enabled = true,
+        Enabled = false,
       },
     },
   },
@@ -1272,7 +1245,7 @@ cfg.weapons = {
         Name = "Full Metal Jacket Rounds",
         Description = "Increased damage to vehicles. Also penetrates bullet resistant and bulletproof vehicle glass. Reduced capacity.",
         AmmoType = "AMMO_SMG_FMJ",
-        Enabled = true,
+        Enabled = false,
       },
       ["880736428"] = {
         HashKey = "COMPONENT_AT_MUZZLE_06",
@@ -1285,7 +1258,7 @@ cfg.weapons = {
         Name = "Hollow Point Rounds",
         Description = "Increased damage to targets without Body Armor. Reduced capacity.",
         AmmoType = "AMMO_SMG_HOLLOWPOINT",
-        Enabled = true,
+        Enabled = false,
       },
       ["1038927834"] = {
         HashKey = "COMPONENT_AT_SCOPE_SMALL_SMG_MK2",
@@ -1316,7 +1289,7 @@ cfg.weapons = {
         Name = "Tracer Rounds",
         Description = "Bullets with bright visible markers that match the tint of the gun. Standard capacity.",
         AmmoType = "AMMO_SMG_TRACER",
-        Enabled = true,
+        Enabled = false,
       },
       ["2681951826"] = {
         HashKey = "COMPONENT_AT_SIGHTS_SMG",
@@ -1365,7 +1338,7 @@ cfg.weapons = {
         Name = "Incendiary Rounds",
         Description = "Bullets which include a chance to set targets on fire when shot. Reduced capacity.",
         AmmoType = "AMMO_SMG_INCENDIARY",
-        Enabled = true,
+        Enabled = false,
       },
       ["3725708239"] = {
         HashKey = "COMPONENT_AT_MUZZLE_03",
@@ -1593,7 +1566,7 @@ cfg.weapons = {
         Name = "Full Metal Jacket Rounds",
         Description = "Increased damage to vehicles. Also penetrates bullet resistant and bulletproof vehicle glass. Reduced capacity.",
         AmmoType = "AMMO_RIFLE_FMJ",
-        Enabled = true,
+        Enabled = false,
       },
       ["1303784126"] = {
         HashKey = "COMPONENT_AT_MUZZLE_07",
@@ -1618,7 +1591,7 @@ cfg.weapons = {
         Name = "Tracer Rounds",
         Description = "Bullets with bright visible markers that match the tint of the gun. Standard capacity.",
         AmmoType = "AMMO_RIFLE_TRACER",
-        Enabled = true,
+        Enabled = false,
       },
       ["2205435306"] = {
         HashKey = "COMPONENT_AT_AR_SUPP",
@@ -1637,7 +1610,7 @@ cfg.weapons = {
         Name = "Incendiary Rounds",
         Description = "Bullets which include a chance to set targets on fire when shot. Reduced capacity.",
         AmmoType = "AMMO_RIFLE_INCENDIARY",
-        Enabled = true,
+        Enabled = false,
       },
       ["3113485012"] = {
         HashKey = "COMPONENT_AT_MUZZLE_01",
@@ -1680,7 +1653,7 @@ cfg.weapons = {
         Name = "Armor Piercing Rounds",
         Description = "Increased penetration of Body Armor. Reduced capacity.",
         AmmoType = "AMMO_RIFLE_ARMORPIERCING",
-        Enabled = true,
+        Enabled = false,
       }
     },
   },
@@ -1720,14 +1693,14 @@ cfg.weapons = {
         Name = "Hollow Point Rounds",
         Description = "Increased damage to targets without Body Armor.",
         AmmoType = "AMMO_PISTOL_HOLLOWPOINT",
-        Enabled = true,
+        Enabled = false,
       },
       ["2418909806"] = {
         HashKey = "COMPONENT_SNSPISTOL_MK2_CLIP_TRACER",
         Name = "Tracer Rounds",
         Description = "Bullets with bright visible markers that match the tint of the gun.",
         AmmoType = "AMMO_PISTOL_TRACER",
-        Enabled = true,
+        Enabled = false,
       },
       ["2860680127"] = {
         HashKey = "COMPONENT_AT_PI_COMP_02",
@@ -1740,7 +1713,7 @@ cfg.weapons = {
         Name = "Full Metal Jacket Rounds",
         Description = "Increased damage to vehicles. Also penetrates bullet resistant and bulletproof vehicle glass.",
         AmmoType = "AMMO_PISTOL_FMJ",
-        Enabled = true,
+        Enabled = false,
       },
       ["3465283442"] = {
         HashKey = "COMPONENT_SNSPISTOL_MK2_CLIP_02",
@@ -1753,7 +1726,7 @@ cfg.weapons = {
         Name = "Incendiary Rounds",
         Description = "Bullets which include a chance to set targets on fire when shot.",
         AmmoType = "AMMO_PISTOL_INCENDIARY",
-        Enabled = true,
+        Enabled = false,
       },
     },
   },
@@ -1867,14 +1840,14 @@ cfg.weapons = {
         Name = "Full Metal Jacket Rounds",
         Description = "Increased damage to vehicles. Also penetrates bullet resistant and bulletproof vehicle glass. Reduced capacity.",
         AmmoType = "AMMO_RIFLE_FMJ",
-        Enabled = true,
+        Enabled = false,
       },
       ["1362433589"] = {
         HashKey = "COMPONENT_SPECIALCARBINE_MK2_CLIP_ARMORPIERCING",
         Name = "Armor Piercing Rounds",
         Description = "Increased penetration of Body Armor. Reduced capacity.",
         AmmoType = "AMMO_RIFLE_ARMORPIERCING",
-        Enabled = true,
+        Enabled = false,
       },
       ["2076495324"] = {
         HashKey = "COMPONENT_AT_AR_FLSH",
@@ -1887,7 +1860,7 @@ cfg.weapons = {
         Name = "Tracer Rounds",
         Description = "Bullets with bright visible markers that match the tint of the gun. Standard capacity.",
         AmmoType = "AMMO_RIFLE_TRACER",
-        Enabled = true,
+        Enabled = false,
       },
       ["2640679034"] = {
         HashKey = "COMPONENT_AT_AR_AFGRIP_02",
@@ -1924,7 +1897,7 @@ cfg.weapons = {
         Name = "Incendiary Rounds",
         Description = "Bullets which include a chance to set targets on fire when shot. Reduced capacity.",
         AmmoType = "AMMO_RIFLE_INCENDIARY",
-        Enabled = true,
+        Enabled = false,
       },
       ["3725708239"] = {
         HashKey = "COMPONENT_AT_MUZZLE_03",
@@ -2330,14 +2303,14 @@ cfg.weapons = {
         Name = "Tracer Rounds",
         Description = "Bullets with bright visible markers that match the tint of the gun. Standard capacity.",
         AmmoType = "AMMO_PISTOL_TRACER",
-        Enabled = true,
+        Enabled = false,
       },
       ["733837882"] = {
         HashKey = "COMPONENT_PISTOL_MK2_CLIP_INCENDIARY",
         Name = "Incendiary Rounds",
         Description = "Bullets which include a chance to set targets on fire when shot. Reduced capacity.",
         AmmoType = "AMMO_PISTOL_INCENDIARY",
-        Enabled = true,
+        Enabled = false,
       },
       ["1140676955"] = {
         HashKey = "COMPONENT_AT_PI_FLSH_02",
@@ -2350,7 +2323,7 @@ cfg.weapons = {
         Name = "Full Metal Jacket Rounds",
         Description = "Increased damage to vehicles. Also penetrates bullet resistant and bulletproof vehicle glass. Reduced capacity.",
         AmmoType = "AMMO_PISTOL_FMJ",
-        Enabled = true,
+        Enabled = false,
       },
       ["1591132456"] = {
         HashKey = "COMPONENT_PISTOL_MK2_CLIP_02",
@@ -2369,7 +2342,7 @@ cfg.weapons = {
         Name = "Hollow Point Rounds",
         Description = "Increased damage to targets without Body Armor. Reduced capacity.",
         AmmoType = "AMMO_PISTOL_HOLLOWPOINT",
-        Enabled = true,
+        Enabled = false,
       },
       ["2396306288"] = {
         HashKey = "COMPONENT_AT_PI_RAIL",
@@ -2610,7 +2583,7 @@ cfg.weapons = {
         Name = "Incendiary Rounds",
         Description = "Bullets which set targets on fire when shot.",
         AmmoType = "AMMO_PISTOL_INCENDIARY",
-        Enabled = true,
+        Enabled = false,
       },
       ["77277509"] = {
         HashKey = "COMPONENT_AT_SCOPE_MACRO_MK2",
@@ -2623,14 +2596,14 @@ cfg.weapons = {
         Name = "Full Metal Jacket Rounds",
         Description = "Increased damage to vehicles. Also penetrates bullet resistant and bulletproof vehicle glass.",
         AmmoType = "AMMO_PISTOL_FMJ",
-        Enabled = true,
+        Enabled = false,
       },
       ["284438159"] = {
         HashKey = "COMPONENT_REVOLVER_MK2_CLIP_HOLLOWPOINT",
         Name = "Hollow Point Rounds",
         Description = "Increased damage to targets without Body Armor.",
         AmmoType = "AMMO_PISTOL_HOLLOWPOINT",
-        Enabled = true,
+        Enabled = false,
       },
       ["654802123"] = {
         HashKey = "COMPONENT_AT_PI_COMP_03",
@@ -2661,7 +2634,7 @@ cfg.weapons = {
         Name = "Tracer Rounds",
         Description = "Bullets with bright visible markers that match the tint of the gun.",
         AmmoType = "AMMO_PISTOL_TRACER",
-        Enabled = true,
+        Enabled = false,
       },
     },
   },
@@ -2860,14 +2833,6 @@ cfg.weapons = {
       }
     },
   },
-  ["3684886537"] = {
-    HashKey = "WEAPON_METALDETECTOR",
-    Name = "Metal Detector",
-    Description = "** PLACEHOLDER METAL DETECTOR DESCRIPTION **",
-    Group = "GROUP_MISC",
-    Enabled = true,
-    Components = { },
-  },
   ["3686625920"] = {
     HashKey = "WEAPON_COMBATMG_MK2",
     Name = "Combat MG Mk II",
@@ -2892,7 +2857,7 @@ cfg.weapons = {
         Name = "Armor Piercing Rounds",
         Description = "Increased penetration of Body Armor. Reduced capacity.",
         AmmoType = "AMMO_MG_ARMORPIERCING",
-        Enabled = true,
+        Enabled = false,
       },
       ["880736428"] = {
         HashKey = "COMPONENT_AT_MUZZLE_06",
@@ -2929,7 +2894,7 @@ cfg.weapons = {
         Name = "Full Metal Jacket Rounds",
         Description = "Increased damage to vehicles. Also penetrates bullet resistant and bulletproof vehicle glass. Reduced capacity.",
         AmmoType = "AMMO_MG_FMJ",
-        Enabled = true,
+        Enabled = false,
       },
       ["2640679034"] = {
         HashKey = "COMPONENT_AT_AR_AFGRIP_02",
@@ -2954,7 +2919,7 @@ cfg.weapons = {
         Name = "Incendiary Rounds",
         Description = "Bullets which include a chance to set targets on fire when shot. Reduced capacity.",
         AmmoType = "AMMO_MG_INCENDIARY",
-        Enabled = true,
+        Enabled = false,
       },
       ["3276730932"] = {
         HashKey = "COMPONENT_AT_MG_BARREL_01",
@@ -2991,7 +2956,7 @@ cfg.weapons = {
         Name = "Tracer Rounds",
         Description = "Bullets with bright visible markers that match the tint of the gun. Standard capacity.",
         AmmoType = "AMMO_MG_TRACER",
-        Enabled = true,
+        Enabled = false,
       }
     },
   },
@@ -3178,14 +3143,14 @@ cfg.weapons = {
         Name = "Tracer Rounds",
         Description = "Bullets with bright visible markers that match the tint of the gun. Standard capacity.",
         AmmoType = "AMMO_RIFLE_TRACER",
-        Enabled = true,
+        Enabled = false,
       },
       ["626875735"] = {
         HashKey = "COMPONENT_CARBINERIFLE_MK2_CLIP_ARMORPIERCING",
         Name = "Armor Piercing Rounds",
         Description = "Increased penetration of Body Armor. Reduced capacity.",
         AmmoType = "AMMO_RIFLE_ARMORPIERCING",
-        Enabled = true,
+        Enabled = false,
       },
       ["880736428"] = {
         HashKey = "COMPONENT_AT_MUZZLE_06",
@@ -3198,7 +3163,7 @@ cfg.weapons = {
         Name = "Incendiary Rounds",
         Description = "Bullets which include a chance to set targets on fire when shot. Reduced capacity.",
         AmmoType = "AMMO_RIFLE_INCENDIARY",
-        Enabled = true,
+        Enabled = false,
       },
       ["1108334355"] = {
         HashKey = "COMPONENT_AT_SIGHTS",
@@ -3211,7 +3176,7 @@ cfg.weapons = {
         Name = "Full Metal Jacket Rounds",
         Description = "Increased damage to vehicles. Also penetrates bullet resistant and bulletproof vehicle glass. Reduced capacity.",
         AmmoType = "AMMO_RIFLE_FMJ",
-        Enabled = true,
+        Enabled = false,
       },
       ["1283078430"] = {
         HashKey = "COMPONENT_CARBINERIFLE_MK2_CLIP_01",

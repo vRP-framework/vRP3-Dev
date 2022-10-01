@@ -4,12 +4,12 @@
 if not vRP.modules.weapon then return end
 
 local Weapon = class("Weapon", vRP.Extension)
-
 -- METHODS
 
 function Weapon:__construct()
   vRP.Extension.__construct(self)
 
+  self.weapon = {}  -- map of weapon ids
   self.state_ready = false
   self.update_interval = 30
   self.mp_models = {} -- map of model hash
@@ -17,11 +17,11 @@ function Weapon:__construct()
   -- update task
   Citizen.CreateThread(function()
     while true do
-      Citizen.Wait(self.update_interval*1000)
+      Citizen.Wait(self.update_interval * 1000)
 
       if self.state_ready then
-        local x,y,z = vRP.EXT.Base:getPosition()
-
+        local x, y, z = vRP.EXT.Base:getPosition()
+        print("test")
         self.remote._update({
           weapons = self:getWeapons()
         })
@@ -32,7 +32,7 @@ end
 
 -- WEAPONS
 
--- get player weapons 
+-- get player weapons
 -- return map of name => {.ammo}
 function Weapon:getWeapons()
   local player = GetPlayerPed(-1)
@@ -40,22 +40,22 @@ function Weapon:getWeapons()
   local ammo_types = {} -- remember ammo type to not duplicate ammo amount
 
   local weapons = {}
-  for k,v in pairs(Weapon.weapon_types) do
-	if v then
-		local hash = GetHashKey(k)
-		if HasPedGotWeapon(player,hash) then
-		  local weapon = {}
-		  weapons[v] = weapon
+  for k, v in pairs(self.weapon) do
+    if v then
+      local hash = GetHashKey(v)
+      if HasPedGotWeapon(player, hash) then
+        local weapon = {}
+        weapons[v] = weapon
 
-		  local atype = Citizen.InvokeNative(0x7FEAD38B326B9F74, player, hash)
-		  if ammo_types[atype] == nil then
-			ammo_types[atype] = true
-			weapon.ammo = GetAmmoInPedWeapon(player,hash)
-		  else
-			weapon.ammo = 0
-		  end
-		end
-	end
+        local atype = Citizen.InvokeNative(0x7FEAD38B326B9F74, player, hash)
+        if ammo_types[atype] == nil then
+          ammo_types[atype] = true
+          weapon.ammo = GetAmmoInPedWeapon(player, hash)
+        else
+          weapon.ammo = 0
+        end
+      end
+    end
   end
 
   return weapons
@@ -78,10 +78,10 @@ function Weapon:giveWeapons(weapons, clear_before)
 
   -- give weapons to player
   if clear_before then
-    RemoveAllPedWeapons(player,true)
+    RemoveAllPedWeapons(player, true)
   end
 
-  for k,weapon in pairs(weapons) do
+  for k, weapon in pairs(weapons) do
     local hash = GetHashKey(k)
     local ammo = weapon.ammo or 0
 
@@ -90,27 +90,37 @@ function Weapon:giveWeapons(weapons, clear_before)
 end
 
 -- give specific weapon to player
-function Weapon:giveWeapon(player, weapon, clear_before)
+function Weapon:giveWeapon(player, weapon, name)
   local playerIdx = GetPlayerFromServerId(player)
   local ped = GetPlayerPed(playerIdx)
   local hash = GetHashKey(weapon)
-  
+
   -- give a weapon to player
-  GiveWeaponToPed(ped, hash, 999, false)
+  if not HasPedGotWeapon(ped,hash,false) then
+    GiveWeaponToPed(ped, hash, 999, false)
+    vRP.EXT.Base:notify("You recieved a " .. name .. "")
+  else
+    vRP.EXT.Base:notify("You already own this weapon")
+  end
 end
 
 -- give specific weapon to player
 function Weapon:giveComponent(player, weapon, component, clear_before)
   local playerIdx = GetPlayerFromServerId(player)
   local ped = GetPlayerPed(playerIdx)
-    
+
   local weapon_hash = GetHashKey(weapon)
   local component_hash = GetHashKey(component)
 
-  local component = GetWeaponComponentTypeModel(hash)
-  
-  if not HasPedGotWeaponComponent(ped, weapon_hash, component_hash) then
-	  GiveWeaponComponentToPed(ped, weapon_hash, component_hash)
+  -- give a weapon to player
+  if HasPedGotWeapon(ped,weapon_hash,false) then
+    if not HasPedGotWeaponComponent(ped, weapon_hash, component_hash) then
+      GiveWeaponComponentToPed(ped, weapon_hash, component_hash)
+    else
+      vRP.EXT.Base:notify("You already own this component")
+    end
+  else
+    vRP.EXT.Base:notify("You dont own this weapon")
   end
 end
 
@@ -119,28 +129,31 @@ function Weapon:giveAmmo(player, weapon, ammo, clear_before)
   local playerIdx = GetPlayerFromServerId(player)
   local ped = GetPlayerPed(playerIdx)
   local hash = GetHashKey(weapon)
-  
-  local currentAmmo = GetAmmoInPedWeapon(ped, hash)
-  local newAmmo = currentAmmo + ammo
-  local maxAmmo = GetMaxAmmo(ped, hash)
-  
-  notification("current Ammo: "..currentAmmo..", Max: "..maxAmmo..", new Ammo: "..newAmmo)
-  
-  if newAmmo < maxAmmo then
-	SetPedAmmo(ped, hash, newAmmo)
+
+  local ammoInWeapon = GetAmmoInPedWeapon(ped, hash)
+  local newAmmo = ammoInWeapon + ammo
+  local c, maxAmmo = GetMaxAmmo(ped, hash)
+
+  if HasPedGotWeapon(ped,hash,false) then
+    if ammoInWeapon < maxAmmo then
+      SetPedAmmo(ped, hash, newAmmo)
+    else
+      vRP.EXT.Base:notify("You already have max ammo")
+    end
+  else
+    vRP.EXT.Base:notify("You dont own this weapon")
   end
 end
 
---Client side notification
-function notification(msg)		
-	SetNotificationTextEntry("STRING")
-	AddTextComponentString(msg)
-	DrawNotification(false, false)
+-- initialize weapon table
+function Weapon:init(data)
+  table.insert(self.weapon, data)
 end
 
 -- TUNNEL
 Weapon.tunnel = {}
 
+Weapon.tunnel.init = Weapon.init
 Weapon.tunnel.giveAmmo = Weapon.giveAmmo
 Weapon.tunnel.getWeapons = Weapon.getWeapons
 Weapon.tunnel.replaceWeapons = Weapon.replaceWeapons
