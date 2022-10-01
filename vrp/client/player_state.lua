@@ -21,13 +21,13 @@ function PlayerState:__construct()
 
       if self.state_ready then
         local x, y, z = vRP.EXT.Base:getPosition()
-        print("update")
         self.remote._update({
           position = { x = x, y = y, z = z },
           heading = GetEntityHeading(GetPlayerPed(-1)),
           customization = self:getCustomization(),
           health = self:getHealth(),
           weapons = vRP.EXT.Weapon:getWeapons(),
+          components = vRP.EXT.Weapon:getComponents(),
         })
       end
     end
@@ -140,11 +140,13 @@ function PlayerState:setCustomization(custom)
 
           local health = self:getHealth()
           local weapons = vRP.EXT.Weapon:getWeapons()
+          local components = vRP.EXT.Weapon:getComponents()
 
           SetPlayerModel(PlayerId(), mhash)
 
           self:setHealth(health)
           vRP.EXT.Weapon:giveWeapons(weapons,true)
+          vRP.EXT.Weapon:getComponents(components)
 
           vRP:triggerEventSync("playerModelRestore")
 
