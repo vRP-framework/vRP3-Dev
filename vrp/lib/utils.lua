@@ -82,6 +82,7 @@ if cfg_modules.profiler then
   -- load profiler
   local ELProfiler
   if not os then -- fix missing os lib error
+---@diagnostic disable-next-line: assign-type-mismatch
     os = {}; ELProfiler = module("vrp", "lib/ELProfiler"); os = nil
   else
     ELProfiler = module("vrp", "lib/ELProfiler")

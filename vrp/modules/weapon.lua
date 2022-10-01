@@ -58,10 +58,9 @@ local function menu_weapons_type(self)
 
 		for weapon, v in pairs(self.weapons) do
 			local name, Description, Group, Components = table.unpack(v)
-
 			if menu.data.gtype == Group then
 				menu:addOption(name, function(menu)
-					menu.user:openMenu("weapons.type.options", { name = name, weapon = weapon })
+					menu.user:openMenu("weapons.type.options", {name = name, weapon = weapon})
 				end, Description)
 			end
 		end
@@ -80,10 +79,9 @@ local function menu_weapons(self)
 			local title = table.unpack(v)
 
 			menu:addOption(title, function(menu)
-				menu.user:openMenu("weapons.type", { gtype = k, title = title })
+				menu.user:openMenu("weapons.type", {gtype = k,title = title})
 			end)
 		end
-
 	end)
 end
 
@@ -111,13 +109,6 @@ function Weapon:__construct()
 		end
 	end
 
-	--[[
-		for k,v in pairs(self.weapons) do
-			self.remote._init(user.source, k)
-			vRP.EXT.GUI.remote._closeMenu(self.source)
-		end
-	]]
-
 	--menu
 	menu_weapons(self)
 	menu_weapons_type(self)
@@ -133,13 +124,10 @@ function Weapon:__construct()
 end
 
 -- EVENT
-
 Weapon.event = {}
 
 function Weapon.event:characterLoad(user)
-	for k,v in pairs(self.weapons) do
-		self.remote._init(user.source, k)
-	end
+	self.remote._init(user.source, self.weapons)
 end
 
 vRP:registerExtension(Weapon)
