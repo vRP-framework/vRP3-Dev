@@ -5,7 +5,7 @@ local cfg = {}
 cfg.db = {
   driver = "oxmysql",
   host = "127.0.0.1",
-  database = "vrp3",
+  database = "vrp",
   user = "vRP",
   password = ""
 }
