@@ -11,8 +11,8 @@ local modules = {
   weather = true,
   misc = true,
   command = true,
-  player_state = true,
-  weapon = true
+  user = true,
+  identity = true
 }
 
 return modules

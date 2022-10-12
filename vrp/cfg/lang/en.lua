@@ -114,13 +114,8 @@ local lang = {
           title = "Kick",
           prompt = "Reason: "
         },
-		revive = {
-          title = "Revive",
-          description = "revive current player."
-        },
 		spectate = {
-          title = "Spectate",
-		  description = "spectate current player."
+          title = "Spectate"
         },
         tptome = {
           title = "TpToMe"
@@ -129,7 +124,7 @@ local lang = {
           title = "TpTo"
         },
         groups = {
-          title = "Current Groups",
+          title = "Groups",
           description = "{1}<br /><br />(valid to update)"
         },
         group_add = {
