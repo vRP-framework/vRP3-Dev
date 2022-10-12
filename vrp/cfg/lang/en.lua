@@ -114,8 +114,13 @@ local lang = {
           title = "Kick",
           prompt = "Reason: "
         },
-		spectate = {
-          title = "Spectate"
+	revive = {
+          title = "Revive",
+          description = "revive current player."
+	},
+	spectate = {
+          title = "Spectate",
+	  description = "spectate current player."
         },
         tptome = {
           title = "TpToMe"
