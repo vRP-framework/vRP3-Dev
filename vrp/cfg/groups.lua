@@ -26,10 +26,10 @@ function police_onjoin(user)
 end
 
 function police_onleave(user)
-  vRP.EXT.PlayerState.remote._giveWeapons(user.source,{},true)
-  vRP.EXT.Police.remote._setCop(user.source,false)
-  vRP.EXT.PlayerState.remote._setArmour(user.source,0)
-  user:removeCloak()
+  --vRP.EXT.PlayerState.remote._giveWeapons(user.source,{},true)
+  --vRP.EXT.Police.remote._setCop(user.source,false)
+  --vRP.EXT.PlayerState.remote._setArmour(user.source,0)
+  --user:removeCloak()
 end
 
 function police_onspawn(user)
@@ -43,6 +43,7 @@ cfg.groups = {
     "player.group.remove",
     "player.givemoney",
     "player.giveitem",
+    "player.giveweapon",
     "profiler.server",
     "profiler.client"
   },
@@ -61,6 +62,8 @@ cfg.groups = {
     "player.custom_sound",
     "player.display_custom",
     "player.coords",
+    "player.revive",
+	  "player.spectate",
     "player.tptome",
     "player.tpto"
   },
@@ -190,6 +193,9 @@ cfg.identity_gtypes = {
 -- count display
 
 cfg.count_display_interval = 15 -- seconds
+
+-- toggle display
+cfg.display = false
 
 cfg.count_display_css = [[
 .div_group_count_display{
