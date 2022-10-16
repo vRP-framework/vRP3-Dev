@@ -22,21 +22,18 @@ CREATE TABLE IF NOT EXISTS vrp_users(
   id INTEGER AUTO_INCREMENT,
   CONSTRAINT pk_user PRIMARY KEY(id)
 );
-
 CREATE TABLE IF NOT EXISTS vrp_user_ids(
   identifier VARCHAR(100),
   user_id INTEGER,
   CONSTRAINT pk_user_ids PRIMARY KEY(identifier),
   CONSTRAINT fk_user_ids_users FOREIGN KEY(user_id) REFERENCES vrp_users(id) ON DELETE CASCADE
 );
-
 CREATE TABLE IF NOT EXISTS vrp_characters(
   id INTEGER AUTO_INCREMENT,
   user_id INTEGER,
   CONSTRAINT pk_characters PRIMARY KEY(id),
   CONSTRAINT fk_characters_users FOREIGN KEY(user_id) REFERENCES vrp_users(id) ON DELETE CASCADE
 );
-
 CREATE TABLE IF NOT EXISTS vrp_user_data(
   user_id INTEGER,
   dkey VARCHAR(100),
@@ -44,7 +41,6 @@ CREATE TABLE IF NOT EXISTS vrp_user_data(
   CONSTRAINT pk_user_data PRIMARY KEY(user_id,dkey),
   CONSTRAINT fk_user_data_users FOREIGN KEY(user_id) REFERENCES vrp_users(id) ON DELETE CASCADE
 );
-
 CREATE TABLE IF NOT EXISTS vrp_character_data(
   character_id INTEGER,
   dkey VARCHAR(100),
@@ -52,14 +48,12 @@ CREATE TABLE IF NOT EXISTS vrp_character_data(
   CONSTRAINT pk_character_data PRIMARY KEY(character_id,dkey),
   CONSTRAINT fk_character_data_characters FOREIGN KEY(character_id) REFERENCES vrp_characters(id) ON DELETE CASCADE
 );
-
 CREATE TABLE IF NOT EXISTS vrp_server_data(
   id VARCHAR(100),
   dkey VARCHAR(100),
   dvalue BLOB,
   CONSTRAINT pk_server_data PRIMARY KEY(id, dkey)
 );
-
 CREATE TABLE IF NOT EXISTS vrp_global_data(
   dkey VARCHAR(100),
   dvalue BLOB,

@@ -43,7 +43,7 @@ cfg.groups = {
     "player.group.remove",
     "player.givemoney",
     "player.giveitem",
-	"player.giveweapon",
+    "player.giveweapon",
     "profiler.server",
     "profiler.client"
   },
@@ -62,8 +62,8 @@ cfg.groups = {
     "player.custom_sound",
     "player.display_custom",
     "player.coords",
-	"player.revive",
-	"player.spectate",
+    "player.revive",
+	  "player.spectate",
     "player.tptome",
     "player.tpto"
   },
@@ -195,7 +195,7 @@ cfg.identity_gtypes = {
 cfg.count_display_interval = 15 -- seconds
 
 -- toggle display
-cfg.display = false		
+cfg.display = false
 
 cfg.count_display_css = [[
 .div_group_count_display{

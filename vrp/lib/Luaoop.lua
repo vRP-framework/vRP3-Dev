@@ -413,7 +413,6 @@ local function class_instantiate(classdef, ...)
         local mtable, luaoop = force_custom_mtable(luaoop.meta, t) -- gc requires custom properties
 
         if lua5_1 then -- Lua 5.1
----@diagnostic disable-next-line: deprecated
           local proxy = newproxy(true)
           local mt = getmetatable(proxy)
           mt.__gc = proxy_gc
