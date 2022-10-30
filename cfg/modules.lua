@@ -12,7 +12,9 @@ local modules = {
   misc = true,
   command = true,
   player_state = true,
-  weapon = true
+  weapon = true,
+  user = true,
+  identity = true
 }
 
 return modules
