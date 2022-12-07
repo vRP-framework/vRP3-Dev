@@ -20,7 +20,9 @@ server_script {
   "modules/commands.lua",
   "modules/misc.lua",
   "modules/player_state.lua",
-  "modules/weapon.lua"
+  "modules/weapon.lua",
+  "modules/user.lua",
+  "modules/identity.lua"
 }
 
 client_scripts {
@@ -32,7 +34,8 @@ client_scripts {
   "client/commands.lua",
   "client/misc.lua",
   "client/player_state.lua",
-  "client/weapon.lua"
+  "client/weapon.lua",
+  "client/identity.lua"
 }
 
 files {
