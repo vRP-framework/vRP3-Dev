@@ -16,26 +16,25 @@ server_script {
   "modules/gui.lua",
   "modules/admin.lua",
   "modules/group.lua",
+  "modules/identity.lua",
   "modules/weather.lua",
   "modules/commands.lua",
   "modules/misc.lua",
   "modules/player_state.lua",
-  "modules/weapon.lua",
-  "modules/user.lua",
-  "modules/identity.lua"
+  "modules/weapon.lua"
 }
 
 client_scripts {
   "client/base.lua",
   "client/map.lua",
   "client/gui.lua",
+  "client/identity.lua",
   "client/admin.lua",
   "client/weather.lua",
   "client/commands.lua",
   "client/misc.lua",
   "client/player_state.lua",
-  "client/weapon.lua",
-  "client/identity.lua"
+  "client/weapon.lua"
 }
 
 files {

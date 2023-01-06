@@ -73,6 +73,17 @@ function vRPShared.Extension:__construct()
   self.remote = Tunnel.getInterface("vRP.EXT."..class.name(self))
 end
 
+function vRPShared.Extension:__destruct()
+  -- unbind tunnel interface
+  if self.tunnel_interface then
+    Tunnel.unbindInterface("vRP.EXT."..class.name(self), self.tunnel_interface)
+  end
+
+  if self.proxy_interface then
+    Proxy.removeInterface("vRP.EXT."..class.name(self), self.proxy_interface)
+  end
+end
+
 -- level: (optional) level, 0 by default
 function vRPShared.Extension:log(msg, level)
   vRP:log(msg, class.name(self), level)
@@ -126,6 +137,35 @@ function vRPShared:registerExtension(extension)
     self:error("Not an Extension class.")
   end
 end
+
+function vRPShared:unregisterExtension(extension)
+  if class.is(extension, vRPShared.Extension) then
+    local name = class.name(extension)
+    if self.EXT[name] then
+      -- unbind listeners
+      if extension.event then
+        for name,cb in pairs(extension.event or {}) do
+          local exts = self.ext_listeners[name]
+          if exts then -- check if the extension has listeners
+            exts[ext] = nil
+          end
+        end
+      end
+
+      self.EXT[name]:__destruct() -- unbind tunnel interface
+      self.EXT[name] = nil
+      self:log("Extension "..name.." unloaded.")
+
+      self:triggerEvent("extensionUnload", extension)
+    else
+      self:error("Extension "..name.." is not registered.")
+    end
+  else
+    self:error("Not an Extension class.")
+  end
+end
+
+
 
 -- trigger event (with async call for each listener)
 function vRPShared:triggerEvent(name, ...)

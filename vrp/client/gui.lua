@@ -17,18 +17,14 @@ function GUI:__construct()
 
       if not self.paused then
         -- menu controls
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.up)) then SendNUIMessage({ act = "event", event = "UP" }) end
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.down)) then SendNUIMessage({ act = "event",
-          event = "DOWN" }) end
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.left)) then SendNUIMessage({ act = "event",
-          event = "LEFT" }) end
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.right)) then SendNUIMessage({ act = "event",
-          event = "RIGHT" }) end
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.select)) then SendNUIMessage({ act = "event",
-          event = "SELECT" }) end
+        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.up)) then SendNUIMessage({act="event",event="UP"}) end
+        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.down)) then SendNUIMessage({act="event",event="DOWN"}) end
+        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.left)) then SendNUIMessage({act="event",event="LEFT"}) end
+        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.right)) then SendNUIMessage({act="event",event="RIGHT"}) end
+        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.select)) then SendNUIMessage({act="event",event="SELECT"}) end
         if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.cancel)) then
           self.remote._closeMenu()
-          SendNUIMessage({ act = "event", event = "CANCEL" })
+          SendNUIMessage({act="event",event="CANCEL"})
         end
 
         -- open general menu
@@ -51,10 +47,8 @@ function GUI:__construct()
         end
 
         -- F5,F6 (default: control michael, control franklin)
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.request.yes)) then SendNUIMessage({ act = "event",
-          event = "F5" }) end
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.request.no)) then SendNUIMessage({ act = "event",
-          event = "F6" }) end
+        if IsControlJustPressed(table.unpack(vRP.cfg.controls.request.yes)) then SendNUIMessage({act="event",event="F5"}) end
+        if IsControlJustPressed(table.unpack(vRP.cfg.controls.request.no)) then SendNUIMessage({act="event",event="F6"}) end
       end
 
       -- pause events
@@ -93,7 +87,7 @@ end
 
 -- hide/show GUI
 function GUI:setVisible(flag)
-  SendNUIMessage({ act = "set_visible", flag = flag })
+  SendNUIMessage({act="set_visible", flag=flag})
 end
 
 -- get native GUI coordinates based on UI description
@@ -113,16 +107,16 @@ function GUI:getMinimapRect()
   local x_align, y_align = string.byte("L"), string.byte("B")
 
   local x1, y2 = self:getNativeCoords(x_align, y_align, -0.0045, 0.002)
-  local x2, y1 = self:getNativeCoords(x_align, y_align, -0.0045 + 0.150, 0.002 - 0.188888)
+  local x2, y1 = self:getNativeCoords(x_align, y_align, -0.0045+0.150, 0.002-0.188888)
 
-  return x1 * w, y1 * h, (x2 - x1) * w, (y2 - y1) * h
+  return x1*w, y1*h, (x2-x1)*w, (y2-y1)*h
 end
 
 function GUI:updateGUIData()
   local w, h = GetActiveScreenResolution()
-  local minimap = { self:getMinimapRect() }
+  local minimap = {self:getMinimapRect()}
 
-  SendNUIMessage({ act = "gui_data", data = {
+  SendNUIMessage({act = "gui_data", data = {
     w = w,
     h = h,
     minimap = {
@@ -131,7 +125,7 @@ function GUI:updateGUIData()
       w = minimap[3],
       h = minimap[4]
     }
-  } })
+  }})
 end
 
 -- ANNOUNCE
@@ -139,8 +133,8 @@ end
 -- add an announce to the queue
 -- background: image url (800x150)
 -- content: announce html content
-function GUI:announce(background, content)
-  SendNUIMessage({ act = "announce", background = background, content = content })
+function GUI:announce(background,content)
+  SendNUIMessage({act="announce",background=background,content=content})
 end
 
 -- PROGRESS BAR
@@ -152,28 +146,28 @@ end
 --- "botright"
 -- r,g,b: RGB 256 color
 -- value: 0-1
-function GUI:setProgressBar(name, anchor, text, r, g, b, value)
-  local pbar = { name = name, anchor = anchor, text = text, r = r, g = g, b = b, value = value }
+function GUI:setProgressBar(name,anchor,text,r,g,b,value)
+  local pbar = {name=name,anchor=anchor,text=text,r=r,g=g,b=b,value=value}
 
   -- default values
   if pbar.value == nil then pbar.value = 0 end
 
-  SendNUIMessage({ act = "set_pbar", pbar = pbar })
+  SendNUIMessage({act="set_pbar",pbar = pbar})
 end
 
 -- set progress bar value 0-1
-function GUI:setProgressBarValue(name, value)
-  SendNUIMessage({ act = "set_pbar_val", name = name, value = value })
+function GUI:setProgressBarValue(name,value)
+  SendNUIMessage({act="set_pbar_val", name = name, value = value})
 end
 
 -- set progress bar text
-function GUI:setProgressBarText(name, text)
-  SendNUIMessage({ act = "set_pbar_text", name = name, text = text })
+function GUI:setProgressBarText(name,text)
+  SendNUIMessage({act="set_pbar_text", name = name, text = text})
 end
 
 -- remove a progress bar
 function GUI:removeProgressBar(name)
-  SendNUIMessage({ act = "remove_pbar", name = name })
+  SendNUIMessage({act="remove_pbar", name = name})
 end
 
 -- DIV
@@ -181,29 +175,29 @@ end
 -- set a div
 -- css: plain global css, the div class is "div_name"
 -- content: html content of the div
-function GUI:setDiv(name, css, content)
-  SendNUIMessage({ act = "set_div", name = name, css = css, content = content })
+function GUI:setDiv(name,css,content)
+  SendNUIMessage({act="set_div", name = name, css = css, content = content})
 end
 
 -- set the div css
-function GUI:setDivCss(name, css)
-  SendNUIMessage({ act = "set_div_css", name = name, css = css })
+function GUI:setDivCss(name,css)
+  SendNUIMessage({act="set_div_css", name = name, css = css})
 end
 
 -- set the div content
-function GUI:setDivContent(name, content)
-  SendNUIMessage({ act = "set_div_content", name = name, content = content })
+function GUI:setDivContent(name,content)
+  SendNUIMessage({act="set_div_content", name = name, content = content})
 end
 
 -- execute js for the div
 -- js: code, "this" is the div
-function GUI:divExecuteJS(name, js)
-  SendNUIMessage({ act = "div_execjs", name = name, js = js })
+function GUI:divExecuteJS(name,js)
+  SendNUIMessage({act="div_execjs", name = name, js = js})
 end
 
 -- remove the div
 function GUI:removeDiv(name)
-  SendNUIMessage({ act = "remove_div", name = name })
+  SendNUIMessage({act="remove_div", name = name})
 end
 
 -- EVENT
@@ -229,7 +223,7 @@ function GUI.tunnel:openMenu(menudata)
   self.menu_data = menudata
 
   if vRP.cfg.default_menu then
-    SendNUIMessage({ act = "open_menu", menudata = menudata })
+    SendNUIMessage({act="open_menu", menudata = menudata})
   end
 
   vRP:triggerEvent("menuOpen", menudata)
@@ -239,7 +233,7 @@ function GUI.tunnel:closeMenu()
   self.menu_data = nil
 
   if vRP.cfg.default_menu then
-    SendNUIMessage({ act = "close_menu" })
+    SendNUIMessage({act="close_menu"})
   end
 
   vRP:triggerEvent("menuClose")
@@ -250,7 +244,7 @@ function GUI.tunnel:setMenuSelectEvent(select_event)
     self.menu_data.select_event = select_event
 
     if vRP.cfg.default_menu then
-      SendNUIMessage({ act = "set_menu_select_event", select_event = select_event })
+      SendNUIMessage({act="set_menu_select_event", select_event = select_event})
     end
 
     vRP:triggerEvent("menuSetSelectEvent", select_event)
@@ -266,7 +260,7 @@ function GUI.tunnel:updateMenuOption(index, title, description)
     end
 
     if vRP.cfg.default_menu then
-      SendNUIMessage({ act = "update_menu_option", index = index - 1, title = title, description = description })
+      SendNUIMessage({act="update_menu_option", index = index-1, title = title, description = description})
     end
 
     vRP:triggerEvent("menuOptionUpdate", index, title, description)
@@ -275,16 +269,16 @@ end
 
 -- PROMPT
 
-function GUI.tunnel:prompt(title, default_text)
-  SendNUIMessage({ act = "prompt", title = title, text = tostring(default_text) })
+function GUI.tunnel:prompt(title,default_text)
+  SendNUIMessage({act="prompt",title=title,text=tostring(default_text)})
   SetNuiFocus(true)
 end
 
 -- REQUEST
 
-function GUI.tunnel:request(id, text, time)
-  SendNUIMessage({ act = "request", id = id, text = tostring(text), time = time })
-  vRP.EXT.Base:playSound("HUD_MINI_GAME_SOUNDSET", "5_SEC_WARNING")
+function GUI.tunnel:request(id,text,time)
+  SendNUIMessage({act="request",id=id,text=tostring(text),time = time})
+  vRP.EXT.Base:playSound("HUD_MINI_GAME_SOUNDSET","5_SEC_WARNING")
 end
 
 GUI.tunnel.announce = GUI.announce
@@ -301,16 +295,16 @@ GUI.tunnel.removeDiv = GUI.removeDiv
 -- NUI
 
 -- gui menu events
-RegisterNUICallback("menu", function(data, cb)
+RegisterNUICallback("menu",function(data,cb)
   if data.act == "valid" then
-    vRP.EXT.GUI.remote._triggerMenuOption(data.option + 1, data.mod)
+    vRP.EXT.GUI.remote._triggerMenuOption(data.option+1,data.mod)
   elseif data.act == "select" then
-    vRP.EXT.GUI.remote._triggerMenuSelect(data.option + 1)
+    vRP.EXT.GUI.remote._triggerMenuSelect(data.option+1)
   end
 end)
 
 -- gui prompt event
-RegisterNUICallback("prompt", function(data, cb)
+RegisterNUICallback("prompt",function(data,cb)
   if data.act == "close" then
     SetNuiFocus(false)
     SetNuiFocus(false)
@@ -319,13 +313,13 @@ RegisterNUICallback("prompt", function(data, cb)
 end)
 
 -- gui request event
-RegisterNUICallback("request", function(data, cb)
+RegisterNUICallback("request",function(data,cb)
   if data.act == "response" then
-    vRP.EXT.GUI.remote._requestResult(data.id, data.ok)
+    vRP.EXT.GUI.remote._requestResult(data.id,data.ok)
   end
 end)
 
-RegisterNUICallback("init", function(data, cb) -- NUI initialized
+RegisterNUICallback("init",function(data,cb) -- NUI initialized
   vRP:triggerEvent("NUIready")
 end)
 
