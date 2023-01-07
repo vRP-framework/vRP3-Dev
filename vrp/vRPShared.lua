@@ -73,17 +73,6 @@ function vRPShared.Extension:__construct()
   self.remote = Tunnel.getInterface("vRP.EXT."..class.name(self))
 end
 
-function vRPShared.Extension:__destruct()
-  -- unbind tunnel interface
-  if self.tunnel_interface then
-    Tunnel.unbindInterface("vRP.EXT."..class.name(self), self.tunnel_interface)
-  end
-
-  if self.proxy_interface then
-    Proxy.removeInterface("vRP.EXT."..class.name(self), self.proxy_interface)
-  end
-end
-
 -- level: (optional) level, 0 by default
 function vRPShared.Extension:log(msg, level)
   vRP:log(msg, class.name(self), level)

@@ -8,6 +8,7 @@ SERVER = IsDuplicityVersion()
 CLIENT = not SERVER
 
 local modules = {}
+local storedModules = {}
 
 -- load a lua resource file as module (for a specific side)
 -- rsc: resource name
