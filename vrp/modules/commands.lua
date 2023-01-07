@@ -60,7 +60,8 @@ function Command:__construct()
 	end, false)
 	
 	RegisterCommand("reload", function(source, args, rawCommand)
-	  vRP:unregisterExtension(args[1]) 
+	  stopModules()
+	  restartStoredModules()
 	end, false)
   end
 end

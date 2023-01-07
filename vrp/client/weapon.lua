@@ -104,20 +104,30 @@ end
 function Weapon:giveComponent(player, weapon, component, clear_before)
   local playerIdx = GetPlayerFromServerId(player)
   local ped = GetPlayerPed(playerIdx)
-  
-  local wpn = string.gsub(weapon, "WEAPON_", "")
-  local comp = "COMPONENT_"..component
-  notification("weapon: "..wpn..", component: "..comp)
-  
-  
+    
   local weapon_hash = GetHashKey(weapon)
   local component_hash = GetHashKey(component)
 
   local component = GetWeaponComponentTypeModel(hash)
   
   if not HasPedGotWeaponComponent(ped, weapon_hash, component_hash) then
-	GiveWeaponComponentToPed(ped, weapon_hash, component_hash)
+	  GiveWeaponComponentToPed(ped, weapon_hash, component_hash)
   end
+end
+
+-- give specific weapon to player
+function Weapon:getComponent(weapon, component)
+  local comp_1  = ""..weapon..""..component
+  local comp_2  = ""..component
+  local comp_3  = component
+
+  local w_Hash  = GetHashKey(weapon)
+  local c_Hash  = GetHashKey(component)
+
+  local checked = DoesWeaponTakeWeaponComponent(w_Hash, c_Hash)
+  local temp = {}
+
+  notification(comp_1)
 end
 
 -- give specific weapon to player
@@ -153,5 +163,6 @@ Weapon.tunnel.replaceWeapons = Weapon.replaceWeapons
 Weapon.tunnel.giveWeapons = Weapon.giveWeapons
 Weapon.tunnel.giveWeapon = Weapon.giveWeapon
 Weapon.tunnel.giveComponent = Weapon.giveComponent
+Weapon.tunnel.getComponent = Weapon.getComponent
 
 vRP:registerExtension(Weapon)
