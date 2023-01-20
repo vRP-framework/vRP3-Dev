@@ -21,7 +21,8 @@ server_script {
   "modules/commands.lua",
   "modules/misc.lua",
   "modules/player_state.lua",
-  "modules/weapon.lua"
+  "modules/weapon.lua",
+  "modules/logsystem.lua"
 }
 
 client_scripts {
@@ -71,4 +72,12 @@ files {
   "gui/sounds/radio_off.ogg",
   "gui/sounds/eating.ogg",
   "gui/sounds/drinking.ogg"
+}
+
+lua54 'yes'
+use_experimental_fxv2_oal 'yes'
+dependencies {
+  '/server:6129',
+  '/onesync',
+  'oxmysql'
 }
