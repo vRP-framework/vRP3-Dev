@@ -215,7 +215,7 @@ function vRP:authUser(source)
     if #rows > 0 then return rows[1].user_id end
   end
   -- no ids found, create user
-  local rows, affected = self:query("vRP/create_user", {})
+  local rows = self:query("vRP/create_user", {})
   if #rows > 0 then
     local user_id = rows[1].id
     -- add identifiers
@@ -391,10 +391,20 @@ function vRP:onPlayerDied(source)
 end
 
 -- restart everything defined in cfg
-RegisterServerEvent("vRP:reload")
-AddEventHandler("vRP:reload", function()
+RegisterNetEvent("vRP:reload", function()
   cfg = module("vrp", "cfg/base")
-  for k,v in pairs(cfg.moduals) do StartResource(v) end
+  for k,v in pairs(cfg.moduals) do 
+    print(k, v)
+    StartResource(v) 
+  end
+end)
+
+
+Citizen.CreateThread(function ()
+  while GetResourceState(GetCurrentResourceName()) ~= "started" do
+    Wait(100)  
+  end
+  TriggerEvent("vRP:reload")
 end)
 
 return vRP

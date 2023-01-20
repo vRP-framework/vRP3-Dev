@@ -5,8 +5,8 @@ local cfg = {}
 cfg.db = {
   driver = "oxmysql",
   host = "127.0.0.1",
-  database = "vRP",
-  user = "vRP",
+  database = "oxsuel",
+  user = "root",
   password = ""
 }
 
@@ -25,7 +25,7 @@ cfg.character_select_delay = 60 -- minimum number of seconds between character s
 -- If enabled, will not use the IP address to identify players (recommended, solve same IP issue; other identifiers should be available).
 cfg.ignore_ip_identifier = true
 
-cfg.lang = "en"
+cfg.lang = "pt-br"
 
 cfg.log_level = 0 -- maximum verbose level for logs, -1 may disable logs and 1000 may print all logs
 

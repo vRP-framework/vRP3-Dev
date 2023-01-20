@@ -24,7 +24,7 @@ function PlayerState:__construct()
 
         self.remote._update({
           position = {x=x,y=y,z=z},
-          heading = GetEntityHeading(GetPlayerPed(-1)),
+          heading = GetEntityHeading(PlayerPedId()),
           customization = self:getCustomization(),
           health = self:getHealth(),
         })
@@ -35,11 +35,11 @@ end
 
 -- amount: 100-200 ?
 function PlayerState:setHealth(amount)
-  SetEntityHealth(GetPlayerPed(-1), math.floor(amount))
+  SetEntityHealth(PlayerPedId(), math.floor(amount))
 end
 
 function PlayerState:getHealth()
-  return GetEntityHealth(GetPlayerPed(-1))
+  return GetEntityHealth(PlayerPedId())
 end
 
 -- PLAYER CUSTOMIZATION
@@ -50,9 +50,9 @@ function PlayerState:getDrawables(part)
   local index = parseInt(args[2])
 
   if args[1] == "prop" then
-    return GetNumberOfPedPropDrawableVariations(GetPlayerPed(-1),index)
+    return GetNumberOfPedPropDrawableVariations(PlayerPedId(),index)
   elseif args[1] == "drawable" then
-    return GetNumberOfPedDrawableVariations(GetPlayerPed(-1),index)
+    return GetNumberOfPedDrawableVariations(PlayerPedId(),index)
   elseif args[1] == "overlay" then
     return GetNumHeadOverlayValues(index)
   end
@@ -64,16 +64,16 @@ function PlayerState:getDrawableTextures(part,drawable)
   local index = parseInt(args[2])
 
   if args[1] == "prop" then
-    return GetNumberOfPedPropTextureVariations(GetPlayerPed(-1),index,drawable)
+    return GetNumberOfPedPropTextureVariations(PlayerPedId(),index,drawable)
   elseif args[1] == "drawable" then
-    return GetNumberOfPedTextureVariations(GetPlayerPed(-1),index,drawable)
+    return GetNumberOfPedTextureVariations(PlayerPedId(),index,drawable)
   end
 end
 
 -- get player skin customization
 -- return custom parts
 function PlayerState:getCustomization()
-  local ped = GetPlayerPed(-1)
+  local ped = PlayerPedId()
 
   local custom = {}
 
@@ -114,7 +114,7 @@ function PlayerState:setCustomization(custom)
 
   Citizen.CreateThread(function() -- new thread
     if custom then
-      local ped = GetPlayerPed(-1)
+      local ped = PlayerPedId()
       local mhash = nil
 
       -- model
@@ -148,7 +148,7 @@ function PlayerState:setCustomization(custom)
         end
       end
 
-      ped = GetPlayerPed(-1)
+      ped = PlayerPedId()
 
       local is_mp = self.mp_models[GetEntityModel(ped)]
 

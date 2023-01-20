@@ -11,7 +11,7 @@ end
 
 function Command:loadout(weapons)
 	local hash = GetHashKey(weapons)
-	GiveWeaponToPed(GetPlayerPed(-1), hash, 9999, 0, false)
+	GiveWeaponToPed(PlayerPedId(), hash, 9999, 0, false)
 	vRP.EXT.Base:notify("Loadout successful")
 end
 

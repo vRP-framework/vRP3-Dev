@@ -24,7 +24,7 @@ function Admin:__construct()
     while true do
       Citizen.Wait(0)
       if self.noclip then
-        local ped = GetPlayerPed(-1)
+        local ped = PlayerPedId()
         local x,y,z = Base:getPosition(self.noclipEntity)
         local dx,dy,dz = Base:getCamDirection(self.noclipEntity)
         local speed = self.noclip_speed
@@ -70,7 +70,7 @@ end
 function Admin:toggleSpectate(target)
   self.spectate = not self.spectate
 	
-  local ped = GetPlayerPed(-1)
+  local ped = PlayerPedId()
   
   if IsPedAPlayer(target) then
 	self.target = player
@@ -117,7 +117,7 @@ function Admin:teleportToMarker()
     end
 	
     if ground then
-	  if IsPedInAnyVehicle(GetPlayerPed(-1), false) then
+	  if IsPedInAnyVehicle(PlayerPedId(), false) then
 		vRP.EXT.Base:vehicleTeleport(x,y,gz+1.5)
 	  else
 		vRP.EXT.Base:teleport(x,y,gz+1.5)

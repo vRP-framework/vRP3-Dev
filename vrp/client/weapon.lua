@@ -35,7 +35,7 @@ end
 -- get player weapons 
 -- return map of name => {.ammo}
 function Weapon:getWeapons()
-  local player = GetPlayerPed(-1)
+  local player = PlayerPedId()
 
   local ammo_types = {} -- remember ammo type to not duplicate ammo amount
 
@@ -74,7 +74,7 @@ end
 -- weapons: map of name => {.ammo}
 --- ammo: (optional)
 function Weapon:giveWeapons(weapons, clear_before)
-  local player = GetPlayerPed(-1)
+  local player = PlayerPedId()
 
   -- give weapons to player
 

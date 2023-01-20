@@ -10,7 +10,7 @@ function Misc:__construct()
 end
 
 function Misc:getEntity() -- checks if entity is ped or not
-  local ped = GetPlayerPed(-1)
+  local ped = PlayerPedId()
   if IsPedInAnyVehicle(ped, false) then
     entity = GetVehiclePedIsIn(ped, false)
   else
@@ -22,10 +22,10 @@ end
 
 function Misc:getClosestPeds(radius) -- gets all nearby ped
 	local r = {}
-	local px,py,pz = table.unpack(GetEntityCoords(GetPlayerPed(-1)))
+	local px,py,pz = table.unpack(GetEntityCoords(PlayerPedId()))
 	
 	for _,pedAI in ipairs(GetGamePool('CPed')) do
-		if pedAI ~= GetPlayerPed(-1) then
+		if pedAI ~= PlayerPedId() then
 			local x,y,z = table.unpack(GetEntityCoords(pedAI))
 			local dist = GetDistanceBetweenCoords(x,y,z,px,py,pz,true)
 			if dist <= radius then
@@ -54,10 +54,10 @@ end
 
 function Misc:getClosestObjects(radius) -- gets all nearby objects
 	local r = {}
-	local px,py,pz = table.unpack(GetEntityCoords(GetPlayerPed(-1)))
+	local px,py,pz = table.unpack(GetEntityCoords(PlayerPedId()))
 	
 	for _,obj in ipairs(GetGamePool('CObject')) do
-		if obj ~= GetPlayerPed(-1) then
+		if obj ~= PlayerPedId() then
 			local x,y,z = table.unpack(GetEntityCoords(obj))
 			local dist = GetDistanceBetweenCoords(x,y,z,px,py,pz,true)
 			if dist <= radius then
