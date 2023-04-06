@@ -103,6 +103,16 @@ function PlayerState.event:characterUnload(user)
   self.remote._setStateReady(user.source, false)
 end
 
+-- set player in bucket
+function PlayerState.event:setBucket(user, bucket)
+  SetPlayerRoutingBucket(user.source,tonumber(bucket) or 0)
+end
+
+-- get player's bucket
+function PlayerState.event:getBucket(user)
+  GetPlayerRoutingBucket(user.source)
+end
+
 -- TUNNEL
 PlayerState.tunnel = {}
 
