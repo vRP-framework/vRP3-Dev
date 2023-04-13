@@ -13,14 +13,15 @@ local storedModules = {}
 -- load a lua resource file as module (for a specific side)
 -- rsc: resource name
 -- path: lua file path without extension
-function module(rsc, path)
+function module(rsc, path, forceload)
   if not path then -- shortcut for vrp, can omit the resource parameter
     path = rsc
     rsc = "vrp"
   end
   local key = rsc.."/"..path
   local rets = modules[key]
-  if rets then -- cached module
+  
+  if rets and not forceload then -- cached module
     return table.unpack(rets, 2, rets.n)
   else
     local code = LoadResourceFile(rsc, path..".lua")
@@ -41,6 +42,26 @@ function module(rsc, path)
       error("resource file "..rsc.."/"..path..".lua not found")
     end
   end
+end
+
+function unmodule(rsc, path)
+  if not path then
+    path = rsc
+    rsc = "vrp"
+  end
+  local key = rsc .. "/" .. path
+  if modules[key] then 
+    modules[key] = nil
+  end
+end
+
+function isModuledLoaded(rsc, path)
+  if not path then
+    path = rsc
+    rsc = "vrp"
+  end
+  local key = rsc .. "/" .. path
+  return modules[key] ~= nil  
 end
 
 -- Luaoop class
