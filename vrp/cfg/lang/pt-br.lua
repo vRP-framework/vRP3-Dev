@@ -730,6 +730,10 @@ local lang = {
   radio = {
     title = "Radio ON/OFF",
     description = "Habilita Escuta PRIVADA [TEAM TEXT CHAT] e sinal ao vivo de GPS quando ligado."
+  },
+  doors = {
+    unlocked = "Destrancada",
+    locked = "Trancada"
   }
 }
 
