@@ -5,6 +5,7 @@
 
 local IDManager = module("lib/IDManager")
 
+local registered_proxies = {}
 local Proxy = {}
 local rscname = GetCurrentResourceName()
 
@@ -38,11 +39,20 @@ local function proxy_resolve(itable,key)
   return fcall
 end
 
+function Proxy.removeInterface(name)
+  if registered_proxies[name] then
+    RemoveEventHandler(registered_proxies[name])
+    registered_proxies[name] = nil
+    return true
+  end
+  return false
+end
+
 -- add event handler to call interface functions 
 -- name: interface name
 -- itable: table containing functions
 function Proxy.addInterface(name, itable)
-  AddEventHandler(name..":proxy", function(member, args, identifier, rid)
+  registered_proxies[name] = AddEventHandler(name..":proxy", function(member, args, identifier, rid)
     local f = itable[member]
     local rets
     if type(f) == "function" then

@@ -14,7 +14,8 @@ local modules = {
   player_state = true,
   weapon = true,
   user = true,
-  identity = true
+  identity = true,
+  doors = true
 }
 
 return modules

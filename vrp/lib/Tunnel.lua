@@ -6,15 +6,14 @@ local IDManager = module("lib/IDManager")
 
 -- API used in function of the side
 local TriggerRemoteEvent
-local RegisterLocalEvent
+
 if SERVER then
-  TriggerRemoteEvent = TriggerClientEvent
-  RegisterLocalEvent = RegisterServerEvent
+  TriggerRemoteEvent = TriggerClientEvent  
 else
-  TriggerRemoteEvent = TriggerServerEvent
-  RegisterLocalEvent = RegisterNetEvent
+  TriggerRemoteEvent = TriggerServerEvent  
 end
 
+local registered_tunnels = {}
 local Tunnel = {}
 
 -- define per dest regulator
@@ -99,8 +98,8 @@ end
 -- interface: table containing functions
 function Tunnel.bindInterface(name, interface)
   -- receive request
-  RegisterLocalEvent(name..":tunnel_req")
-  AddEventHandler(name..":tunnel_req", function(member, args, identifier, rid)
+  RegisterNetEvent(name..":tunnel_req")
+  registered_tunnels[name] = AddEventHandler(name..":tunnel_req", function(member, args, identifier, rid)
     local source = source
     local f = interface[member]
     local rets = {}
@@ -119,6 +118,16 @@ function Tunnel.bindInterface(name, interface)
   end)
 end
 
+
+function Tunnel.unbindInterface(name)
+  if registered_tunnels[name] then
+    RemoveEventHandler(registered_tunnels[name])
+    registered_tunnels[name] = nil
+    return true
+  end
+  return false
+end
+
 -- get a tunnel interface to send requests 
 -- name: interface name
 -- identifier: (optional) unique string to identify this tunnel interface access; if nil, will be the name of the resource
@@ -129,7 +138,7 @@ function Tunnel.getInterface(name, identifier)
   -- build interface
   local r = setmetatable({},{ __index = tunnel_resolve, name = name, ids = ids, callbacks = callbacks, identifier = identifier })
   -- receive response
-  RegisterLocalEvent(name..":"..identifier..":tunnel_res")
+  RegisterNetEvent(name..":"..identifier..":tunnel_res")
   AddEventHandler(name..":"..identifier..":tunnel_res", function(rid, args)
     local callback = callbacks[rid]
     if callback then

@@ -84,6 +84,9 @@ function Misc:getClosestObject(radius)	--gets closest object
 	return p
 end
 
+function Misc:NativeHelpText(text)
+end
+
 Misc.tunnel = {}
 
 Misc.tunnel.getEntity = Misc.getEntity
