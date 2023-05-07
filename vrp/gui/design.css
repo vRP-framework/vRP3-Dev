@@ -1,4 +1,6 @@
+/* Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700&display=swap');
 
 *{
   margin: 0;
@@ -52,7 +54,8 @@ html, body {
   text-align: center;
   font-size: 1.6em;
   padding: 6px;
-  border-radius: 5px;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
 }
 
 .options{
@@ -65,13 +68,15 @@ html, body {
 }
 
 .options > div{
-  margin: 15px 3px 3px 0px;
+  margin: 15px 5px 15px 5px;
   padding: 6px;
   font-size: 1.3em;
+  text-align: center;
+  border-radius: 4px;
 }
 
 .options .selected{
-  border: 1px solid rgba(255,255,255,0.90);
+  border: 1.5px solid rgba(255,255,255,0.90);
 }
 
 /* progress bar */
@@ -129,11 +134,13 @@ html, body {
   display: flex;
   flex-direction: column;
   padding: 5px;
-  font-family: 'Montserrat', sans-serif;
+  font-family: 'Poppins', sans-serif;
+  border-radius: 5px;
 }
 
 .wprompt h1{
-  font-size: 1.1em;
+  font-size: 17px;
+  text-align: center;
 }
 
 .wprompt textarea{
@@ -143,9 +150,11 @@ html, body {
   flex: 1;
   color: white;
   width: 100%;
-  padding: 4px;
+  padding: 15px;
   resize: none;
+  text-align: center;
   box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
 }
 
 .wprompt textarea:focus{
@@ -154,8 +163,9 @@ html, body {
 
 .wprompt .help{
   font-size: 0.9em;
-  font-style: italic;
+  text-align: right;
   padding: 3px;
+  font-family: 'Poppins', sans-serif;
 }
 
 /* request manager */
