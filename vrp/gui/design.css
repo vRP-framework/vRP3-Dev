@@ -1,3 +1,7 @@
+/* Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700&display=swap');
+
 *{
   margin: 0;
   padding: 0;
@@ -8,6 +12,7 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
+  font-family: 'Montserrat', sans-serif;
 }
 
 /* menu */
@@ -15,11 +20,18 @@ html, body {
 .menu{
   background-color: rgba(0,0,0,0.75);
   color: white;
-  width: 250px;
-  height: 50%;
+  width: 32vh;
+  height: 55vh;
   position: absolute;
-  font-weight: bold;
-  top: 75px;
+  font-size: 15px;
+  font-family: 'Montserrat', sans-serif;
+  bottom: 5vh;
+  right: 5vh;
+  border-radius: 5px;
+  background-image: url("https://github.com/vRP-framework/vRP/raw/master/misc/logo_alpha.png");
+  background-size: 25vh;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .menu_description{
@@ -28,16 +40,22 @@ html, body {
   position: absolute;
   font-weight: bold;
   padding: 9px;
-  font-size: 1.2em;
+  margin-right: 5vh;
+  font-size: 0.9em;
   max-width: 500px;
+  font-family: 'Montserrat', sans-serif;
+  transform: translate(-100%, 0);
+  border-radius: 5px;
 }
 
 .menu h1{
-  background-color: rgba(255,0,0,0.75);
+  background-color: rgba(0,0,0,0);
   color: white;
   text-align: center;
   font-size: 1.6em;
   padding: 6px;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
 }
 
 .options{
@@ -45,18 +63,20 @@ html, body {
   overflow-x: hidden;
 }
 
-.options::-webkit-scrollbar{ 
-  display: none; 
+.options::-webkit-scrollbar{
+  display: none;
 }
 
 .options > div{
+  margin: 15px 5px 15px 5px;
   padding: 6px;
   font-size: 1.3em;
+  text-align: center;
+  border-radius: 4px;
 }
 
 .options .selected{
-  background-color: rgba(255,255,255,0.90);
-  color: black;
+  border: 1.5px solid rgba(255,255,255,0.90);
 }
 
 /* progress bar */
@@ -73,6 +93,7 @@ html, body {
   font-weight: bold;
   text-align: center;
   text-shadow: 2px 2px black;
+  font-family: 'Montserrat', sans-serif;
 }
 
 /* dynamic class progress bar */
@@ -100,6 +121,7 @@ html, body {
   font-weight: bold;
   text-align: center;
   text-shadow: 2px 2px black;
+  font-family: 'Montserrat', sans-serif;
 }
 
 /* wprompt */
@@ -112,10 +134,13 @@ html, body {
   display: flex;
   flex-direction: column;
   padding: 5px;
+  font-family: 'Poppins', sans-serif;
+  border-radius: 5px;
 }
 
 .wprompt h1{
-  font-size: 1.1em;
+  font-size: 17px;
+  text-align: center;
 }
 
 .wprompt textarea{
@@ -125,9 +150,11 @@ html, body {
   flex: 1;
   color: white;
   width: 100%;
-  padding: 4px;
+  padding: 15px;
   resize: none;
+  text-align: center;
   box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
 }
 
 .wprompt textarea:focus{
@@ -136,8 +163,9 @@ html, body {
 
 .wprompt .help{
   font-size: 0.9em;
-  font-style: italic;
+  text-align: right;
   padding: 3px;
+  font-family: 'Poppins', sans-serif;
 }
 
 /* request manager */
