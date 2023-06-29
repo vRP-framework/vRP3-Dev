@@ -15,7 +15,7 @@ local modules = {
   weapon = true,
   user = true,
   identity = true,
-  logs = true -- discord logs
+  logs = true
 }
 
 return modules
