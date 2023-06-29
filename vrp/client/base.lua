@@ -19,6 +19,13 @@ Proxy.addInterface("vRP", pvRP)
 
 -- events
 
+AddEventHandler("onClientResourceStart", function (res)
+  if res == GetCurrentResourceName() then
+    vRP:triggerEvent("playerSpawn")
+    TriggerServerEvent("vRPcli:playerSpawned")
+  end
+end)
+
 AddEventHandler("playerSpawned",function()
   vRP:triggerEvent("playerSpawn")
   TriggerServerEvent("vRPcli:playerSpawned")
@@ -89,11 +96,11 @@ function Base:teleportFade(duration)
   local ground = GetEntityHeightAboveGround(GetPlayerPed(-1))
 
   DoScreenFadeOut(duration)
-  
+
   if (ground <= 5.0) and (ground > 0.0) then
 	DoScreenFadeIn(duration * 2)
   end
-  
+
   -- force screen fadein
   if not IsScreenFadedIn() and not IsScreenFadingIn() or (ground >= 800.0) then
     DoScreenFadeIn(0)
@@ -354,7 +361,7 @@ function Base:setRagdoll(flag)
 end
 
 -- SOUND
--- some lists: 
+-- some lists:
 -- pastebin.com/A8Ny8AHZ
 -- https://wiki.gtanet.work/index.php?title=FrontEndSoundlist
 

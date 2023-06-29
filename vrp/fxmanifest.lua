@@ -21,7 +21,8 @@ server_script {
   "modules/commands.lua",
   "modules/misc.lua",
   "modules/player_state.lua",
-  "modules/weapon.lua"
+  "modules/weapon.lua",
+  "modules/log.lua"
 }
 
 client_scripts {
