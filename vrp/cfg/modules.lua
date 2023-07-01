@@ -14,7 +14,8 @@ local modules = {
   player_state = true,
   weapon = true,
   user = true,
-  identity = true
+  identity = true,
+  logs = true -- discord logs
 }
 
 return modules

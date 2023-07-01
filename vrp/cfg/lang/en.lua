@@ -335,7 +335,7 @@ local lang = {
       prompt_name = "Business name (can't change after, max {1} chars):",
       prompt_capital = "Initial capital (min {1})",
       created = "~g~Business created."
-      
+
     }
   },
   identity = {
@@ -682,7 +682,7 @@ local lang = {
 	plate_txt = {
 		title = "Plate Text",
 		description = "Set a custom Vehicle plate text.",
-		prompt = "New Vehicle Plate Text (max 8 Characters):", 
+		prompt = "New Vehicle Plate Text (max 8 Characters):",
 		completed = "Plate text has been changed to ~g~{1}"
 	}
   },
@@ -754,7 +754,28 @@ local lang = {
     prompt_stack_depth = "Stack dump depth ? A higher value can help to locate hotpots more precisely.",
     prompt_aggregate = "Aggregate profiles (yes/no) ? If yes, it will aggregate all profiles into a single one instead of one per resource.",
     prompt_report = "Profiler report (copy with Ctrl-A Ctrl-C)."
-  }
+  },
+  logs = {
+    player_join = {
+      username = "Join",
+      title = "Join {1} [ {2} ]",
+      description = "{1} [ {2} ] joined the server",
+    },
+    player_leave = {
+      username = "Leave",
+      title = "Leave {1} [ {2} ]",
+      description = "{1} [ {2} ] disconnected from the server",
+      fields = {
+        name = "Reason",
+        reason = "Reason: {1}"
+      }
+    },
+    player_death = {
+      username = "Death",
+      title = "Death {1} [ {2} ]",
+      description = "{1} [ {2} ] died",
+    },
+  },
 }
 
 return lang

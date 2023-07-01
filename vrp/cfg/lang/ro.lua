@@ -476,7 +476,28 @@ local lang = {
       group = "{1}: ",
       aptitude = "{1} LVL {3} EXP {2}"
     }
-  }
+  },
+  logs = {
+    player_join = {
+      username = "Join",
+      title = "Join {1} [ {2} ]",
+      description = "{1} [ {2} ] a intrat pe server",
+    },
+    player_leave = {
+      username = "Leave",
+      title = "Leave {1} [ {2} ]",
+      description = "{1} [ {2} ] s-a a iesit de pe server",
+      fields = {
+        name = "Reason",
+        reason = "Reason: {1}"
+      }
+    },
+    player_death = {
+      username = "Death",
+      title = "Death {1} [ {2} ]",
+      description = "{1} [ {2} ] a murit",
+    },
+  },
 }
 
 return lang
