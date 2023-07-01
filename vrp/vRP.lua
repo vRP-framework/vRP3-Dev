@@ -23,7 +23,7 @@ end
 
 -- should execute the prepared query
 -- params: map of parameters
--- mode: 
+-- mode:
 --- "query": should return rows, affected
 --- "execute": should return affected
 --- "scalar": should return a scalar
@@ -56,7 +56,7 @@ function vRP:__construct()
   self.cfg = module("vrp", "cfg/base")
   self.log_level = self.cfg.log_level
 
-  -- load language 
+  -- load language
   self.luang = Luang()
   self.luang:loadLocale(self.cfg.lang, module("cfg/lang/"..self.cfg.lang) or {})
   self.lang = self.luang.lang[self.cfg.lang]
@@ -93,12 +93,12 @@ function vRP:__construct()
     self:save()
   end
   task_save()
-	
+
 	--print([[
-	--██    ██ ██████  ██████  
-	--██    ██ ██   ██ ██   ██ 
-	--██    ██ ██████  ██████  
-	-- ██  ██  ██   ██ ██      
+	--██    ██ ██████  ██████
+	--██    ██ ██   ██ ██   ██
+	--██    ██ ██████  ██████
+	-- ██  ██  ██   ██ ██
 	--  ████   ██   ██ ██      ]])
 end
 
@@ -276,13 +276,13 @@ function vRP:connectUser(source)
   return user
 end
 
-function vRP:disconnectUser(source)
+function vRP:disconnectUser(source, reason)
   local user = self.users_by_source[source]
   if user then
     -- remove player from connected clients
     self.EXT.Base.remote._removePlayer(-1, user.source)
     self:triggerEventSync("characterUnload", user)
-    self:triggerEventSync("playerLeave", user)
+    self:triggerEventSync("playerLeave", user, reason)
     -- save user
     user:save()
     -- unreference
@@ -368,7 +368,7 @@ function vRP:onPlayerSpawned(source)
       -- set client tunnel delay at first spawn
       Tunnel.setDestDelay(user.source, self.cfg.load_delay)
       self:triggerEvent("playerDelay", user, true)
-      SetTimeout(2000, function() 
+      SetTimeout(2000, function()
         SetTimeout(self.cfg.load_duration*1000, function() -- set client delay to normal delay
           Tunnel.setDestDelay(user.source, self.cfg.global_delay)
           self:triggerEvent("playerDelay", user, false)
@@ -381,8 +381,8 @@ function vRP:onPlayerSpawned(source)
   end
 end
 
-function vRP:onPlayerDropped(source)
-  self:disconnectUser(source)
+function vRP:onPlayerDropped(source, reason)
+  self:disconnectUser(source, reason)
 end
 
 function vRP:onPlayerDied(source)

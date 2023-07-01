@@ -94,7 +94,7 @@ async(function() vRP:execute("vRP/base_tables") end)
 -- handlers
 
 AddEventHandler("playerDropped",function(reason)
-  vRP:onPlayerDropped(source)
+  vRP:onPlayerDropped(source, reason)
 end)
 
 RegisterServerEvent("vRPcli:playerSpawned")
@@ -118,7 +118,7 @@ Base.event = {}
 
 function Base.event:extensionLoad(ext)
   if ext == vRP.EXT.GUI then
-  
+
   elseif ext == vRP.EXT.Group then
     -- register fperm inside
     vRP.EXT.Group:registerPermissionFunction("inside", function(user, params)
