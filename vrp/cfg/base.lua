@@ -36,4 +36,6 @@ cfg.moduals = {
 	"vrp_commands"
 }
 
+cfg.server_name = "vRP Framework" -- server name
+
 return cfg
