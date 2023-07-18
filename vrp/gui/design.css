@@ -18,8 +18,6 @@ html, body {
 /* menu */
 
 .menu{
-  background-color: rgba(0,0,0,0.75);
-  color: white;
   width: 32vh;
   height: 55vh;
   position: absolute;
@@ -28,15 +26,16 @@ html, body {
   bottom: 5vh;
   right: 5vh;
   border-radius: 5px;
-  background-image: url("https://github.com/vRP-framework/vRP/raw/master/misc/logo_alpha.png");
   background-size: 25vh;
   background-repeat: no-repeat;
   background-position: center;
 }
 
+.bg_img{
+  background-image: url("https://github.com/vRP-framework/vRP/raw/master/misc/logo_alpha.png");
+}
+
 .menu_description{
-  background-color: rgba(0,0,0,0.75);
-  color: white;
   position: absolute;
   font-weight: bold;
   padding: 9px;
@@ -49,8 +48,6 @@ html, body {
 }
 
 .menu h1{
-  background-color: rgba(0,0,0,0);
-  color: white;
   text-align: center;
   font-size: 1.6em;
   padding: 6px;
@@ -127,8 +124,6 @@ html, body {
 /* wprompt */
 .wprompt{
   position: absolute;
-  background-color: rgba(0,0,0,0.75);
-  color: white;
   width: 500px;
   height: 200px;
   display: flex;
@@ -145,10 +140,7 @@ html, body {
 
 .wprompt textarea{
   outline: none !important;
-  background-color: rgba(0,0,0,0.75);
-  border: 1px solid rgba(255,255,255,0.30);
   flex: 1;
-  color: white;
   width: 100%;
   padding: 15px;
   resize: none;
@@ -211,8 +203,6 @@ html, body {
   margin-left: -400px;
   font-weight: bold;
   font-size: 1.1em;
-  text-shadow: 2px 2px black;
-  color: white;
   display: none;
   opacity: 0.90;
 }

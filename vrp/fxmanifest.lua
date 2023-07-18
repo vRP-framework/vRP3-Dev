@@ -60,6 +60,7 @@ files {
   "gui/AnnounceManager.js",
   "gui/RadioDisplay.js",
   "gui/Div.js",
+  "gui/config.js",
   "gui/dynamic_classes.js",
   "gui/countdown.js",
   "gui/AudioEngine.js",
