@@ -28,7 +28,7 @@ html, body {
   bottom: 5vh;
   right: 5vh;
   border-radius: 5px;
-  background-image: url("https://github.com/vRP-framework/vRP/raw/master/misc/logo_alpha.png");
+  /*background-image: url("https://github.com/vRP-framework/vRP/raw/master/misc/logo_alpha.png");*/
   background-size: 25vh;
   background-repeat: no-repeat;
   background-position: center;
