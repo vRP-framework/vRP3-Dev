@@ -28,6 +28,18 @@ function Menu() {
   document.body.appendChild(this.div_desc);
   this.div.style.display = "none";
   this.div_desc.style.display = "none";
+  
+  if (config && config.bg_img) {this.div.classList.add("bg_img");}
+  
+  /* Style changes */
+  this.div.style.backgroundColor = config.menu_bg;
+  this.div.style.color = config.menu_color;
+  
+  this.div_desc.style.backgroundColor = config.div_desc_bg;
+  this.div_desc.style.color = config.div_desc_color;
+  
+  this.div_header.style.backgroundColor = config.h1_bg;
+  this.div_header.style.color = config.h1_color;
 }
 
 Menu.prototype.open = function (data) {
