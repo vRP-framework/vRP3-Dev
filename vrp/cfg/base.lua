@@ -16,7 +16,7 @@ cfg.save_interval = 60 -- seconds
 
 -- delay the tunnel at loading (for weak connections)
 cfg.load_duration = 30 -- seconds, player duration in loading mode at the first spawn
-cfg.load_delay = 60 -- milliseconds, delay the tunnel communication when in loading mode
+cfg.load_delay = 30 -- milliseconds, delay the tunnel communication when in loading mode
 cfg.global_delay = 0 -- milliseconds, delay the tunnel communication when not in loading mode
 
 cfg.max_characters = 5 -- maximum number of characters per user

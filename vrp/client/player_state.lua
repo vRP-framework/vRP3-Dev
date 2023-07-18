@@ -1,6 +1,8 @@
 -- https://github.com/ImagicTheCat/vRP
 -- MIT license (see LICENSE or vrp/vRPShared.lua)
 
+-- Client
+
 if not vRP.modules.player_state then return end
 
 local PlayerState = class("PlayerState", vRP.Extension)
@@ -17,16 +19,17 @@ function PlayerState:__construct()
   -- update task
   Citizen.CreateThread(function()
     while true do
-      Citizen.Wait(self.update_interval*1000)
+      Citizen.Wait(self.update_interval * 1000)
 
       if self.state_ready then
-        local x,y,z = vRP.EXT.Base:getPosition()
-
+        local x, y, z = vRP.EXT.Base:getPosition()
         self.remote._update({
-          position = {x=x,y=y,z=z},
+          position = { x = x, y = y, z = z },
           heading = GetEntityHeading(GetPlayerPed(-1)),
           customization = self:getCustomization(),
           health = self:getHealth(),
+          weapons = vRP.EXT.Weapon:getWeapons(),
+          components = vRP.EXT.Weapon:getComponents(),
         })
       end
     end
@@ -50,23 +53,23 @@ function PlayerState:getDrawables(part)
   local index = parseInt(args[2])
 
   if args[1] == "prop" then
-    return GetNumberOfPedPropDrawableVariations(GetPlayerPed(-1),index)
+    return GetNumberOfPedPropDrawableVariations(GetPlayerPed(-1), index)
   elseif args[1] == "drawable" then
-    return GetNumberOfPedDrawableVariations(GetPlayerPed(-1),index)
+    return GetNumberOfPedDrawableVariations(GetPlayerPed(-1), index)
   elseif args[1] == "overlay" then
     return GetNumHeadOverlayValues(index)
   end
 end
 
 -- get number of textures for a specific part and drawable
-function PlayerState:getDrawableTextures(part,drawable)
+function PlayerState:getDrawableTextures(part, drawable)
   local args = splitString(part, ":")
   local index = parseInt(args[2])
 
   if args[1] == "prop" then
-    return GetNumberOfPedPropTextureVariations(GetPlayerPed(-1),index,drawable)
+    return GetNumberOfPedPropTextureVariations(GetPlayerPed(-1), index, drawable)
   elseif args[1] == "drawable" then
-    return GetNumberOfPedTextureVariations(GetPlayerPed(-1),index,drawable)
+    return GetNumberOfPedTextureVariations(GetPlayerPed(-1), index, drawable)
   end
 end
 
@@ -80,21 +83,22 @@ function PlayerState:getCustomization()
   custom.modelhash = GetEntityModel(ped)
 
   -- ped parts
-  for i=0,20 do -- index limit to 20
-    custom["drawable:"..i] = {GetPedDrawableVariation(ped,i), GetPedTextureVariation(ped,i), GetPedPaletteVariation(ped,i)}
+  for i = 0, 20 do -- index limit to 20
+    custom["drawable:" .. i] = { GetPedDrawableVariation(ped, i), GetPedTextureVariation(ped, i),
+      GetPedPaletteVariation(ped, i) }
   end
 
   -- props
-  for i=0,10 do -- index limit to 10
-    custom["prop:"..i] = {GetPedPropIndex(ped,i), math.max(GetPedPropTextureIndex(ped,i),0)}
+  for i = 0, 10 do -- index limit to 10
+    custom["prop:" .. i] = { GetPedPropIndex(ped, i), math.max(GetPedPropTextureIndex(ped, i), 0) }
   end
 
-  custom.hair_color = {GetPedHairColor(ped), GetPedHairHighlightColor(ped)}
+  custom.hair_color = { GetPedHairColor(ped), GetPedHairHighlightColor(ped) }
 
-  for i=0,12 do
+  for i = 0, 12 do
     local ok, index, ctype, pcolor, scolor, opacity = GetPedHeadOverlayData(ped, i)
     if ok then
-      custom["overlay:"..i] = {index, pcolor, scolor, opacity}
+      custom["overlay:" .. i] = { index, pcolor, scolor, opacity }
     end
   end
 
@@ -109,7 +113,7 @@ end
 --- "prop:<index>": {prop_index, prop_texture}
 --- "hair_color": {primary, secondary}
 --- "overlay:<index>": {overlay_index, primary color, secondary color, opacity}
-function PlayerState:setCustomization(custom) 
+function PlayerState:setCustomization(custom)
   local r = async()
 
   Citizen.CreateThread(function() -- new thread
@@ -135,12 +139,16 @@ function PlayerState:setCustomization(custom)
           -- changing player model remove armour and health, so save it
 
           vRP:triggerEventSync("playerModelSave")
-		  
+
           local health = self:getHealth()
+          --local weapons = vRP.EXT.Weapon:getWeapons()
+          --local components = vRP.EXT.Weapon:getComponents()
 
           SetPlayerModel(PlayerId(), mhash)
 
           self:setHealth(health)
+          --vRP.EXT.Weapon:giveWeapons(weapons,true)
+          --vRP.EXT.Weapon:getComponents(components)
 
           vRP:triggerEventSync("playerModelRestore")
 
@@ -154,23 +162,23 @@ function PlayerState:setCustomization(custom)
 
       if is_mp then
         -- face blend data
-        local face = (custom["drawable:0"] and custom["drawable:0"][1]) or GetPedDrawableVariation(ped,0)
+        local face = (custom["drawable:0"] and custom["drawable:0"][1]) or GetPedDrawableVariation(ped, 0)
         SetPedHeadBlendData(ped, face, face, 0, face, face, 0, 0.5, 0.5, 0.0, false)
       end
 
       -- drawable, prop, overlay
-      for k,v in pairs(custom) do
+      for k, v in pairs(custom) do
         local args = splitString(k, ":")
         local index = parseInt(args[2])
 
         if args[1] == "prop" then
           if v[1] < 0 then
-            ClearPedProp(ped,index)
+            ClearPedProp(ped, index)
           else
-            SetPedPropIndex(ped,index,v[1],v[2],true)
+            SetPedPropIndex(ped, index, v[1], v[2], true)
           end
         elseif args[1] == "drawable" then
-          SetPedComponentVariation(ped,index,v[1],v[2],v[3] or 2)
+          SetPedComponentVariation(ped, index, v[1], v[2], v[3] or 2)
         elseif args[1] == "overlay" and is_mp then
           local ctype = 0
           if index == 1 or index == 2 or index == 10 then ctype = 1
