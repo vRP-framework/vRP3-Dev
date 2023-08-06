@@ -9,6 +9,9 @@ function AnnounceManager()
   this.announces = []
   this.div = document.createElement("div");
   this.div.classList.add("announce");
+  
+  this.div.style.textShadow = config.announce_text_shadow;
+  this.div.style.color = config.wprompt_color;
 
   document.body.appendChild(this.div);
 }

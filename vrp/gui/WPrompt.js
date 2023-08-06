@@ -24,6 +24,13 @@ function WPrompt()
   document.body.appendChild(this.div);
 
   this.div.style.display = "none";
+  
+  this.div.style.backgroundColor = config.wprompt_bg;
+  this.div.style.color = config.wprompt_color;
+  
+  this.div_area.style.backgroundColor = config.textarea_bg;
+  this.div_area.style.color = config.textarea_color;
+  this.div_area.style.border = config.textarea_border;
 
   this.opened = false;
 }
