@@ -59,7 +59,7 @@ function Logs:discordLog(webhook, data) -- webhook (string/webhooks table), data
       for link in pairs(webhook) do
          PerformHttpRequest(link, function(err, text, headers)
             if err and err ~= 204 then
-               Logs:error("Error: "..err)
+               self:log("Error: "..err)
                return false, err -- return error // https://discord.com/developers/docs/topics/opcodes-and-status-codes
             end
          end, "POST", encoded_data, {["Content-Type"] = "application/json"})
@@ -69,7 +69,7 @@ function Logs:discordLog(webhook, data) -- webhook (string/webhooks table), data
    else
       PerformHttpRequest(webhook, function(err, text, headers)
          if err and err ~= 204 then
-            Logs:error("Error: "..err)
+            self:log("Error: "..err)
             return false, err -- return error // https://discord.com/developers/docs/topics/opcodes-and-status-codes
          end
 
@@ -82,6 +82,7 @@ Logs.event = {}
 
 -- send a message on discord when a player connects
 function Logs.event:playerJoin(user)
+   if not self.cfg.webhooks.player_join then return self:log("The logs module is not setup correctly, ^1edit cfg/logs.lua") end
    self:discordLog(self.cfg.webhooks.player_join, {
       username = lang.logs.player_join.username({}),
       embeds = {
@@ -95,6 +96,7 @@ end
 
 -- send a message on discord when a player disconnects
 function Logs.event:playerLeave(user, reason)
+   if not self.cfg.webhooks.player_join then return self:log("The logs module is not setup correctly, ^1edit cfg/logs.lua") end
    self:discordLog(self.cfg.webhooks.player_leave, {
       username = lang.logs.player_leave.username(),
       embeds = {
@@ -115,6 +117,7 @@ end
 
 -- send a discord message when a player dies
 function Logs.event:playerDeath(user)
+   if not self.cfg.webhooks.player_join then return self:log("The logs module is not setup correctly, ^1edit cfg/logs.lua") end
    self:discordLog(self.cfg.webhooks.player_death, {
       username = lang.logs.player_death.username({}),
       embeds = {
