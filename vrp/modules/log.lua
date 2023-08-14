@@ -58,7 +58,7 @@ function Logs:discordLog(webhook, data) -- webhook (string/webhooks table), data
    if type(webhook) == "table" then
       for link in pairs(webhook) do
          PerformHttpRequest(link, function(err, text, headers)
-            if err and err ~= 204 then
+            if err and err ~= 200 then
                self:log("Error: "..err)
                return false, err -- return error // https://discord.com/developers/docs/topics/opcodes-and-status-codes
             end
@@ -68,7 +68,7 @@ function Logs:discordLog(webhook, data) -- webhook (string/webhooks table), data
       end
    else
       PerformHttpRequest(webhook, function(err, text, headers)
-         if err and err ~= 204 then
+         if err and err ~= 200 then
             self:log("Error: "..err)
             return false, err -- return error // https://discord.com/developers/docs/topics/opcodes-and-status-codes
          end
