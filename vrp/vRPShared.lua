@@ -129,32 +129,31 @@ end
 
 function vRPShared:unregisterExtension(extension)
   if class.is(extension, vRPShared.Extension) then
-    local name = class.name(extension)
-    if self.EXT[name] then
+    if self.EXT[class.name(extension)] then
+	  -- instantiate
+      local ext = extension()
+      self.EXT[class.name(extension)] = ext
+	  
       -- unbind listeners
       if extension.event then
         for name,cb in pairs(extension.event or {}) do
           local exts = self.ext_listeners[name]
-          if exts then -- check if the extension has listeners
-            exts[ext] = nil
-          end
+          exts[ext] = nil
         end
       end
 
-      self.EXT[name]:__destruct() -- unbind tunnel interface
-      self.EXT[name] = nil
-      self:log("Extension "..name.." unloaded.")
+      self.EXT[class.name(extension)] = nil
+	  
+      self:log("Extension "..class.name(ext).." Unloaded.")
 
-      self:triggerEvent("extensionUnload", extension)
+      self:triggerEvent("extension-Unload", ext)
     else
-      self:error("Extension "..name.." is not registered.")
+      self:error("An extension named "..class.name(extension).." is not registered.")
     end
   else
     self:error("Not an Extension class.")
   end
 end
-
-
 
 -- trigger event (with async call for each listener)
 function vRPShared:triggerEvent(name, ...)
