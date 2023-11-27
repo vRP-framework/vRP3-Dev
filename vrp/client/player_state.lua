@@ -141,14 +141,8 @@ function PlayerState:setCustomization(custom)
           vRP:triggerEventSync("playerModelSave")
 
           local health = self:getHealth()
-          --local weapons = vRP.EXT.Weapon:getWeapons()
-          --local components = vRP.EXT.Weapon:getComponents()
-
           SetPlayerModel(PlayerId(), mhash)
-
           self:setHealth(health)
-          --vRP.EXT.Weapon:giveWeapons(weapons,true)
-          --vRP.EXT.Weapon:getComponents(components)
 
           vRP:triggerEventSync("playerModelRestore")
 
