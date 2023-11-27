@@ -15,8 +15,8 @@ end
 
 -- send a message on discord with webhooks api, // https://birdie0.github.io/discord-webhooks-guide/discord_webhook.html javascript example
 function Logs:discordLog(webhook, data) -- webhook (string/webhooks table), data (table)
-   if not webhook then return false, 1 end -- 1 = invalid webhook
-   if not data then return false, 2 end -- 2 = invalid data
+   if not webhook or webhook == "" then return false, Logs:log("invalid webhook") end -- 1 = invalid webhook
+   if not data then return false, Logs:log("invalid data") end -- 2 = invalid data
 
    if not data.username then data.username = self.cfg.sufix.." Logs" else data.username = self.cfg.sufix.." "..data.username end
    if not data.avatar_url then data.avatar_url = self.cfg.avatar_url end
