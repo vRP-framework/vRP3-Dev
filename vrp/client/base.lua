@@ -242,6 +242,10 @@ function Base:notifyHelp(msg)
   DisplayHelpTextThisFrame("HELP_VRP", false)
 end
 
+function Base:clearHelp()
+  ClearHelp(true)
+end
+
 -- SCREEN
 
 -- play a screen effect
@@ -405,6 +409,7 @@ Base.tunnel.getNearestPlayer = Base.getNearestPlayer
 Base.tunnel.notify = Base.notify
 Base.tunnel.notifyPicture = Base.notifyPicture
 Base.tunnel.notifyHelp = Base.notifyHelp
+Base.tunnel.clearHelp = Base.clearHelp
 Base.tunnel.playScreenEffect = Base.playScreenEffect
 Base.tunnel.stopScreenEffect = Base.stopScreenEffect
 Base.tunnel.playAnim = Base.playAnim
