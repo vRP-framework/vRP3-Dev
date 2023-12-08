@@ -22,7 +22,8 @@ server_script {
   "modules/misc.lua",
   "modules/player_state.lua",
   "modules/weapon.lua",
-  "modules/log.lua"
+  "modules/log.lua",
+  "modules/garages.lua"
 }
 
 client_scripts {
@@ -35,7 +36,8 @@ client_scripts {
   "client/commands.lua",
   "client/misc.lua",
   "client/player_state.lua",
-  "client/weapon.lua"
+  "client/weapon.lua",
+  "client/garages.lua"
 }
 
 files {
@@ -72,5 +74,6 @@ files {
   "gui/sounds/radio_on.ogg",
   "gui/sounds/radio_off.ogg",
   "gui/sounds/eating.ogg",
-  "gui/sounds/drinking.ogg"
+  "gui/sounds/drinking.ogg",
+  "cfg/garages.lua"
 }
