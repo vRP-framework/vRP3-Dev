@@ -236,6 +236,16 @@ function Base:notifyPicture(icon, type, sender, title, text)
   DrawNotification(false, true)
 end
 
+-- GTA 5 help notification
+function Base:notifyHelp(msg)
+  AddTextEntry("HELP_VRP", msg)
+  DisplayHelpTextThisFrame("HELP_VRP", false)
+end
+
+function Base:clearHelp()
+  ClearHelp(true)
+end
+
 -- SCREEN
 
 -- play a screen effect
@@ -398,6 +408,8 @@ Base.tunnel.getNearestPlayers = Base.getNearestPlayers
 Base.tunnel.getNearestPlayer = Base.getNearestPlayer
 Base.tunnel.notify = Base.notify
 Base.tunnel.notifyPicture = Base.notifyPicture
+Base.tunnel.notifyHelp = Base.notifyHelp
+Base.tunnel.clearHelp = Base.clearHelp
 Base.tunnel.playScreenEffect = Base.playScreenEffect
 Base.tunnel.stopScreenEffect = Base.stopScreenEffect
 Base.tunnel.playAnim = Base.playAnim
