@@ -63,14 +63,16 @@ end
 
 -- weapons: map of name => {.ammo}
 --- ammo: (optional)
-function Weapon:giveWeapons(player, weapons, clear_before)
+function Weapon:giveWeapons(weapons, clear_before, player)
   local playerIdx = GetPlayerFromServerId(player)
   local ped = GetPlayerPed(playerIdx)
+	
+	if not player then ped = GetPlayerPed(-1) end
 
   if clear_before then RemoveAllPedWeapons(ped,true) end
 
   for k, v in pairs(weapons) do
-	GiveWeaponToPed(ped, v.weaponHash, v.ammo, false)
+		GiveWeaponToPed(ped, v.weaponHash, v.ammo, false)
 	
     if not self.current[v.weaponHash] then
 		self.current[v.weaponHash] = {}
@@ -81,10 +83,12 @@ function Weapon:giveWeapons(player, weapons, clear_before)
 end
 
 -- give specific weapon to player
-function Weapon:giveWeapon(player, weapon)
+function Weapon:giveWeapon(weapon, player)
   local playerIdx = GetPlayerFromServerId(player)
   local ped = GetPlayerPed(playerIdx)
   local hash = GetHashKey(weapon)
+	
+	if not player then ped = GetPlayerPed(-1) end
 
   if not HasPedGotWeapon(ped, hash, false) then
 	if not self.current[hash] then
@@ -98,9 +102,11 @@ end
 
 -- weapons: map of name => {.ammo}
 --- ammo: (optional)
-function Weapon:giveComponents(player, components)
+function Weapon:giveComponents(components, player)
   local playerIdx = GetPlayerFromServerId(player)
   local ped = GetPlayerPed(playerIdx)
+	
+	if not player then ped = GetPlayerPed(-1) end
 	
   for weaponHash, v in pairs(components) do
 	for _, component in ipairs(v) do
@@ -119,11 +125,13 @@ function Weapon:giveComponents(player, components)
 end
 
 -- give specific weapon component to player
-function Weapon:giveComponent(player, weapon, component)
+function Weapon:giveComponent(weapon, component, player)
   local playerIdx = GetPlayerFromServerId(player)
   local ped = GetPlayerPed(playerIdx)
   local weaponHash = GetHashKey(weapon)
   local componentHash = GetHashKey(component)
+	
+	if not player then ped = GetPlayerPed(-1) end
 
   if HasPedGotWeapon(ped, weaponHash, false) then
     if not HasPedGotWeaponComponent(ped, weaponHash, componentHash) then

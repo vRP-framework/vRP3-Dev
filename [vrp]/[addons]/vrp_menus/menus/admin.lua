@@ -7,6 +7,35 @@ local lang = vRP.lang
 local htmlEntities = module("lib/htmlEntities")
 local Admin = class("Admin", vRP.Component)
 
+local function menu_admin_model(self)
+	local function m_model(menu)
+    local user = menu.user
+
+    if user:hasPermission("player.custom_model") then
+      local model = user:prompt(lang.admin.custom_model.prompt(), "")
+      local hash = tonumber(model)
+      local custom = {}
+      if hash then
+        custom.modelhash = hash
+      else
+        custom.model = model
+      end
+
+      self.remote._setCustomization(user.source, custom)
+    end
+  end
+	
+	vRP.EXT.GUI:registerMenuBuilder("admin.model", function(menu)
+		local user = menu.user
+		menu.title = "Custom Model"
+		menu.css.header_color = "rgba(200,0,0,0.75)"
+		
+		if user:hasPermission("player.custom_model") then
+      menu:addOption(lang.admin.custom_model.title(), m_model)
+    end
+	end)
+end
+
 --menu movement. gives all location based options
 local function menu_admin_movement(self)
   vRP.EXT.GUI:registerMenuBuilder("admin.movement", function(menu)
@@ -267,6 +296,10 @@ local function menu_admin(self)
 			menu.user:openMenu("admin.emotes") 
 		end)
 		
+		if user:hasPermission("player.custom_model") then
+      menu:addOption(lang.admin.custom_model.title(), m_model)
+    end
+		
 		menu:addOption(lang.admin.custom_sound.title(), function(menu)
 			local user = menu.user
 			local content = user:prompt(lang.admin.custom_sound.prompt(),"")
@@ -285,6 +318,7 @@ function Admin:__construct()
   vRP.Component.__construct(self)
 	
   menu_admin(self)
+	menu_admin_model(self)
   menu_admin_users(self)
   menu_admin_users_user(self)
   menu_admin_emotes(self)

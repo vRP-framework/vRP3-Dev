@@ -6,41 +6,45 @@ if not init.vehicle then return end
 local lang = vRP.lang
 local Vehicle = class("Vehicle", vRP.Component)
 
-local function menu_options(self)
-  vRP.EXT.GUI:registerMenuBuilder("vehicles.type.options", function(menu)
-		local user = menu.user
-		local model = menu.data.model		--model name - need to get hash
-
-		menu.title = menu.data.name
-		menu.css.header_color = "rgba(200,0,0,0.75)"
-
-		menu:addOption("Spawn Vehicle", function(menu)
-			vRP.EXT.Base.remote._notify(menu.user.source, 'Spawned Vehcile')
-		end)
-		
-		menu:addOption("Repair Vehicle", function(menu)
-			vRP.EXT.Base.remote._notify(menu.user.source, 'Repaired Vehcile')
-		end)
-		
-		menu:addOption("Clean Vehicle", function(menu)
-			vRP.EXT.Base.remote._notify(menu.user.source, 'Vehcile is clean')
-		end)
-  end)
-end
-
 local function menu_types(self)
   vRP.EXT.GUI:registerMenuBuilder("vehicles.type", function(menu)
-
     menu.title = menu.data.title
     menu.css.header_color = "rgba(200,0,0,0.75)"
 		
-		for k,v in pairs(self.vehicles) do
+		for model,v in pairs(self.vehicles) do
 			local gtype = menu.data.gtype
 			
 			if gtype == v.category and v.enabled then
 				menu:addOption(v.name, function(menu)
-           menu.user:openMenu("vehicles.type.options", { model = k, name = v.name })
+           vRP.EXT.Vehicle.remote._spawnVehicle(menu.user.source, model)
         end)
+			end
+			
+			--[[
+			menu:addOption(v.name, function(menu)
+				vRP.EXT.Vehicle.remote._spawnVehicle(menu.user.source, model)
+			end)
+			--]]
+		end
+  end)
+end
+
+-- menu: admin
+local function menu_spawn(self)
+  vRP.EXT.GUI:registerMenuBuilder("vehicles.spawn", function(menu)
+    menu.title = "Spawn Vehicle"
+    menu.css.header_color = "rgba(200,0,0,0.75)"
+    
+		menu:addOption("Spawn by Model", function(menu)
+			local model = menu.user:prompt("Enter Model name","")
+			vRP.EXT.Vehicle.remote._spawnVehicle(menu.user.source, model)
+		end)
+		
+		for category,enabled in pairs(self.cfg.categories) do	
+			if enabled then
+				menu:addOption(category, function(menu)
+					menu.user:openMenu("vehicles.type", { gtype = category, title = category })
+				end)
 			end
 		end
   end)
@@ -52,13 +56,32 @@ local function menu_vehicles(self)
     menu.title = "Vehicles"
     menu.css.header_color = "rgba(200,0,0,0.75)"
     
-		for category,enabled in pairs(self.cfg.categories) do	
-			if enabled then
-				menu:addOption(category, function(menu)
-					menu.user:openMenu("vehicles.type", { gtype = category, title = category })
-				end)
+		menu:addOption("Spawn Vehicle", function(menu)
+			menu.user:openMenu("vehicles.spawn")
+		end)
+		
+		menu:addOption("Despawn Nearby", function(menu)
+			local Vehicle = vRP.EXT.Vehicle.remote
+			local model = Vehicle.getNearestOwnedVehicle(menu.user.source, 5)
+			
+			if not model then
+				Vehicle._despawnNearestVehicle(menu.user.source, 5)
+				return
 			end
-		end
+			
+			Vehicle.despawnVehicle(menu.user.source, model)
+			vRP.EXT.Base.remote._notify(menu.user.source, ""..model.." has been despawned")
+		end)
+		
+		menu:addOption("Despawn All Nearby", function(menu)
+			vRP.EXT.Vehicle.remote._despawnNearbyVehicles(menu.user.source, 10)
+			vRP.EXT.Base.remote._notify(menu.user.source, "All Nearby vehicle have been despawned")
+		end)
+		
+		menu:addOption("Fix Nearby", function(menu)
+			vRP.EXT.Vehicle.remote.fixNearestVehicle(menu.user.source, 5)
+			vRP.EXT.Base.remote._notify(menu.user.source, 'Vehcile is Fixed')
+		end)
   end)
 end
 
@@ -83,14 +106,16 @@ function Vehicle:__construct()
 			
 	-- menu
   menu_vehicles(self)
+	menu_spawn(self)
   menu_types(self)
-  menu_options(self)
 
   -- list for all Vehicles that are useable
-  vRP.EXT.GUI:registerMenuBuilder("admin", function(menu)
-    menu:addOption("Vehicles", function(menu)
-      menu.user:openMenu("vehicles")
-    end)
+  vRP.EXT.GUI:registerMenuBuilder("main", function(menu)
+		if menu.user:hasGroup("admin") then
+			menu:addOption("Vehicles", function(menu)
+				menu.user:openMenu("vehicles")
+			end)
+		end
   end)
 end
 

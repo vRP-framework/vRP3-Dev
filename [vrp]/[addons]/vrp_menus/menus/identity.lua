@@ -101,6 +101,8 @@ end
 function Identity:__construct()
   vRP.Component.__construct(self)
 	
+	self.cfg = module("vrp", "cfg/identity")
+	
 	-- menus
   menu_cityhall(self)
   menu_identity(self)

@@ -105,10 +105,12 @@ function Weather:__construct()
   menu_timeOfDay(self)
 	
   -- main menu
-  vRP.EXT.GUI:registerMenuBuilder("admin", function(menu)
-		menu:addOption("Weather", function(menu)
-			menu.user:openMenu("weather")
-		end)
+  vRP.EXT.GUI:registerMenuBuilder("main", function(menu)
+		if menu.user:hasGroup("admin") then
+			menu:addOption("Weather", function(menu)
+				menu.user:openMenu("weather")
+			end)
+		end
   end)
   
   for _,v in ipairs(self.cfg.types) do table.insert(self.types, v) end	-- adds all weather types to self.types 

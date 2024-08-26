@@ -12,7 +12,7 @@ function Banking:__construct()
   
   self.cfg = module("cfg/banking")
   self:log(#self.cfg.banks.." banks")
-	  
+
 end
 
 -- EVENT
@@ -41,6 +41,5 @@ function Banking.event:playerSpawn(user, first_spawn)
     end
   end
 end
-
 
 vRP:registerExtension(Banking)
