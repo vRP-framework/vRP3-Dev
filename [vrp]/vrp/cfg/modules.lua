@@ -18,7 +18,8 @@ local modules = {
   user = true,
   identity = true,
   logs = true, -- discord logs
-  vehicle = true
+  vehicle = true,
+	vehicle_state = true
 }
 
 return modules

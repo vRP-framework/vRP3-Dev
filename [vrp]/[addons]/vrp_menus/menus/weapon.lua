@@ -126,10 +126,12 @@ function Weapon:__construct()
 	componentsMenu(self)
   
   -- list for all weapons that are useable
-  vRP.EXT.GUI:registerMenuBuilder("admin", function(menu)
-    menu:addOption("Weapons", function(menu)
-      menu.user:openMenu("weapons")
-    end)
+  vRP.EXT.GUI:registerMenuBuilder("main", function(menu)
+		if menu.user:hasGroup("admin") then
+			menu:addOption("Weapons", function(menu)
+				menu.user:openMenu("weapons")
+			end)
+		end
   end)
 end
 

@@ -7,44 +7,13 @@ local lang = vRP.lang
 
 local PlayerState = class("PlayerState", vRP.Extension)
 
--- PRIVATE METHODS
-
--- menu: admin
-local function menu_admin(self)
-  local function m_model(menu)
-    local user = menu.user
-
-    if user:hasPermission("player.custom_model") then
-      local model = user:prompt(lang.admin.custom_model.prompt(), "")
-      local hash = tonumber(model)
-      local custom = {}
-      if hash then
-        custom.modelhash = hash
-      else
-        custom.model = model
-      end
-
-      self.remote._setCustomization(user.source, custom)
-    end
-  end
-
-  vRP.EXT.GUI:registerMenuBuilder("admin", function(menu)
-    local user = menu.user
-
-    if user:hasPermission("player.custom_model") then
-      menu:addOption(lang.admin.custom_model.title(), m_model)
-    end
-  end)
-end
-
 -- METHODS
 
 function PlayerState:__construct()
   vRP.Extension.__construct(self)
 
   self.cfg = module("vrp", "cfg/player_state")
-
-  menu_admin(self)
+	
 end
 
 -- EVENT
@@ -62,7 +31,7 @@ function PlayerState.event:playerSpawn(user, first_spawn)
     user.cdata.state.customization = self.cfg.default_customization
   end
 
-  --- default position
+  -- default position
   if not user.cdata.state.position and self.cfg.spawn_enabled then
     local x = self.cfg.spawn_position[1]+math.random()*self.cfg.spawn_radius*2-self.cfg.spawn_radius
     local y = self.cfg.spawn_position[2]+math.random()*self.cfg.spawn_radius*2-self.cfg.spawn_radius
@@ -71,29 +40,28 @@ function PlayerState.event:playerSpawn(user, first_spawn)
   end
 
   if user.cdata.state.position then -- teleport to saved pos
-    vRP.EXT.Base.remote.teleport(user.source, user.cdata.state.position.x, user.cdata.state.position.y,
-      user.cdata.state.position.z, user.cdata.state.heading)
+    vRP.EXT.Base.remote.teleport(user.source,user.cdata.state.position.x,user.cdata.state.position.y,user.cdata.state.position.z, user.cdata.state.heading)
   end
 
   if user.cdata.state.customization then -- customization
-    self.remote.setCustomization(user.source, user.cdata.state.customization)
-  end
-  
-  if user.cdata.state.weapons then -- Weapons
-    vRP.EXT.Weapon.remote._giveWeapons(user.source,user.source,user.cdata.state.weapons or {},true)
-  end
-  
-  if user.cdata.state.components then -- Components
-    vRP.EXT.Weapon.remote._giveComponents(user.source,user.source,user.cdata.state.components or {},true)
+    self.remote.setCustomization(user.source,user.cdata.state.customization) 
   end
 
+  if user.cdata.state.weapons then -- weapons
+    vRP.EXT.Weapon.remote.giveWeapons(user.source,user.cdata.state.weapons or {},true)
+  end
 
   if user.cdata.state.health then -- health
-    self.remote.setHealth(user.source, user.cdata.state.health)
+    self.remote.setHealth(user.source,user.cdata.state.health)
+  end
+
+  if user.cdata.state.armour then -- armour
+    self.remote.setArmour(user.source,user.cdata.state.armour)
   end
 
   self.remote._setStateReady(user.source, true)
-
+	
+	vRP:log("should trigger playerStateLoaded")
   vRP:triggerEvent("playerStateLoaded", user)
 end
 
@@ -124,8 +92,6 @@ function PlayerState.tunnel:update(state)
     for k, v in pairs(state) do
       user.cdata.state[k] = v
     end
-	
-	--print('Update State')
 
     vRP:triggerEvent("playerStateUpdate", user, state)
   end

@@ -1,0 +1,9 @@
+
+# [cfg-default]
+/cfg-default/*
+
+# [development]
+/development/*
+
+# [standalone]
+/standalone/*

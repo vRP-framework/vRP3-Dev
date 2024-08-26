@@ -8,6 +8,7 @@ local Banking = class("Banking", vRP.Extension)
 function Banking:__construct()
   vRP.Extension.__construct(self)
 	
+	--[[
 	-- Example usage
 	Citizen.CreateThread(function()
 		while true do
@@ -24,6 +25,7 @@ function Banking:__construct()
 			end
 		end
 	end)
+	--]]
 end
 
 -- Define ATM prop hashes based on configuration

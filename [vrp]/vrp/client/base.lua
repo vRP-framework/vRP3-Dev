@@ -104,7 +104,7 @@ end
 -- heading: (optional) entity heading
 function Base:teleport(x,y,z,heading)
   local ped = GetPlayerPed(-1)
-
+	
   SetEntityCoords(ped, x+0.0001, y+0.0001, z+0.0001, 1,0,0,1)
   if heading then SetEntityHeading(ped, heading) end
   vRP:triggerEvent("playerTeleport")

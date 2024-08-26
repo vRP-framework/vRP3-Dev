@@ -1,5 +1,6 @@
 fx_version 'cerulean'
 games { 'gta5' }
+lua54 'yes'
 
 description "RP module/framework"
 version '3.0.1'
@@ -12,34 +13,39 @@ shared_script {
 
 server_script {
   "base.lua",
-  "modules/map.lua",
+	"modules/map.lua",
   "modules/gui.lua",
   "modules/admin.lua",
-  "modules/group.lua",
   "modules/identity.lua",
-  "modules/weather.lua",
+  "modules/group.lua",
+  "modules/player_state.lua",
+  "modules/money.lua",
+  "modules/vehicle.lua",
+	"modules/vehicle_state.lua",
+	--Sub Modules
+	"modules/weather.lua",
   "modules/commands.lua",
   "modules/misc.lua",
-  "modules/player_state.lua",
   "modules/weapon.lua",
-  "modules/vehicle.lua",
   "modules/log.lua",
-  "modules/money.lua",
-  "modules/banking.lua",
+  "modules/banking.lua"
+
 }
 
 client_scripts {
   "client/base.lua",
   "client/map.lua",
   "client/gui.lua",
-  "client/identity.lua",
   "client/admin.lua",
-  "client/weather.lua",
+  "client/player_state.lua",
+  "client/identity.lua",
+  "client/vehicle.lua",
+	"client/vehicle_state.lua",
+	--Sub Modules
+	"client/weather.lua",
   "client/commands.lua",
   "client/misc.lua",
-  "client/player_state.lua",
   "client/weapon.lua",
-  "client/vehicle.lua",
   "client/banking.lua"
 }
 
