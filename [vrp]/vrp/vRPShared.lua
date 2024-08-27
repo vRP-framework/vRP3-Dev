@@ -259,45 +259,52 @@ function vRPShared:triggerEventSync(name, ...)
   local exts = self.ext_listeners[name]
   local comps = self.comp_listeners[name]
 
-  local count = 0
-  local r = async()
-
-  -- Collect parameters for the event
-  local params = table.pack(...)
-
-  -- Handle extensions
-  if exts then
-    for ext, func in pairs(exts) do
-      count = count + 1
+  if exts or comps then
+    local params = table.pack(...)
+    local count = 0
+    local r = async()
+    
+    -- Count all listeners (exts + comps)
+    if exts then
+      for ext, func in pairs(exts) do
+        count = count + 1
+      end
     end
-    for ext, func in pairs(exts) do
-      async(function()
-        func(ext, table.unpack(params, 1, params.n))
-        count = count - 1
-        if count == 0 then -- all done
-          r()
-        end
-      end)
+
+    if comps then
+      for comp, func in pairs(comps) do
+        count = count + 1
+      end
     end
+    
+    -- Execute ext listeners
+    if exts then
+      for ext, func in pairs(exts) do
+        async(function()
+          func(ext, table.unpack(params, 1, params.n))
+          count = count - 1
+          if count == 0 then
+            r()
+          end
+        end)
+      end
+    end
+    
+    -- Execute comp listeners
+    if comps then
+      for comp, func in pairs(comps) do
+        async(function()
+          func(comp, table.unpack(params, 1, params.n))
+          count = count - 1
+          if count == 0 then
+            r()
+          end
+        end)
+      end
+    end
+
+    r:wait() -- wait for all listeners (ext + comp) to complete
   end
-
-  -- Handle components
-  if comps then
-    for comp, func in pairs(comps) do
-      count = count + 1
-    end
-    for comp, func in pairs(comps) do
-      async(function()
-        func(comp, table.unpack(params, 1, params.n))
-        count = count - 1
-        if count == 0 then -- all done
-          r()
-        end
-      end)
-    end
-  end
-
-  r:wait() -- wait events completion
 end
 
 

@@ -69,7 +69,7 @@ function Banking:__construct()
     end
   end
 	
-	local function giveMoney()
+	local function giveMoney(menu)
 		local user = menu.user
 		local nuser
 		local nplayer = vRP.EXT.Base.remote.getNearestPlayer(user.source,10)

@@ -4,52 +4,57 @@
 if not vRP.modules.weapon then return end
 
 local Weapon = class("Weapon", vRP.Extension)
+
+-- Helper function to get the player's Ped
+function Weapon:getPlayerPed(player)
+	local playerIdx = GetPlayerFromServerId(player)
+  local ped = GetPlayerPed(playerIdx)
+
+  return ped or GetPlayerPed(-1)
+end
+
 -- METHODS
 
 function Weapon:__construct()
   vRP.Extension.__construct(self)
 
-  self.weapon = {}  -- map of weapon ids
+  -- Initialize weapon storage with metatable for default values
   self.current = {}
+  setmetatable(self.current, {
+    __index = function(t, k)
+      t[k] = {weaponHash = k, ammo = 0, components = {}}
+      return t[k]
+    end
+  })
 end
 
 -- get player weapons
 -- return map of name => {.ammo}
 function Weapon:getWeapons()
-  local player = GetPlayerPed(-1)
   local weapons = {}
   
   for _, entry in pairs(self.current) do
-	local weaponHash = entry.weaponHash
-	local ammo = entry.ammo
-	
-	weapons[weaponHash] = { weaponHash = weaponHash, ammo = ammo }
+    weapons[entry.weaponHash] = { weaponHash = entry.weaponHash, ammo = entry.ammo }
   end
 
   return weapons
 end
 
-
-
 -- get weapons components
 function Weapon:getComponents()
-  local player = GetPlayerPed(-1)
   local components = {}
 
   for _, entry in pairs(self.current) do
-	local weaponHash = entry.weaponHash
-	local entryComponents = entry.components
-	if entryComponents then
-		components[weaponHash] = {}
-		for _, component in ipairs(entryComponents) do
-			table.insert(components[weaponHash], component)
-		end
-	end
+    if entry.components then
+      components[entry.weaponHash] = {}
+      for _, component in ipairs(entry.components) do
+        table.insert(components[entry.weaponHash], component)
+      end
+    end
   end
 
   return components
 end
-
 
 -- replace weapons (combination of getWeapons and giveWeapons)
 -- weapons: map of name => {.ammo}
@@ -64,110 +69,67 @@ end
 -- weapons: map of name => {.ammo}
 --- ammo: (optional)
 function Weapon:giveWeapons(weapons, clear_before, player)
-  local playerIdx = GetPlayerFromServerId(player)
-  local ped = GetPlayerPed(playerIdx)
-	
-	if not player then ped = GetPlayerPed(-1) end
+  local ped = self:getPlayerPed(player)
 
-  if clear_before then RemoveAllPedWeapons(ped,true) end
+  if clear_before then RemoveAllPedWeapons(ped, true) end
 
-  for k, v in pairs(weapons) do
-		GiveWeaponToPed(ped, v.weaponHash, v.ammo, false)
-	
-    if not self.current[v.weaponHash] then
-		self.current[v.weaponHash] = {}
-		self.current[v.weaponHash].weaponHash = v.weaponHash
-		self.current[v.weaponHash].ammo = v.ammo
-	end
+  for _, v in pairs(weapons) do
+    GiveWeaponToPed(ped, v.weaponHash, v.ammo, false)
+    self.current[v.weaponHash] = self.current[v.weaponHash] or {weaponHash = v.weaponHash, ammo = v.ammo}
   end
 end
 
 -- give specific weapon to player
 function Weapon:giveWeapon(weapon, player)
-  local playerIdx = GetPlayerFromServerId(player)
-  local ped = GetPlayerPed(playerIdx)
+  local ped = self:getPlayerPed(player)
   local hash = GetHashKey(weapon)
-	
-	if not player then ped = GetPlayerPed(-1) end
 
   if not HasPedGotWeapon(ped, hash, false) then
-	if not self.current[hash] then
-		self.current[hash] = {}
-		self.current[hash].weaponHash = hash
-	end
-	
     GiveWeaponToPed(ped, hash, 0, false, true)
+    self.current[hash] = self.current[hash] or {weaponHash = hash}
   end
 end
 
 -- weapons: map of name => {.ammo}
 --- ammo: (optional)
 function Weapon:giveComponents(components, player)
-  local playerIdx = GetPlayerFromServerId(player)
-  local ped = GetPlayerPed(playerIdx)
-	
-	if not player then ped = GetPlayerPed(-1) end
-	
+  local ped = self:getPlayerPed(player)
+  
   for weaponHash, v in pairs(components) do
-	for _, component in ipairs(v) do
-		if HasPedGotWeapon(ped, weaponHash, false) and not HasPedGotWeaponComponent(ped, weaponHash, component) then
-			GiveWeaponComponentToPed(ped, weaponHash, component)
-			
-			if self.current[weaponHash] then
-				if not self.current[weaponHash].components then
-					self.current[weaponHash].components = {}  
-				end
-				table.insert(self.current[weaponHash].components, component)
-			end
-		end
-	end
+    for _, component in ipairs(v) do
+      if HasPedGotWeapon(ped, weaponHash, false) and not HasPedGotWeaponComponent(ped, weaponHash, component) then
+        GiveWeaponComponentToPed(ped, weaponHash, component)
+        table.insert(self.current[weaponHash].components, component)
+      end
+    end
   end
 end
 
 -- give specific weapon component to player
 function Weapon:giveComponent(weapon, component, player)
-  local playerIdx = GetPlayerFromServerId(player)
-  local ped = GetPlayerPed(playerIdx)
+  local ped = self:getPlayerPed(player)
   local weaponHash = GetHashKey(weapon)
   local componentHash = GetHashKey(component)
-	
-	if not player then ped = GetPlayerPed(-1) end
 
-  if HasPedGotWeapon(ped, weaponHash, false) then
-    if not HasPedGotWeaponComponent(ped, weaponHash, componentHash) then
-      GiveWeaponComponentToPed(ped, weaponHash, componentHash)
-	  
-	  if self.current[weaponHash] then
-		if not self.current[weaponHash].components then
-			self.current[weaponHash].components = {}  -- Create the components array if it doesn't exist
-		end
-		table.insert(self.current[weaponHash].components, componentHash)
-	  end
-	end
+  if HasPedGotWeapon(ped, weaponHash, false) and not HasPedGotWeaponComponent(ped, weaponHash, componentHash) then
+    GiveWeaponComponentToPed(ped, weaponHash, componentHash)
+    table.insert(self.current[weaponHash].components, componentHash)
   end 
 end
 
 -- give specific weapon ammo to player
-function Weapon:giveAmmo(player, weapon, ammo)
-  local playerIdx = GetPlayerFromServerId(player)
-  local ped = GetPlayerPed(playerIdx)
+function Weapon:giveAmmo(weapon, ammo, player)
+  local ped = self:getPlayerPed(player)
   local hash = GetHashKey(weapon)
 
-  -- Check if ped has the specified weapon
   if HasPedGotWeapon(ped, hash, false) then
     local _, maxAmmo = GetMaxAmmo(ped, hash)
-
-    -- Calculate the new ammo amount
     local currentAmmo = GetAmmoInPedWeapon(ped, hash)
     local newAmmo = currentAmmo + ammo
 
-    -- Give ammo only if it doesn't exceed the maximum capacity
     if newAmmo <= maxAmmo then
       SetPedAmmo(ped, hash, newAmmo)
-	  
-	  if self.current[hash] then
-		self.current[hash].ammo = newAmmo
-	  end
+      self.current[hash].ammo = newAmmo
     end
   end
 end

@@ -48,7 +48,7 @@ function PlayerState.event:playerSpawn(user, first_spawn)
   end
 
   if user.cdata.state.weapons then -- weapons
-    vRP.EXT.Weapon.remote.giveWeapons(user.source,user.cdata.state.weapons or {},true)
+    vRP.EXT.Weapon.remote.giveWeapons(user.source,user.cdata.state.weapons or {},true, user.source)
   end
 
   if user.cdata.state.health then -- health
@@ -61,7 +61,6 @@ function PlayerState.event:playerSpawn(user, first_spawn)
 
   self.remote._setStateReady(user.source, true)
 	
-	vRP:log("should trigger playerStateLoaded")
   vRP:triggerEvent("playerStateLoaded", user)
 end
 

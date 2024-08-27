@@ -20,7 +20,7 @@ local function componentsMenu(self)
 				local hashKey, name, description, enabled = v.HashKey,v.Name,v.Description,v.Enabled
 				if enabled then
 					local function giveComponent()
-						vRP.EXT.Weapon.remote._giveComponent(menu.user.source, user.source, menu.data.weapon, hashKey)
+						vRP.EXT.Weapon.remote._giveComponent(menu.user.source, menu.data.weapon, hashKey, menu.user.source)
 					end
 
 					menu:addOption(name, giveComponent, description)
@@ -37,24 +37,20 @@ local function optionsMenu(self)
 		menu.title = menu.data.name
 		menu.css.header_color = "rgba(200,0,0,0.75)"
 
-		local function giveWeapon(menu)
-			self.remote._giveWeapon(menu.user.source, user.source, menu.data.weapon)
+		menu:addOption("Give Weapon", function(menu)	
+			vRP.EXT.Weapon.remote._giveWeapon(menu.user.source, menu.data.weapon, menu.user.source)
 			vRP.EXT.Base.remote._notify(menu.user.source, "You received a " .. menu.data.name)
-		end
-
-		local function openComponentsMenu(menu)
+		end)
+		
+		menu:addOption("Components", function(menu)		
 			menu.user:openMenu("weapons.type.options.components", { name = menu.data.name, weapon = menu.data.weapon })
-		end
-
-		local function giveAmmo(menu)
+		end)
+		
+		menu:addOption("Give Ammo", function(menu)		
 			local ammo = user:prompt("give weapon ammo amount", "")
-			vRP.EXT.Weapon.remote._giveAmmo(menu.user.source, user.source, menu.data.weapon, tonumber(ammo))
+			vRP.EXT.Weapon.remote._giveAmmo(menu.user.source, menu.data.weapon, tonumber(ammo), menu.user.source)
 			vRP.EXT.Base.remote._notify(menu.user.source, "You received " .. ammo .. " ammo")
-		end
-
-		menu:addOption("Give Weapon", giveWeapon)
-		menu:addOption("Components", openComponentsMenu)
-		menu:addOption("Give Ammo", giveAmmo)
+		end)
 	end)
 end
 

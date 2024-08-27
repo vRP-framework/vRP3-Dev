@@ -64,7 +64,7 @@ function Vehicle:spawnVehicle(model, state, position, rotation)
     end
 
     local nveh = CreateVehicle(mhash, x,y,z+0.5, 0.0, true, false)
-		local state = vRP.EXT.Vehicle_state:getVehicleState(nveh)
+		local state = vRP.EXT.VehicleState:getVehicleState(nveh)
 	
 		for k,v in pairs(state.customization) do
 			--print(k,v)
@@ -101,12 +101,8 @@ function Vehicle:spawnVehicle(model, state, position, rotation)
     SetModelAsNoLongerNeeded(mhash)
 
     if state then
-			print(state)
-			vRP.EXT.Vehicle_state.remote:setVehicleState(nveh, state)
-      --self:setVehicleState(nveh, state)
+			vRP.EXT.VehicleState.remote:setVehicleState(nveh, state)
     end
-
-    --vRP:triggerEvent("garageVehicleSpawn", model)
   end
 end
 
@@ -114,8 +110,6 @@ end
 function Vehicle:despawnVehicle(model)
   local veh = self.vehicles[model]
   if veh then
-    --vRP:triggerEvent("garageVehicleDespawn", model)
-
     -- remove vehicle
     SetVehicleHasBeenOwnedByPlayer(veh,false)
     SetEntityAsMissionEntity(veh, false, true)
@@ -158,67 +152,47 @@ end
 
 -- return map of veh => distance
 function Vehicle:getNearestVehicles(radius)
-  local r = {}
-
-  local px,py,pz = vRP.EXT.Base:getPosition()
-
-  for _,veh in pairs(self:getAllVehicles()) do
-    local x,y,z = table.unpack(GetEntityCoords(veh,true))
-    local distance = GetDistanceBetweenCoords(x,y,z,px,py,pz,true)
+  local r, px, py, pz = {}, vRP.EXT.Base:getPosition()
+	
+  for _, veh in pairs(self:getAllVehicles()) do
+    local x, y, z = table.unpack(GetEntityCoords(veh, true))
+    local distance = GetDistanceBetweenCoords(x, y, z, px, py, pz, true)
 		
     if distance <= radius then
       r[veh] = distance
     end
   end
-
+	
   return r
 end
 
 -- return veh
 function Vehicle:getNearestVehicle(radius)
-  local veh
-
-  local vehs = self:getNearestVehicles(radius)
-  local min = radius+10.0
-  for _veh,dist in pairs(vehs) do
+  local veh, min = nil, radius + 10.0
+	
+  for _veh, dist in pairs(self:getNearestVehicles(radius)) do
     if dist < min then
-      min = dist 
-      veh = _veh 
+      min = dist
+      veh = _veh
     end
   end
-
-  return veh 
+	
+  return veh
 end
 
 function Vehicle:despawnNearestVehicle(radius)
-  local veh
-
-  local vehs = self:getNearestVehicles(radius)
-  local min = radius+10.0
-  for _veh,dist in pairs(vehs) do
-    if dist < min then
-      min = dist 
-      veh = _veh 
-    end
-		
-		SetEntityAsNoLongerNeeded(veh)
-		DeleteEntity(veh)
+  local veh = self:getNearestVehicle(radius)
+	
+  if veh then
+    SetEntityAsNoLongerNeeded(veh)
+    DeleteEntity(veh)
   end
 end
 
 function Vehicle:despawnNearbyVehicles(radius)
-	local r = {}
-
-  local px,py,pz = vRP.EXT.Base:getPosition()
-
-  for _,veh in pairs(self:getAllVehicles()) do
-    local x,y,z = table.unpack(GetEntityCoords(veh,true))
-    local distance = GetDistanceBetweenCoords(x,y,z,px,py,pz,true)
-		
-    if distance <= radius then
-      SetEntityAsNoLongerNeeded(veh)
-		DeleteEntity(veh)
-    end
+  for _, veh in pairs(self:getNearestVehicles(radius)) do
+    SetEntityAsNoLongerNeeded(veh)
+    DeleteEntity(veh)
   end
 end
 
