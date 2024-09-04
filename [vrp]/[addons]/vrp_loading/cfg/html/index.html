@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="config.js"></script>
+    <script type="module" src="app.js"></script>
+</head>
+<body>
+    <audio autoplay loop id="audio"></audio>
+
+    <!--  Javascript handles the loading of the backgounds -->
+    <section id="backgrounds"></section>
+
+    <!-- This is where you want to replace with your video -->
+
+    <section id="keybindings">
+        <div id="carousel-container"></div>
+    </section>
+
+    <section id="loading">
+        <a class="logo" id="discord" target="_blank">
+            <img id="logoImg" alt="logo">
+        </a>
+        <div class="loading">
+            <button class="btn" id="downloadBtn">
+                <img alt="Download Image" id="downloading">
+            </button>
+            <div class="loadingBar">
+                <div class="loadbar" id="loadbar">
+                    <div class="thingy" id="thingy"></div>
+                </div>
+            </div>
+            <button class="btn" id="settingsBtn">
+                <img class="small" alt=" Settings Image" id="settings">
+            </button>
+        </div>
+    </section>
+
+    <section id="cards">
+        <div class="dwnCard">
+            <div class="container">
+                <h1>Downloading QBCore Server</h1>
+                <p>
+                    Hold tight while we begin downloading all the resources/assets 
+                    required to play on QBCore Server.
+                </p>
+                <p>
+                    After download has been finished successfully, you'll be placed into the server and this screen will disappear.<br>
+                    Please don't leave or turn off your PC.
+                </p>
+                <button class="closeDetails">HIDE DETAILS</button>
+            </div>
+        </div>
+
+        <div class="setCard">
+            <div class="container">
+                <div class="title">
+                    <h1>Settings</h1>
+                    <button class="closeSettings">&#x2716;</button>
+                </div>
+                <div class="audio">
+                    <div class="title">
+                        <label class="switch">
+                            <input type="checkbox" checked id="audioToggle">
+                            <span class="slider round"></span>
+                        </label>
+                        <h3>Audio-track Enabled</h3>
+                    </div>
+                    <p>When disabled the current audio-track playing will be stopped.</p>
+                </div>
+                <div class="background">
+                    <div class="title">
+                        <label class="switch">
+                            <input type="checkbox" checked id="bgToggle">
+                            <span class="slider round"></span>
+                        </label>
+                        <h3>Auto-play Enabled</h3>
+                    </div>
+                    <p>When disabled carousel images will stop cycling and remain on the last shown.</p>
+                </div>
+                <div class="video">
+                    <div class="title">
+                        <label class="switch">
+                            <input type="checkbox" id="videoToggle">
+                            <span class="slider round"></span>
+                        </label>
+                        <h3>Play-video Enabled</h3>
+                    </div>
+                    <p>When disabled video will stop playing and remain paused.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

@@ -11,49 +11,8 @@ local Identity = class("Identity", vRP.Component)
 local function menu_cityhall(self)
   local function m_new_identity(menu)
     local user = menu.user
-
-    local firstname = user:prompt(lang.identity.cityhall.new_identity.prompt_firstname(),"")
-    if string.len(firstname) >= 2 and string.len(firstname) < 50 then
-      firstname = sanitizeString(firstname, self.sanitizes.name[1], self.sanitizes.name[2])
-      local name = user:prompt(lang.identity.cityhall.new_identity.prompt_name(),"")
-      if string.len(name) >= 2 and string.len(name) < 50 then
-        name = sanitizeString(name, self.sanitizes.name[1], self.sanitizes.name[2])
-        local age = user:prompt(lang.identity.cityhall.new_identity.prompt_age(),"")
-        age = parseInt(age)
-        if age >= 16 and age <= 150 then
-          if user:tryPayment(self.cfg.new_identity_cost) then
-            local registration = self:generateRegistrationNumber()
-            local phone = self:generatePhoneNumber()
-
-            user.identity.firstname = firstname
-            user.identity.name = name
-            user.identity.age = age
-            user.identity.registration = registration
-            user.identity.phone = phone
-
-            vRP:execute("vRP/update_character_identity", {
-              character_id = user.cid,
-              firstname = firstname,
-              name = name,
-              age = age,
-              registration = registration,
-              phone = phone
-            })
-
-            vRP:triggerEvent("characterIdentityUpdate", user)
-            vRP.EXT.Base.remote._notify(user.source,lang.money.paid({self.cfg.new_identity_cost}))
-          else
-            vRP.EXT.Base.remote._notify(user.source,lang.money.not_enough())
-          end
-        else
-          vRP.EXT.Base.remote._notify(user.source,lang.common.invalid_value())
-        end
-      else
-        vRP.EXT.Base.remote._notify(user.source,lang.common.invalid_value())
-      end
-    else
-      vRP.EXT.Base.remote._notify(user.source,lang.common.invalid_value())
-    end
+    local firstname, name, age = vRP.EXT.Identity.tunnel_interface.createIdentity(user)
+    vRP.EXT.Identity.tunnel_interface.processIdentity(user, firstname, name, age)
   end
 
   vRP.EXT.GUI:registerMenuBuilder("cityhall", function(menu)
@@ -102,6 +61,7 @@ function Identity:__construct()
   vRP.Component.__construct(self)
 	
 	self.cfg = module("vrp", "cfg/identity")
+  self.sanitizes = module("vrp", "cfg/sanitizes")
 	
 	-- menus
   menu_cityhall(self)

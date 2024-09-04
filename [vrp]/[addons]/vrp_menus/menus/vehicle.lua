@@ -16,15 +16,9 @@ local function menu_types(self)
 			
 			if gtype == v.category and v.enabled then
 				menu:addOption(v.name, function(menu)
-           vRP.EXT.Vehicle.remote._spawnVehicle(menu.user.source, model)
-        end)
+					vRP.EXT.Vehicle.remote._spawnVehicle(menu.user.source, model)
+				end)
 			end
-			
-			--[[
-			menu:addOption(v.name, function(menu)
-				vRP.EXT.Vehicle.remote._spawnVehicle(menu.user.source, model)
-			end)
-			--]]
 		end
   end)
 end
@@ -106,7 +100,7 @@ function Vehicle:__construct()
 			
 	-- menu
   menu_vehicles(self)
-	menu_spawn(self)
+  menu_spawn(self)
   menu_types(self)
 
   -- list for all Vehicles that are useable

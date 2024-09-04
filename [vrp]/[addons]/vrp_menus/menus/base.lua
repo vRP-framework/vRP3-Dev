@@ -25,13 +25,18 @@ function Base:__construct()
 		end
 		
 		local function m_create(menu)
-			local user = menu.user
 			if user:createCharacter() then
-				user:actualizeMenu()
+				local characters = user:getCharacters()
+				for _, cid in pairs(characters) do
+					local identity = vRP.EXT.Identity:getIdentity(cid)
+					vRP.EXT.Base.remote._notify(user.source, identity.name.." "..identity.firstname)	
+				end
+				--user:actualizeMenu()
 			else
 				vRP.EXT.Base.remote._notify(user.source, lang.characters.create.error())
 			end
 		end
+
 		local function m_delete(menu)
 			local user = menu.user
 			local cid = parseInt(user:prompt(lang.characters.delete.prompt(), ""))

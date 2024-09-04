@@ -130,6 +130,16 @@ local function menu_characters(self)
   local function m_create(menu)
     local user = menu.user
     if user:createCharacter() then
+      local characters = user:getCharacters()
+      for _, cid in pairs(characters) do
+        local identity = vRP.EXT.Identity:getIdentity(cid)
+        
+        if not identity then
+          local firstname, name, age = vRP.EXT.Identity.tunnel_interface.createIdentity(user)
+          vRP.EXT.Identity.tunnel_interface.newIdentity(user,firstname, name, age, cid)
+        end
+      end
+
       user:actualizeMenu()
     else
       self.remote._notify(user.source, lang.characters.create.error())

@@ -88,10 +88,12 @@ end
 
 function Vehicle_state.event:characterUnload(user)
   self.remote._setStateReady(user.source, false)
-
+  
   -- save vehicle states
-  for model, state in pairs(user.vehicle_states) do
-    vRP:setCData(user.cid, "vRP:vehicle_state:"..model, msgpack.pack(state))
+  if user.vehicle_states then
+    for model, state in pairs(user.vehicle_states) do
+      vRP:setCData(user.cid, "vRP:vehicle_state:"..model, msgpack.pack(state))
+    end
   end
 
   -- despawn vehicles

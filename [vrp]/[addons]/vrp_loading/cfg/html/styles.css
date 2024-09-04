@@ -1,0 +1,437 @@
+/* Global Styles */
+* {
+    font-family: 'Lato', sans-serif;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+body {
+    max-width: 100%;
+    overflow: hidden;
+    background: transparent;
+}
+
+section{
+    width: 100%;
+    padding: 48px;
+    overflow: hidden;
+}
+
+.active {
+    opacity: 1;
+}
+
+/* Backgrounds */
+#backgrounds {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: black;
+    z-index: -1;
+}
+
+#backgrounds .bg_slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+    z-index: 1;
+}
+
+#backgrounds .bg_slide.active {
+    opacity: 1;
+    z-index: 2;
+}
+
+#backgrounds .bg_slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.bg_content {
+    position: absolute;
+    top: 20vh;
+    left: 5vw;
+    width: fit-content;
+    color: white;
+}
+
+.bg_content h3 {
+    max-width: 30vw;
+    padding-bottom: 15px;
+    font-size: 20px;
+}
+
+/* Keybinds */
+#keybindings {
+    position: absolute;
+    top: 5vh;
+    right: 5vw;
+    width: 18vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    background: rgba(0, 0, 0, 0.8);
+    text-align: center;
+    z-index: 10;
+    padding: 0;
+}
+
+#keybindings h1 {
+    margin-top: 5%;
+    font-weight: 400;
+    font-size: 1.5em;
+}
+
+/* Carousel */
+#carousel-container {
+    width: 100%;
+}
+
+.carousel {
+    position: relative;
+    overflow: hidden;
+    margin: 0 auto;
+}
+
+.carousel-slides {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+
+.carousel-slide {
+    min-width: 100%;
+    padding: 20px;
+    background: transparent;
+    color: white;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.keybinds {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 10px;
+    max-height: calc(4 * 75px);
+    flex-wrap: wrap;
+}
+
+.keybind {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.keybind img {
+    width: 30px;
+}
+
+.keybinds .small img {
+    width: 50px;
+}
+
+.keybind h5 {
+    padding-top: 10px;
+}
+
+/* Carousel Controls */
+.carousel-control {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 10px;
+    font-size: 30px;
+    color: white;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.carousel-control.prev {
+    left: 0;
+}
+
+.carousel-control.next {
+    right: 0;
+}
+
+/* loading */
+#loading {
+    position: absolute;
+    bottom: 0;
+    padding: 16px;
+    width: 100vw;
+    display: flex;
+}
+
+.logo, .loading {
+    width: fit-content;
+    padding: 20px;
+    margin-left: 20px;
+}
+
+.logo img {
+    width: 150px;
+}
+
+.btn {
+    padding: 10px 20px;
+    background: transparent;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.btn img {
+    width: 35px;
+}
+
+.btn img.small {
+    width: 30px;
+}
+
+.loadingBar {
+    width: 22.5vw; /* Adjust size as needed */
+    height: 1.5vh;
+    margin: 0 10px;
+    overflow: hidden;
+
+    justify-content: center;
+    align-items: center;
+    z-index: 50; /* Ensure it is on top of other elements */
+}
+
+.loading {
+    margin-left: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.loadbar {
+    width: auto;
+    height: 1.5vh;
+    box-shadow: 0 1px 5px #0003, 0 2px 2px #00000024, 0 3px 1px -2px #0000001f;
+    position: relative;
+    overflow: hidden;
+}
+
+.thingy {
+    height: 100%;
+    position: absolute;
+    left: -100%; /* Start outside the container */
+    transition: width 0.5s ease; /* Smooth transition */
+}
+
+@keyframes loading {
+    0% { left: 0; }
+    100% { left: 100%; }
+}
+
+/*###########################################*/
+/*# cards */
+.dwnCard {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: rgba(78, 78, 78, 0.5);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity .75s ease-in-out;
+}
+
+.dwnCard.active {
+    opacity: 1;
+    z-index: 300;
+}
+
+.dwnCard .container {
+    position: absolute;
+    bottom: 5vh;
+    right: 8vw;
+    width: 32vw;
+    height: 33vh;
+    color: black;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 60;
+    padding: 2.5vh;
+}
+
+.dwnCard .container h1 {
+    font-size: 3.5vh;
+    font-weight: 700;
+    line-height: 2rem;
+    letter-spacing: 0.0125em;
+    padding-bottom: 2vh;
+    margin: 0 auto;
+}
+
+.dwnCard .container p {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.5;
+    padding-bottom: 2vh;
+}
+
+.dwnCard .container button {
+    padding: 1vh 0;
+    background: transparent;
+    color: black;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.dwnCard .container button:hover {
+    text-decoration: underline;
+}
+
+/* ########################################### */
+.setCard {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: rgba(78, 78, 78, 0.5);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity .75s ease-in-out;
+}
+
+.setCard.active {
+    opacity: 1;
+    z-index: 300;
+}
+
+.setCard .container {
+    position: absolute;
+    bottom: 5vh;
+    right: 3.5vw;
+    width: 22vw;
+    height: 44vh;
+    color: black;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 60;
+    padding: 2.5vh;
+}
+
+.setCard .container > .title {
+    display: flex;
+    padding-bottom: 10px;
+    align-items: center;
+}
+
+.closeSettings {
+    margin-left: auto;
+    margin-right: 20px;
+    font-size: 1.25rem;
+}
+
+.setCard .container .title button {
+    padding: 1vh 0;
+    background: transparent;
+    color: black;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.setCard .container .title button:hover {
+    text-decoration: underline;
+}
+/* ########################################### */
+
+.setCard .container .audio .title {
+    padding-top: 0;
+}
+
+.audio .title,
+.background .title,
+.video .title {
+    display: flex;
+    padding: 10px 0;
+    align-items: center;
+}
+
+.audio .title h3,
+.background .title h3,
+.video .title h3 {
+    margin-left:  25px;
+    font-size: 1rem;
+}
+/*###########################################*/
+/*# settings sliders */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 22px;
+}
+
+.switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left:3px;
+    bottom: 3px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(28px);
+    -ms-transform: translateX(28px);
+    transform: translateX(28px);
+}
+
+/* Rounded sliders */
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}

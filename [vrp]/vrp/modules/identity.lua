@@ -41,7 +41,7 @@ function Identity:__construct()
   vRP.Extension.__construct(self)
 
   self.cfg = module("cfg/identity")
-  self.sanitizes = module("cfg/sanitizes")
+  self.sanitizes = module("vrp", "cfg/sanitizes")
 
   async(function()
     -- init sql
@@ -125,6 +125,15 @@ function Identity:generatePhoneNumber()
   return phone
 end
 
+-- SANITIZE
+function Identity:validate(input, sanitizeConfig)
+  if string.len(input) >= 2 and string.len(input) < 50 then
+    return sanitizeString(input, sanitizeConfig[1], sanitizeConfig[2])
+  else
+    return nil
+  end
+end
+
 -- EVENT
 
 Identity.event = {}
@@ -183,6 +192,69 @@ end
 
 function Identity.event:characterIdentityUpdate(user)
   self.remote._setRegistrationNumber(user.source, user.identity.registration)
+end
+
+-- TUNNEL
+
+Identity.tunnel = {}
+
+function Identity.tunnel:createIdentity(user)
+  local function promptAndValidate(user, promptText, sanitizeRules)
+    local input = user:prompt(promptText, "")
+    return vRP.EXT.Identity:validate(input, sanitizeRules)
+  end
+
+  -- Prompt and validate identity fields
+  local firstname = promptAndValidate(user, lang.identity.cityhall.new_identity.prompt_firstname(), self.sanitizes.name)
+  local name = promptAndValidate(user, lang.identity.cityhall.new_identity.prompt_name(), self.sanitizes.name)
+  local age = parseInt(user:prompt(lang.identity.cityhall.new_identity.prompt_age(), ""))
+
+  -- Check if all fields are valid
+  if firstname and name and age >= 16 and age <= 150 then
+    return firstname, name, age
+  else
+    vRP.EXT.Base.remote._notify(user.source, lang.common.invalid_value())
+  end
+end
+
+function Identity.tunnel:processIdentity(user, firstname, name, age)
+  if user:tryPayment(self.cfg.new_identity_cost) then
+    local registration = vRP.EXT.Identity:generateRegistrationNumber()
+    local phone = vRP.EXT.Identity:generatePhoneNumber()
+
+    user.identity.firstname = firstname
+    user.identity.name = name
+    user.identity.age = age
+    user.identity.registration = registration
+    user.identity.phone = phone
+
+    vRP:execute("vRP/update_character_identity", {
+      character_id = user.cid,
+      firstname = firstname,
+      name = name,
+      age = age,
+      registration = registration,
+      phone = phone
+    })
+
+    vRP:triggerEvent("characterIdentityUpdate", user)
+    vRP.EXT.Base.remote._notify(user.source, lang.money.paid({self.cfg.new_identity_cost}))
+  else
+    vRP.EXT.Base.remote._notify(user.source, lang.money.not_enough())
+  end
+end
+
+function Identity.tunnel:newIdentity(user, firstname, name, age, cid)
+  vRP:execute("vRP/init_character_identity", {
+    character_id = cid,
+    registration = self:generateRegistrationNumber(),
+    phone = self:generatePhoneNumber(),
+    firstname = firstname,
+    name = name,
+    age = age
+  })
+
+  vRP:triggerEvent("characterIdentityUpdate", user)
 end
 
 vRP:registerExtension(Identity)
