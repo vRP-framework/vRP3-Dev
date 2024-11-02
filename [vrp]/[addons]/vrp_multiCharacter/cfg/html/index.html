@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js"></script>
+  <script src="./js/character.js"></script>
+  <script src="./js/info.js"></script>
+  <script src="./js/form.js"></script>
+  <script src="./js/locations.js"></script>
+  <script src="config.js"></script>
+</head>
+<body>
+  <div class="container">
+
+    <section id="characterSelect">
+      <h1>Character Select</h1>
+      <div class="characters"></div>
+      <div class="actions">
+        <button id="select">Select</button>
+        <button id="delete">Delete</button>
+      </div>
+    </section>
+
+    <section id="characterInfo">
+      <h1>Character Info</h1>
+      <div id="info-container"></div>
+    </section>
+
+    <section id="register">
+      <h1>Register</h1>
+      <form id="dynamic-form">
+        <!-- Form elements will be dynamically inserted here -->
+        <button type="submit">Register</button>
+      </form>
+    </section>
+
+    <section id="characterSpawn">
+      <h1>Select Spawn Location</h1>
+      <div class="locations"></div>
+      <div class="loc_actions">
+        <button id="spawn">Spawn</button>
+      </div>
+    </section>
+
+    <div class="pop-up">
+      <div class="pop-up-content">
+        <h1 id="popup-message">Cannot delete the only character in the list.</h1>
+        <button id="accept">OK</button>
+      </div>
+    </div>
+  </div>
+</body>
+<script>
+</script>
+</html>
