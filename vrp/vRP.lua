@@ -288,6 +288,7 @@ function vRP:disconnectUser(source, reason)
     -- unreference
     self.users[user.id] = nil
     self.users_by_source[user.source] = nil
+	if user.cid then self.users_by_cid[user.cid] = nil end
     self:log(user.name.." ("..user.endpoint..") disconnected (user_id = "..user.id..")")
   end
 end
