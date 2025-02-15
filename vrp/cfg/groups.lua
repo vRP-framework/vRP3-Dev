@@ -108,15 +108,16 @@ cfg.groups = {
   },
   ["emergency"] = {
     _config = {
-      title = "Emergency",
-      gtype = "job"
+        title = "Emergency",
+        gtype = "job",
+        required_hours = 2 -- Requires 2 hours to access
     },
     "emergency.revive",
     "emergency.shop",
     "emergency.service",
     "emergency.vehicle",
     "emergency.cloakroom"
-  },
+},
   ["repair"] = {
     _config = {
       title = "Repair",

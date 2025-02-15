@@ -340,56 +340,62 @@ end
 Group.event = {}
 
 function Group.event:playerSpawn(user, first_spawn)
-  if first_spawn then
-    -- init group selectors
-    for k,v in pairs(self.cfg.selectors) do
-      local gcfg = v._config
+    if first_spawn then
+        -- Initialize group selectors
+        for k, v in pairs(self.cfg.selectors or {}) do
+            local gcfg = v._config
 
-      if gcfg then
-        local x = gcfg.x
-        local y = gcfg.y
-        local z = gcfg.z
+            if gcfg then
+              local x = gcfg.x
+              local y = gcfg.y
+              local z = gcfg.z
+              
+                local menu
+                local function enter(user)
+                    if user:hasPermissions(gcfg.permissions or {}) then
+                        local selected_groups = v
+                        for _, group_name in ipairs(selected_groups) do
+                            local group_config = self.cfg.groups and self.cfg.groups[group_name] and self.cfg.groups[group_name]._config
+                            local required_hours = group_config and group_config.required_hours or 0
+                            local player_hours =   user.cdata.hours
 
-        local menu
-        local function enter(user)
-          if user:hasPermissions(gcfg.permissions or {}) then
-            menu = user:openMenu("group_selector", {name = k, groups = v}) 
-          end
+                            if vRP.modules.hours and required_hours > 0 and player_hours < required_hours then
+                                vRP.EXT.Base.remote._notify(user.source, "You need ~r~" .. (required_hours - player_hours) .. " ~w~ more hours to access " .. group_name .. "!")
+                            else
+                                menu = user:openMenu("group_selector", { name = k, groups = v })
+                            end
+                        end
+                    end
+                end
+
+                local function leave(user)
+                    if menu then
+                        user:closeMenu(menu)
+                    end
+                end
+
+                local ment = clone(gcfg.map_entity or {})
+                ment[2] = ment[2] or {}
+                ment[2].title = k
+                ment[2].pos = { x, y, z - 1 }
+                vRP.EXT.Map.remote._addEntity(user.source, ment[1] or "default", ment[2])
+
+                user:setArea("vRP:gselector:" .. k, x, y, z, 1, 1.5, enter, leave)
+            end
         end
 
-        local function leave(user)
-          if menu then
-            user:closeMenu(menu)
-          end
+        if next(self.cfg.count_display_permissions or {}) and self.cfg.display then
+            vRP.EXT.GUI.remote.setDiv(user.source, "group_count_display", self.cfg.count_display_css, "")
         end
-
-        local ment = clone(gcfg.map_entity)
-        ment[2].title = k
-        ment[2].pos = {x,y,z-1}
-        vRP.EXT.Map.remote._addEntity(user.source, ment[1], ment[2])
-
-        user:setArea("vRP:gselector:"..k,x,y,z,1,1.5,enter,leave)
-      end
     end
 
-    -- group count display
-    if next(self.cfg.count_display_permissions) then
-	  if self.cfg.display then
-        vRP.EXT.GUI.remote.setDiv(user.source, "group_count_display", self.cfg.count_display_css, "")
-      end
-	end
-  end
-
-  -- call group onspawn callback at spawn
-
-  local groups = user:getGroups()
-
-  for name in pairs(groups) do
-    local group = self.cfg.groups[name]
-    if group and group._config and group._config.onspawn then
-      group._config.onspawn(user)
+    local groups = user:getGroups() or {}
+    for name in pairs(groups) do
+        local group = self.cfg.groups and self.cfg.groups[name]
+        if group and group._config and group._config.onspawn then
+            group._config.onspawn(user)
+        end
     end
-  end
 end
 
 function Group.event:characterLoad(user)
