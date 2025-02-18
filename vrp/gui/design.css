@@ -249,3 +249,40 @@ html, body {
 
 .radio_display > div > .title{
 }
+
+
+/* Money Delta Animation */
+.money-delta {
+  position: absolute;
+  right: 10px;
+  top: 210px; /* same vertical base as .div_money */
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #00ff7f;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  z-index: 11000;
+  animation: moneyDeltaAnim 2s forwards;
+}
+
+@keyframes moneyDeltaAnim {
+  0% {
+    opacity: 0;
+    transform: translateY(20px); /* starts 20px below its base (below the money frame) */
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(10px); /* appears, still below the frame */
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(0); /* moves upward to align with the top of .div_money */
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(0); /* stays there briefly */
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px); /* then moves slightly up and fades out */
+  }
+}

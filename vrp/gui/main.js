@@ -20,6 +20,30 @@ window.addEventListener("load",function(){
     }
   }
 
+
+  window.addEventListener("message", function(evt) {
+    var data = evt.data;
+    
+    if(data.act === "show_money_delta"){
+      var deltaEl = document.createElement("div");
+      deltaEl.className = "money-delta";  // Use a dedicated class for delta display
+      deltaEl.innerText = data.delta;
+      
+      // Append to document body (or a dedicated HUD container)
+      document.body.appendChild(deltaEl);
+      
+      // Trigger the jump animation by adding a class (make sure your CSS uses your keyframes)
+      deltaEl.classList.add("jump-animation");
+      
+      // Fade out and remove after a delay
+      setTimeout(function(){
+        deltaEl.style.opacity = 0;
+        setTimeout(function(){ deltaEl.remove(); }, 500);
+      }, 2000);
+    }
+  });
+  
+
   //init
   $.post("https://vrp/init",""); 
 
