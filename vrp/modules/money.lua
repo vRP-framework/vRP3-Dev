@@ -15,25 +15,33 @@ end
 
 -- Internal setters that trigger update events and save changes
 function Money.User:setWallet(amount)
-  if amount < 0 then
-    amount = 0
+  if type(amount) ~= "number" then
+    return false, "Invalid wallet amount"
   end
+  amount = math.floor(math.max(0, amount))
   if self.cdata.wallet ~= amount then
     self.cdata.wallet = amount
     vRP:triggerEvent("playerMoneyUpdate", self)
     self:save()
   end
+
+  return true
 end
 
 function Money.User:setBank(amount)
-  if amount < 0 then
-    amount = 0
+  if type(amount) ~= "number" then
+    return false, "Invalid wallet amount"
   end
+
+  amount = math.floor(math.max(0, amount))
+
   if self.cdata.bank ~= amount then
     self.cdata.bank = amount
     vRP:triggerEvent("playerMoneyUpdate", self)
     self:save()
   end
+
+  return true
 end
 
 -- Convenience methods to add funds
@@ -117,30 +125,41 @@ function Money:__construct()
   self.cfg = module("cfg/money")
 
   -- Main Menu Option (for user-to-user money giving)
-  local function m_give(menu)
-    local user = menu.user
-    local nuser
-    local nplayer = vRP.EXT.Base.remote.getNearestPlayer(user.source, 10)
-    if nplayer then
-      nuser = vRP.users_by_source[nplayer]
-    end
-    if nuser then
-      local amount = user:prompt(vRP.lang.money.give.prompt(), "")
-      if amount > 0 and user:tryPayment(amount) then
-        nuser:addWallet(amount)
-        vRP.EXT.Base.remote._notify(user.source, vRP.lang.money.given({amount}))
-        vRP.EXT.Base.remote._notify(nuser.source, vRP.lang.money.received({amount}))
-      else
-        vRP.EXT.Base.remote._notify(user.source, vRP.lang.money.not_enough())
-      end
-    else
-      vRP.EXT.Base.remote._notify(user.source, vRP.lang.common.no_player_near())
-    end
+local function m_give(menu)
+  local user = menu.user
+  local nplayer = vRP.EXT.Base.remote.getNearestPlayer(user.source, 10)
+  if not nplayer then
+    vRP.EXT.Base.remote._notify(user.source, vRP.lang.common.no_player_near())
+    return
   end
 
-  vRP.EXT.GUI:registerMenuBuilder("main", function(menu)
-    menu:addOption(vRP.lang.money.give.title(), m_give, vRP.lang.money.give.description())
-  end)
+  local nuser = vRP.users_by_source[nplayer]
+  if not nuser or nuser.id == user.id then
+    vRP.EXT.Base.remote._notify(user.source, vRP.lang.common.no_player_near())
+    return
+  end
+
+  local input = user:prompt(vRP.lang.money.give.prompt(), "")
+  local amount = tonumber(input)
+  if not amount or amount <= 0 then
+    vRP.EXT.Base.remote._notify(user.source, vRP.lang.money.invalid_value() or "Invalid amount")
+    return
+  end
+
+  amount = math.floor(amount)
+
+  if user:tryPayment(amount) then
+    nuser:addWallet(amount)
+    vRP.EXT.Base.remote._notify(user.source, vRP.lang.money.given({amount}))
+    vRP.EXT.Base.remote._notify(nuser.source, vRP.lang.money.received({amount}))
+  else
+    vRP.EXT.Base.remote._notify(user.source, vRP.lang.money.not_enough())
+  end
+end
+
+vRP.EXT.GUI:registerMenuBuilder("main", function(menu)
+  menu:addOption(vRP.lang.money.give.title(), m_give, vRP.lang.money.give.description())
+end)
 
   -- Admin Menu Option: Give Money to User
   local function m_givemoney_admin(menu)
@@ -199,21 +218,21 @@ end
 
 
 function Money.event:playerMoneyUpdate(user)
-  if self.cfg.money_display then
-    local currentWallet = user:getWallet()
-    vRP.EXT.GUI.remote._setDivContent(user.source, "money", self:formatWallet(currentWallet))
-    
-    if self.cfg.show_money_delta then
-      if not user.lastWallet then
-        user.lastWallet = currentWallet
-      end
-      local delta = currentWallet - user.lastWallet
-      if delta ~= 0 then
-        local sign = delta > 0 and "+" or ""
-        vRP.EXT.GUI.remote._showMoneyDelta(user.source, {sign .. delta})
-      end
+  if not self.cfg.money_display then return end
+
+  local currentWallet = tonumber(user:getWallet()) or 0
+  vRP.EXT.GUI.remote._setDivContent(user.source, "money", self:formatWallet(currentWallet))
+
+  if self.cfg.show_money_delta then
+    if not user.lastWallet then
       user.lastWallet = currentWallet
-    else
+      return
+    end
+
+    local delta = math.floor(currentWallet - user.lastWallet)
+    if delta ~= 0 then
+      local sign = delta > 0 and "+" or ""
+      vRP.EXT.GUI.remote._showMoneyDelta(user.source, {sign .. delta})
       user.lastWallet = currentWallet
     end
   end
