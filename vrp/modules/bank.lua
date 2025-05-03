@@ -7,16 +7,36 @@ Bank.User = class("User")
 
 -- Transfer funds from sender’s bank to target’s bank.
 function Bank.User:transfer(target, amount)
-  if amount <= 0 then 
-    return false, "Invalid amount" 
+  if type(amount) ~= "number" or amount <= 0 then
+    return false, "Invalid amount"
   end
+
+  if not target or type(target.addBank) ~= "function" then
+    return false, "Invalid target"
+  end
+
+  -- Attempt to deduct funds first
   if self:tryCardPayment(amount, false) then
-    target:addBank(amount)
-    vRP:triggerEvent("playerMoneyUpdate", self)
-    vRP:triggerEvent("playerMoneyUpdate", target)
-    self:save()
-    target:save()
-    return true
+    local success, err = pcall(function()
+      target:addBank(amount)
+
+      -- Trigger update events
+      vRP:triggerEvent("playerMoneyUpdate", self)
+      vRP:triggerEvent("playerMoneyUpdate", target)
+
+      -- Save both users
+      self:save()
+      target:save()
+    end)
+
+    if success then
+      return true
+    else
+      -- Rollback: refund the sender if something failed
+      self:addBank(amount)
+      self:save()
+      return false, "Transfer failed: " .. tostring(err)
+    end
   else
     return false, "Not enough bank funds"
   end
