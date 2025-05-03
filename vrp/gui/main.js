@@ -21,27 +21,28 @@ window.addEventListener("load",function(){
   }
 
 
-  window.addEventListener("message", function(evt) {
-    var data = evt.data;
-    
-    if(data.act === "show_money_delta"){
-      var deltaEl = document.createElement("div");
-      deltaEl.className = "money-delta";  // Use a dedicated class for delta display
-      deltaEl.innerText = data.delta;
-      
-      // Append to document body (or a dedicated HUD container)
-      document.body.appendChild(deltaEl);
-      
-      // Trigger the jump animation by adding a class (make sure your CSS uses your keyframes)
-      deltaEl.classList.add("jump-animation");
-      
-      // Fade out and remove after a delay
-      setTimeout(function(){
-        deltaEl.style.opacity = 0;
-        setTimeout(function(){ deltaEl.remove(); }, 500);
-      }, 2000);
-    }
-  });
+window.addEventListener("message", function(evt) {
+  const data = evt.data;
+
+  if (data.act === "show_money_delta") {
+    if (typeof data.delta !== "string" && typeof data.delta !== "number") return;
+
+    const deltaEl = document.createElement("div");
+    deltaEl.className = "money-delta jump-animation";
+    deltaEl.innerText = data.delta;
+
+    const container = document.getElementById("money-delta-container") || document.body;
+    container.appendChild(deltaEl);
+
+    // Begin fade out after 2 seconds
+    setTimeout(() => {
+      deltaEl.style.opacity = "0";
+
+      // Remove element after fade-out transition (assumes 0.5s fade in CSS)
+      setTimeout(() => deltaEl.remove(), 500);
+    }, 2000);
+  }
+});
   
 
   //init
