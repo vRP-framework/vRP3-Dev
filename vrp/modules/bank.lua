@@ -72,21 +72,33 @@ function Bank:__construct()
   end
 
   -- Menu option: Withdraw (for bank and ATM)
-  local function m_withdraw(menu)
-    local user = menu.user
-    local input = user:prompt("Enter amount to withdraw:", "")
-    local amount = tonumber(input) or 0
-    if amount > 0 then
-      local success, err = user:tryWithdraw(amount)
-      if success then
-        vRP.EXT.Base.remote._notify(user.source, "Withdrew $" .. vRP.formatNumber(amount))
-      else
-        vRP.EXT.Base.remote._notify(user.source, "Withdrawal failed: " .. err)
-      end
-    else
-      vRP.EXT.Base.remote._notify(user.source, "Invalid amount")
-    end
+local function m_withdraw(menu)
+  local user = menu.user
+  local input = user:prompt("Enter amount to withdraw:", "")
+  local amount = tonumber(input)
+
+  if not amount or amount <= 0 then
+    vRP.EXT.Base.remote._notify(user.source, "Invalid amount")
+    return
   end
+
+  -- Optional: round to 2 decimal places or integer
+  amount = math.floor(amount)
+
+  -- Optional: enforce a max per-withdrawal limit
+  local max_limit = 100000
+  if amount > max_limit then
+    vRP.EXT.Base.remote._notify(user.source, "Maximum withdrawal is $" .. vRP.formatNumber(max_limit))
+    return
+  end
+
+  local success, err = user:tryWithdraw(amount)
+  if success then
+    vRP.EXT.Base.remote._notify(user.source, "Withdrew $" .. vRP.formatNumber(amount))
+  else
+    vRP.EXT.Base.remote._notify(user.source, "Withdrawal failed: " .. err)
+  end
+end
 
 -- Menu option: Transfer funds to another user
 local function m_transfer(menu)
