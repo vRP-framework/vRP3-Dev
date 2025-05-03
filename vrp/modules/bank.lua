@@ -102,34 +102,39 @@ end
 
 -- Menu option: Transfer funds to another user
 local function m_transfer(menu)
-    local user = menu.user
-    local target_id = tonumber(user:prompt("Enter target user ID:", ""))
-    local amount = tonumber(user:prompt("Enter amount to transfer:", "")) or 0
-    if target_id and target_id > 0 then
-      if target_id == user.id then
-        vRP.EXT.Base.remote._notify(user.source, "You cannot transfer money to yourself")
-        return
-      end
-      local target = vRP.users[target_id]
-      if target then
-        if amount > 0 then
-          local success, err = user:transfer(target, amount)
-          if success then
-            vRP.EXT.Base.remote._notify(user.source, "Transferred $" .. vRP.foformatNumberrmat(amount) .. " to user " .. target_id)
-            vRP.EXT.Base.remote._notify(target.source, "Received $" .. vRP.formatNumber(amount) .. " from user " .. user.id)
-          else
-            vRP.EXT.Base.remote._notify(user.source, "Transfer failed: " .. err)
-          end
-        else
-          vRP.EXT.Base.remote._notify(user.source, "Invalid amount")
-        end
-      else
-        vRP.EXT.Base.remote._notify(user.source, "Target user not found")
-      end
-    else
-      vRP.EXT.Base.remote._notify(user.source, "Invalid target user ID")
-    end
+  local user = menu.user
+
+  local target_id = tonumber(user:prompt("Enter target user ID:", ""))
+  if not target_id or target_id <= 0 then
+    vRP.EXT.Base.remote._notify(user.source, "Invalid target user ID")
+    return
   end
+
+  if target_id == user.id then
+    vRP.EXT.Base.remote._notify(user.source, "You cannot transfer money to yourself")
+    return
+  end
+
+  local amount = tonumber(user:prompt("Enter amount to transfer:", ""))
+  if not amount or amount <= 0 then
+    vRP.EXT.Base.remote._notify(user.source, "Invalid amount")
+    return
+  end
+
+  local target = vRP.users[target_id]
+  if not target then
+    vRP.EXT.Base.remote._notify(user.source, "Target user not found")
+    return
+  end
+
+  local success, err = user:transfer(target, amount)
+  if success then
+    vRP.EXT.Base.remote._notify(user.source, "Transferred $" .. vRP.formatNumber(amount) .. " to user " .. target_id)
+    vRP.EXT.Base.remote._notify(target.source, "Received $" .. vRP.formatNumber(amount) .. " from user " .. user.id)
+  else
+    vRP.EXT.Base.remote._notify(user.source, "Transfer failed: " .. err)
+  end
+end
   
   vRP.EXT.GUI:registerMenuBuilder("bank", function(menu)
     local user = vRP.users_by_source[menu.user.source]
