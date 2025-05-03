@@ -144,4 +144,68 @@ function Weather.event:playerSpawn(user, first_spawn)
   end
 end
 
+-- Load Configuration
+Weather.cfg = module("vrp", "cfg/weather")
+
+function Weather:getRealWeather()
+  if not self.cfg.api.enable then return end
+  if not self.cfg.api.key or self.cfg.api.key == "YOUR_WEATHERAPI_KEY_HERE" then return end
+
+  local city = self.cfg.api.default_city
+  local url = string.format(self.cfg.api.api_url, self.cfg.api.key, city)
+
+  PerformHttpRequest(url, function(code, response, headers)
+    if code == 200 then
+      local success, data = pcall(json.decode, response)
+      if not success or not data then
+        print("[Weather] ❌ Failed to parse weather response")
+        return
+      end
+
+      local condition = data.current and data.current.condition and data.current.condition.text
+      if condition then
+        local realWeather = condition
+        local gameWeather = nil
+
+        for key, gtaWeather in pairs(Weather.cfg.weatherMap) do
+          if string.find(string.lower(realWeather), string.lower(key)) then
+            gameWeather = gtaWeather
+            break
+          end
+        end
+
+        if not gameWeather then
+          gameWeather = self.lastWeather or "EXTRASUNNY"
+        end
+
+        if gameWeather ~= self.lastWeather then
+          self.lastWeather = gameWeather
+          print("[" .. os.date("%Y-%m-%d %H:%M:%S") .. "] 🌍 Real Weather: " .. realWeather .. " -> 🎮 Game Weather: " .. gameWeather)
+
+          if vRP.users then
+            for _, user in pairs(vRP.users) do
+              if user and user.source then
+                vRP.EXT.Weather.remote._setWeather(user.source, gameWeather)
+              end
+            end
+          end
+        end
+      else
+        print("[Weather] ⚠️ Unexpected weather format from API.")
+      end
+    else
+      print("[Weather] ❌ Failed to fetch weather data. HTTP Code:", code)
+    end
+  end, "GET", "", {["Content-Type"] = "application/json"})
+end
+
+Citizen.CreateThread(function()
+  while true do
+    if Weather.cfg.api.enable then
+      Weather:getRealWeather()
+    end
+    Citizen.Wait(Weather.cfg.api.update_interval)
+  end
+end)
+
 vRP:registerExtension(Weather)
