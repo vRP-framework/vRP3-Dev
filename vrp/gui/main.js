@@ -20,6 +20,31 @@ window.addEventListener("load",function(){
     }
   }
 
+
+window.addEventListener("message", function(evt) {
+  const data = evt.data;
+
+  if (data.act === "show_money_delta") {
+    if (typeof data.delta !== "string" && typeof data.delta !== "number") return;
+
+    const deltaEl = document.createElement("div");
+    deltaEl.className = "money-delta jump-animation";
+    deltaEl.innerText = data.delta;
+
+    const container = document.getElementById("money-delta-container") || document.body;
+    container.appendChild(deltaEl);
+
+    // Begin fade out after 2 seconds
+    setTimeout(() => {
+      deltaEl.style.opacity = "0";
+
+      // Remove element after fade-out transition (assumes 0.5s fade in CSS)
+      setTimeout(() => deltaEl.remove(), 500);
+    }, 2000);
+  }
+});
+  
+
   //init
   $.post("https://vrp/init",""); 
 
