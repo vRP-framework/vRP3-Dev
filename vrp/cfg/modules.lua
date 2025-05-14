@@ -15,6 +15,7 @@ local modules = {
   weapon = true,
   user = true,
   identity = true,
+  vehicle = true,
   logs = true -- discord logs
 }
 
