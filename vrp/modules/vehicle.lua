@@ -173,41 +173,6 @@ function table.contains(tbl, val)
   return false
 end
 
-
-  -- Catalog submenu
-  vRP.EXT.GUI:registerMenuBuilder("garage.catalog", function(menu)
-    local user = menu.user
-    local uvehicles = user:getVehicles()
-    local shop_key = menu.data.shop_key
-    local shop_name = menu.data.shop_name
-
-    local shop_vehicles = {}
-    menu.title = shop_name or "Catalog"
-    menu.css.header_color = "rgba(255,125,0,0.75)"
-    menu.data.vehicles = {}
-
-    for _, veh in ipairs(self.cfg.vehicles) do
-      local shop_field = veh.shop
-      if type(shop_field) == "string" and shop_field == shop_key then
-        shop_vehicles[veh.model] = {
-          name     = veh.name,
-          price    = veh.price,
-          category = veh.category,
-          vtype    = veh.type
-        }
-      end
-    end
-
-    menu.data.vehicles = shop_vehicles
-    menu.data.shop_key = shop_key
-
-    for model, veh in pairs(shop_vehicles) do
-      if not uvehicles[model] then
-        menu:addOption(veh.name, m_buy, string.format("Price: $%d\n<br>Category: %s\n<br>Type: %s", veh.price, veh.category, veh.vtype), model)
-      end
-    end
-  end)
-
 local function menu_garage_sell(self)
   local function m_sell(menu, model)
     local user = menu.user
