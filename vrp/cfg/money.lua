@@ -6,7 +6,7 @@ cfg.open_bank = 10000
 cfg.lose_wallet_on_death = true
 
 cfg.money_display = true
-cfg.show_money_delta = true
+cfg.money_delta = true
 
 cfg.money_type = "USD"  -- Options: "USD", "EUR", "GBP", etc.
 
@@ -34,22 +34,28 @@ cfg.display_css = [[
   color: #FFFFFF;
   text-shadow: 3px 3px 2px rgba(0, 0, 0, 0.80);
 }
-
 .div_money .symbol{
   font-size: 1.4em;
   color: #00ac51; 
 }
 
-@-moz-keyframes jump {
-  0% { top: 150px; }
-  50% { top: 170px; }
-  100% { top: 150px; }
+.div_delta{
+  position: absolute;
+  right: 10px;
+  top: 210px; /* same vertical base as .div_money */
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #00ff7f;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  z-index: 11000;
+  animation: DeltaAnim 2s forwards;
 }
- 
-@-webkit-keyframes jump {
-  0% { top: 150px; }
-  50% { top: 170px; }
-  100% { top: 150px; }
+
+@keyframes DeltaAnim {
+  0%   { opacity: 0; transform: translateY(20px); }
+  20%  { opacity: 1; transform: translateY(10px); }
+  50%, 80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
 }
 ]]
 
