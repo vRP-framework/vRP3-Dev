@@ -1,6 +1,6 @@
 -- Improved Money Module for vRP3
 -- MIT license (see LICENSE or vrp/vRPShared.lua)
---if not vRP.modules.money then return end
+if not vRP.modules.money then return end
 
 local Money = class("Money", vRP.Extension)
 Money.User = class("User")  -- -- SUBCLASS
