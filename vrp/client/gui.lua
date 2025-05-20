@@ -235,15 +235,6 @@ function GUI.tunnel:closeMenu()
   vRP:triggerEvent("menuClose")
 end
 
--- New function to show money delta
-function GUI.tunnel:showMoneyDelta(delta)
-  local deltaText = delta[1]
-  SendNUIMessage({
-    act = "show_money_delta",
-    delta = deltaText
-  })
-end
-
 function GUI.tunnel:setMenuSelectEvent(select_event)
   if self.menu_data then
     self.menu_data.select_event = select_event
