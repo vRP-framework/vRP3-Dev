@@ -238,7 +238,7 @@ end
 
 function Money.event:playerSpawn(user, first_spawn)
   if self.cfg.money_display and first_spawn then
-    vRP.EXT.GUI.remote._setDiv(user.source, "money", self.cfg.display_css, self:formatWallet(user:getWallet()))
+    vRP.EXT.GUI.remote._setDiv(user.source, "money", self.cfg.display_css, vRP.formatNumber(user:getWallet()))
   end
 end
 
@@ -252,7 +252,7 @@ function Money.event:playerMoneyUpdate(user)
   if not self.cfg.money_display then return end
 
   local currentWallet = tonumber(user:getWallet()) or 0
-  vRP.EXT.GUI.remote._setDivContent(user.source, "money", self:formatWallet(currentWallet))
+  vRP.EXT.GUI.remote._setDivContent(user.source, "money", vRP.formatNumber(currentWallet))
 
   if self.cfg.money_delta then
     if not user.lastWallet then
