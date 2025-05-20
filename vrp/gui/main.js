@@ -1,26 +1,6 @@
 // https://github.com/ImagicTheCat/vRP
 // MIT license (see LICENSE or vrp/vRPShared.lua)
 
-window.addEventListener("load",function(){
-  //init dynamic menu
-  var dynamic_menu = new Menu();
-  var wprompt = new WPrompt();
-  var requestmgr = new RequestManager();
-  var announcemgr = new AnnounceManager();
-  var radio_display = new RadioDisplay();
-  var aengine = new AudioEngine();
-
-  requestmgr.onResponse = function(id,ok){ $.post("https://vrp/request",JSON.stringify({act: "response", id: id, ok: ok})); }
-  wprompt.onClose = function(){ $.post("https://vrp/prompt",JSON.stringify({act: "close", result: wprompt.result})); }
-  dynamic_menu.onValid = function(option,mod){ $.post("https://vrp/menu",JSON.stringify({act: "valid", option: option, mod: mod})); }
-  var select_event = false;
-  dynamic_menu.onSelect = function(option){ 
-    if(select_event){
-      $.post("https://vrp/menu",JSON.stringify({act: "select", option: option}));
-    }
-  }
-
-
 window.addEventListener("message", function(evt) {
   const data = evt.data;
 
