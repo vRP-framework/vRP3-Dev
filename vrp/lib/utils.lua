@@ -184,3 +184,13 @@ function splitString(str, sep)
   end
   return t
 end
+
+function vRP.formatNumber(number)
+  if type(number) == "number" then
+    local _, _, minus, int, fraction = tostring(number):find('([-]?)(%d+)([.]?%d*)')
+    int = int:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+    return minus .. int .. fraction
+  else
+    return number
+  end
+end
