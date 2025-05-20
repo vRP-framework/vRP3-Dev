@@ -224,6 +224,7 @@ function GUI.tunnel:openMenu(menudata)
   if vRP.cfg.default_menu then
     SendNUIMessage({act="open_menu", menudata = menudata})
   end
+  
   vRP:triggerEvent("menuOpen", menudata)
 end
 
@@ -232,6 +233,7 @@ function GUI.tunnel:closeMenu()
   if vRP.cfg.default_menu then
     SendNUIMessage({act="close_menu"})
   end
+  
   vRP:triggerEvent("menuClose")
 end
 
