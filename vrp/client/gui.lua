@@ -221,19 +221,21 @@ GUI.tunnel = {}
 
 function GUI.tunnel:openMenu(menudata)
   self.menu_data = menudata
+
   if vRP.cfg.default_menu then
     SendNUIMessage({act="open_menu", menudata = menudata})
   end
-  
+
   vRP:triggerEvent("menuOpen", menudata)
 end
 
 function GUI.tunnel:closeMenu()
   self.menu_data = nil
+
   if vRP.cfg.default_menu then
     SendNUIMessage({act="close_menu"})
   end
-  
+
   vRP:triggerEvent("menuClose")
 end
 
