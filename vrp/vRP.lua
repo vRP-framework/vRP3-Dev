@@ -21,7 +21,6 @@ end
 function vRP.DBDriver:onPrepare(name, query)
 end
 
-
 -- should execute the prepared query
 -- params: map of parameters
 -- mode:
