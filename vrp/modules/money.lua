@@ -202,20 +202,10 @@ end
 -- Private Method
 ------------------------------------------------------------------
 
-function Money.formatNumber(number)
-  if type(number) == "number" then
-      local _, _, minus, int, fraction = tostring(number):find('([-]?)(%d+)([.]?%d*)')
-      int = int:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
-      return minus .. int .. fraction
-  else
-      return number
-  end
-end
-
 function Money:formatWallet(amount)
   local type = self.cfg.money_type or "USD"
   local symbol = self.cfg.currency_symbols[type] or ""
-  return string.format('<span class="symbol">%s</span>%s', symbol, self.formatNumber(amount))
+  return string.format('<span class="symbol">%s</span>%s', symbol, formatNumber(amount)) 
 end
 
 ------------------------------------------------------------------
@@ -224,7 +214,7 @@ end
 
 Money.event = {}
 
-function Money.event:characterLoad(user)  -- init character money
+function Money.event:characterLoad(user)
   if not user.cdata.wallet then
     user.cdata.wallet = self.cfg.open_wallet
   end
@@ -238,7 +228,7 @@ end
 
 function Money.event:playerSpawn(user, first_spawn)
   if self.cfg.money_display and first_spawn then
-    vRP.EXT.GUI.remote._setDiv(user.source, "money", self.cfg.display_css, vRP.formatNumber(user:getWallet()))
+    vRP.EXT.GUI.remote._setDiv(user.source, "money", self.cfg.display_css, self:formatWallet(user:getWallet()))
   end
 end
 
@@ -252,7 +242,7 @@ function Money.event:playerMoneyUpdate(user)
   if not self.cfg.money_display then return end
 
   local currentWallet = tonumber(user:getWallet()) or 0
-  vRP.EXT.GUI.remote._setDivContent(user.source, "money", vRP.formatNumber(currentWallet))
+  vRP.EXT.GUI.remote._setDivContent(user.source, "money", self:formatWallet(currentWallet))
 
   if self.cfg.money_delta then
     if not user.lastWallet then
@@ -263,7 +253,7 @@ function Money.event:playerMoneyUpdate(user)
     local delta = math.floor(currentWallet - user.lastWallet)
     if delta ~= 0 then
       local sign = delta > 0 and "+" or ""
-			vRP.EXT.GUI.remote._setDiv(user.source, "delta", self.cfg.display_css, {sign .. delta})
+      vRP.EXT.GUI.remote._setDiv(user.source, "delta", self.cfg.display_css, {sign .. delta})
       user.lastWallet = currentWallet
     end
   end
