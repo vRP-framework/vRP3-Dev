@@ -1,29 +1,24 @@
 // https://github.com/ImagicTheCat/vRP
 // MIT license (see LICENSE or vrp/vRPShared.lua)
 
-window.addEventListener("message", function(evt) {
-  const data = evt.data;
+window.addEventListener("load",function(){
+  //init dynamic menu
+  var dynamic_menu = new Menu();
+  var wprompt = new WPrompt();
+  var requestmgr = new RequestManager();
+  var announcemgr = new AnnounceManager();
+  var radio_display = new RadioDisplay();
+  var aengine = new AudioEngine();
 
-  if (data.act === "show_money_delta") {
-    if (typeof data.delta !== "string" && typeof data.delta !== "number") return;
-
-    const deltaEl = document.createElement("div");
-    deltaEl.className = "money-delta jump-animation";
-    deltaEl.innerText = data.delta;
-
-    const container = document.getElementById("money-delta-container") || document.body;
-    container.appendChild(deltaEl);
-
-    // Begin fade out after 2 seconds
-    setTimeout(() => {
-      deltaEl.style.opacity = "0";
-
-      // Remove element after fade-out transition (assumes 0.5s fade in CSS)
-      setTimeout(() => deltaEl.remove(), 500);
-    }, 2000);
+  requestmgr.onResponse = function(id,ok){ $.post("https://vrp/request",JSON.stringify({act: "response", id: id, ok: ok})); }
+  wprompt.onClose = function(){ $.post("https://vrp/prompt",JSON.stringify({act: "close", result: wprompt.result})); }
+  dynamic_menu.onValid = function(option,mod){ $.post("https://vrp/menu",JSON.stringify({act: "valid", option: option, mod: mod})); }
+  var select_event = false;
+  dynamic_menu.onSelect = function(option){ 
+    if(select_event){
+      $.post("https://vrp/menu",JSON.stringify({act: "select", option: option}));
+    }
   }
-});
-  
 
   //init
   $.post("https://vrp/init",""); 
