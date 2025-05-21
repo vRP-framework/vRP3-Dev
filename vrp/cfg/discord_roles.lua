@@ -1,7 +1,5 @@
 local cfg = {}
 
-cfg.timer_check_roles = 1000 * 60 * 15 -- 15 minutes timer to check roles in game
-
 cfg.token = "Bot "  -- "Bot [Discord Server Token]"
 cfg.guildId = ""    -- "Discord server ID"
 
