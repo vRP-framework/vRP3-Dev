@@ -128,18 +128,5 @@ function discord_roles.event:characterLoad(user)
     checkPlayerRoles(user)
 end
 
--- Background role check loop (use cooldowns here in production)
-Citizen.CreateThread(function()
-    while true do
-        Citizen.Wait(cfg.timer_check_roles)
-        for _, user in pairs(vRP.users or {}) do
-            if user and user.source then
-                checkPlayerRoles(user)
-            end
-        end
-        print("[Discord Roles] Role check completed for all players.")
-    end
-end)
-
 -- Register extension
 vRP:registerExtension(discord_roles)
