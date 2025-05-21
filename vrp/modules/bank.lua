@@ -62,7 +62,7 @@ function Bank:__construct()
     if amount > 0 then
       local success, err = user:tryDeposit(amount)
       if success then
-        vRP.EXT.Base.remote._notify(user.source, "Deposited $" .. vRP.formatNumber(amount))
+        vRP.EXT.Base.remote._notify(user.source, "Deposited $" .. formatNumber(amount))
       else
         vRP.EXT.Base.remote._notify(user.source, "Deposit failed: " .. err)
       end
@@ -88,13 +88,13 @@ local function m_withdraw(menu)
   -- Optional: enforce a max per-withdrawal limit
   local max_limit = 100000
   if amount > max_limit then
-    vRP.EXT.Base.remote._notify(user.source, "Maximum withdrawal is $" .. vRP.formatNumber(max_limit))
+    vRP.EXT.Base.remote._notify(user.source, "Maximum withdrawal is $" .. formatNumber(max_limit))
     return
   end
 
   local success, err = user:tryWithdraw(amount)
   if success then
-    vRP.EXT.Base.remote._notify(user.source, "Withdrew $" .. vRP.formatNumber(amount))
+    vRP.EXT.Base.remote._notify(user.source, "Withdrew $" .. formatNumber(amount))
   else
     vRP.EXT.Base.remote._notify(user.source, "Withdrawal failed: " .. err)
   end
@@ -129,8 +129,8 @@ local function m_transfer(menu)
 
   local success, err = user:transfer(target, amount)
   if success then
-    vRP.EXT.Base.remote._notify(user.source, "Transferred $" .. vRP.formatNumber(amount) .. " to user " .. target_id)
-    vRP.EXT.Base.remote._notify(target.source, "Received $" .. vRP.formatNumber(amount) .. " from user " .. user.id)
+    vRP.EXT.Base.remote._notify(user.source, "Transferred $" .. formatNumber(amount) .. " to user " .. target_id)
+    vRP.EXT.Base.remote._notify(target.source, "Received $" .. formatNumber(amount) .. " from user " .. user.id)
   else
     vRP.EXT.Base.remote._notify(user.source, "Transfer failed: " .. err)
   end
@@ -144,7 +144,7 @@ end
 
     menu.title = "Bank"
     menu.css = { top = "75px", header_color = "rgba(200,0,0,0.75)" }
-    menu:addOption("Account Info", nil, string.format("<br> Bank Balance: %s", vRP.formatNumber(user:getBank())))
+    menu:addOption("Account Info", nil, string.format("<br> Bank Balance: %s", formatNumber(user:getBank())))
 
     menu:addOption("Deposit", m_deposit, "Deposit money into bank")
     menu:addOption("Withdraw", m_withdraw, "Withdraw money from bank")
@@ -159,7 +159,7 @@ end
     if character_id then
     menu.title = "ATM"
     menu.css = { top = "75px", header_color = "rgba(0,200,0,0.75)" }
-    menu:addOption("Account Info", nil, string.format("<br> Bank Balance: %s", vRP.formatNumber(user:getBank())))
+    menu:addOption("Account Info", nil, string.format("<br> Bank Balance: %s", formatNumber(user:getBank())))
     menu:addOption("Withdraw", m_withdraw, "Withdraw money from bank")
     menu:addOption("Transfer", m_transfer, "Transfer money to another account")
     end
