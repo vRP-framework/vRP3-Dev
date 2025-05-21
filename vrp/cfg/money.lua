@@ -17,6 +17,13 @@ cfg.currency_symbols = {
   GBP = "£ "
 }
 
+-- Add dynamic color change for buy/sell changes
+--- defaults: red: #ff0000, green: #00ff7f
+cfg.delta_colors = {
+  positive = "#00ff7f", -- green
+  negative = "#ff0000"  -- red
+}
+
 cfg.display_css = [[
 .div_money{
   position: absolute;
@@ -45,7 +52,6 @@ cfg.display_css = [[
   top: 210px; /* same vertical base as .div_money */
   font-size: 1.2em;
   font-weight: bold;
-  color: #00ff7f;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
   z-index: 11000;
   animation: DeltaAnim 2s forwards;

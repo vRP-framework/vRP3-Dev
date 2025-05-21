@@ -253,7 +253,11 @@ function Money.event:playerMoneyUpdate(user)
     local delta = math.floor(currentWallet - user.lastWallet)
     if delta ~= 0 then
       local sign = delta > 0 and "+" or ""
-      vRP.EXT.GUI.remote._setDiv(user.source, "delta", self.cfg.display_css, {sign .. delta})
+			local color = (sign == "+") and self.cfg.delta_colors.positive or self.cfg.delta_colors.negative
+			
+			vRP.EXT.GUI.remote._setDiv(user.source, "delta", self.cfg.display_css, {sign .. delta})
+			vRP.EXT.GUI.remote._setDivCss(user.source, "delta", ".div_delta{ color: ".. color .."; }")
+			
       user.lastWallet = currentWallet
     end
   end
