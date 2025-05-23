@@ -125,7 +125,7 @@ end
 
 function Money:__construct()
   vRP.Extension.__construct(self)
-  self.cfg = module("vrp_money", "cfg/money")
+  self.cfg = module("vrp", "cfg/money")
 
   -- Main Menu Option (for user-to-user money giving)
 	local function m_give(menu)
