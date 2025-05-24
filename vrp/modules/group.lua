@@ -5,8 +5,6 @@ if not vRP.modules.group then return end
 
 local lang = vRP.lang
 
--- This module defines the group/permission system (per character)
--- Multiple groups can be set to the same player, but the gtype config option can be used to set some groups as unique
 local Group = class("Group", vRP.Extension)
 
 -- SUBCLASS
