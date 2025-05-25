@@ -16,6 +16,7 @@ local modules = {
   user = true,
   identity = true,
   money = true,
+  inventory = true,
   logs = true -- discord logs
 }
 
