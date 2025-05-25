@@ -1,4 +1,3 @@
-
 local cfg = {}
 
 -- define each group with a set of permissions
@@ -43,7 +42,7 @@ cfg.groups = {
     "player.group.remove",
     "player.givemoney",
     "player.giveitem",
-	"player.giveweapon",
+	  "player.giveweapon",
     "profiler.server",
     "profiler.client"
   },
@@ -62,8 +61,8 @@ cfg.groups = {
     "player.custom_sound",
     "player.display_custom",
     "player.coords",
-	"player.revive",
-	"player.spectate",
+	  "player.revive",
+	  "player.spectate",
     "player.tptome",
     "player.tpto"
   },
@@ -80,7 +79,56 @@ cfg.groups = {
   ["police"] = {
     _config = {
       title = "Police",
-      gtype = "job",
+      gtype = "faction",
+      paycheck_interval = 3, --(minutes) Apply to whole faction
+      grades = {
+        [1] = {
+          name = "Recruit",
+          payment = 50,
+          permissions = {
+            "police.recruit.menu",
+            "police.recruit.callbackup"
+          }
+        },
+        [2] = {
+          name = "Officer",
+          payment = 75,
+          permissions = {
+            "police.officer.menu",
+            "police.officer.handcuff",
+            "police.officer.putinvehicle"
+          }
+        },
+        [3] = {
+          name = "Sergeant",
+          payment = 100,
+          permissions = {
+            "police.sergeant.menu",
+            "police.sergeant.seizeweapons",
+            "police.sergeant.drag"
+          }
+        },
+        [4] = {
+          name = "Lieutenant",
+          payment = 125,
+          Co_Lider = true,
+          permissions = {
+            "police.lieutenant.menu",
+            "police.lieutenant.manage",
+            "police.lieutenant.checkbank"
+          }
+        },
+        [5] = {
+          name = "Chief",
+          Lider = true, 
+          payment = 150,
+          permissions = {
+            "police.chief.menu",
+            "police.chief.promote",
+            "police.chief.managebudget"
+          }
+        }
+      },
       onjoin = police_onjoin,
       onspawn = police_onspawn,
       onleave = police_onleave
@@ -104,7 +152,6 @@ cfg.groups = {
     "police.chest_seized",
     "-player.store_weapons",
     "-police.seizable" -- negative permission, police can't seize itself, even if another group add the permission
---    "mission.paycheck.police" -- basic mission
   },
   ["emergency"] = {
     _config = {
@@ -171,13 +218,14 @@ cfg.selectors = {
     "repair",
     "citizen"
   },
-  ["Police job"] = {
+  ["police"] = {
     _config = {x = 437.924987792969,y = -987.974182128906, z = 30.6896076202393, map_entity = {"PoI", {blip_id = 351, blip_color = 38, marker_id = 1}}},
-    "police",
+    -- Job group entries can now be a string or a table with group name + config
+    { group = "police", grade = 1 },
     "citizen"
   },
   ["Emergency job"] = {
-    _config = {x=-498.959716796875,y=-335.715148925781,z=34.5017547607422, map_entity = {"PoI", {blip_id = 351, blip_color = 1, marker_id = 1}}},
+    _config = {x = -498.959716796875,y = -335.715148925781,z = 34.5017547607422, map_entity = {"PoI", {blip_id = 351, blip_color = 1, marker_id = 1}}},
     "emergency",
     "citizen"
   }
@@ -186,49 +234,9 @@ cfg.selectors = {
 -- identity display gtypes
 -- used to display gtype groups in the identity
 -- map of gtype => title
+--[[
 cfg.identity_gtypes = {
   job = "Job"
-}
-
--- count display
-
-cfg.count_display_interval = 15 -- seconds
-
--- toggle display
-cfg.display = false		
-
-cfg.count_display_css = [[
-.div_group_count_display{
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: row;
-  padding: 2px;
-  padding-right: 5px;
-}
-
-.div_group_count_display > div{
-  padding-left: 7px;
-  color: white;
-  font-weight: bold;
-  line-height: 22px;
-}
-
-.div_group_count_display > div > img{
-  margin-right: 2px;
-  vertical-align: bottom;
-}
-]]
-
--- list of {permission, img_src}
-cfg.count_display_permissions = {
-  {"!group.user", "https://i.imgur.com/tQ2VHAi.png"},
-  {"!group.admin", "https://i.imgur.com/cpSYyN0.png"},
-  {"!group.police", "https://i.imgur.com/dygLDfC.png"},
-  {"!group.emergency", "https://i.imgur.com/K5lXutO.png"},
-  {"!group.repair", "https://i.imgur.com/QEjFgzM.png"},
-  {"!group.taxi", "https://i.imgur.com/yY4yrZN.png"}
-}
+} ]]
 
 return cfg
