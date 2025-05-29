@@ -156,7 +156,8 @@ cfg.groups = {
   ["emergency"] = {
     _config = {
       title = "Emergency",
-      gtype = "job"
+      gtype = "job",
+      required_hours = 2 -- Requires 2 hours to access
     },
     "emergency.revive",
     "emergency.shop",

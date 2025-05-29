@@ -16,7 +16,8 @@ local modules = {
   user = true,
   identity = true,
   money = true,
-  logs = true -- discord logs
+  logs = true, -- discord logs
+  hours = true, -- hours module
 }
 
 return modules
