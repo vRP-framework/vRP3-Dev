@@ -264,8 +264,10 @@ end
 
 function Identity.event:playerSpawn(user, first_spawn)
   if first_spawn then
-    -- send registration number to client at spawn
-    self.remote._setRegistrationNumber(user.source, user.identity.registration)
+    -- send registration number to client at spawn (check if identity exists)
+    if user.identity and user.identity.registration then
+      self.remote._setRegistrationNumber(user.source, user.identity.registration)
+    end
 
     -- build city hall
     local menu
@@ -288,7 +290,9 @@ function Identity.event:playerSpawn(user, first_spawn)
 end
 
 function Identity.event:characterIdentityUpdate(user)
-  self.remote._setRegistrationNumber(user.source, user.identity.registration)
+  if user.identity and user.identity.registration then
+    self.remote._setRegistrationNumber(user.source, user.identity.registration)
+  end
 end
 
 vRP:registerExtension(Identity)

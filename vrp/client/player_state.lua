@@ -41,6 +41,30 @@ function PlayerState:setHealth(amount)
   SetEntityHealth(GetPlayerPed(-1), math.floor(amount))
 end
 
+-- Set player sprint stamina (0.0 to 1.0 range)
+function PlayerState:setStamina(amount)
+  local staminaValue = math.max(0.0, math.min(1.0, amount))
+
+  -- Use SetPlayerSprintStaminaRemaining to set sprint stamina directly
+  SetPlayerSprintStaminaRemaining(PlayerId(), staminaValue)
+
+  -- Debug output disabled for performance
+  -- if self.debug_mode then
+  --   print(string.format("[PlayerState DEBUG] Set sprint stamina to: %.3f", staminaValue))
+  -- end
+end
+
+-- Get current sprint stamina (for debugging)
+function PlayerState:getStamina()
+  local sprintStamina = GetPlayerSprintStaminaRemaining(PlayerId())
+  local staminaPercent = sprintStamina * 100
+  -- Debug output disabled for performance
+  -- if self.debug_mode then
+  --   print(string.format("[PlayerState DEBUG] Current sprint stamina: %.3f (%.1f%%)", sprintStamina, staminaPercent))
+  -- end
+  return sprintStamina -- Return as 0.0-1.0 for consistency
+end
+
 function PlayerState:getHealth()
   return GetEntityHealth(GetPlayerPed(-1))
 end
@@ -225,6 +249,8 @@ function PlayerState.tunnel:setConfig(update_interval, mp_models)
 end
 
 PlayerState.tunnel.setHealth = PlayerState.setHealth
+PlayerState.tunnel.setStamina = PlayerState.setStamina
+PlayerState.tunnel.getStamina = PlayerState.getStamina
 PlayerState.tunnel.getHealth = PlayerState.getHealth
 PlayerState.tunnel.getDrawables = PlayerState.getDrawables
 PlayerState.tunnel.getDrawableTextures = PlayerState.getDrawableTextures

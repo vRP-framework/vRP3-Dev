@@ -42,7 +42,7 @@ end
 function User:save()
   vRP:setUData(self.id, "vRP:datatable", msgpack.pack(self.data))
 
-  if not self.loading_character then
+  if not self.loading_character and self.cid then
     vRP:setCData(self.cid, "vRP:datatable", msgpack.pack(self.cdata))
   end
 end
@@ -63,11 +63,49 @@ end
 function User:createCharacter()
   local characters = self:getCharacters()
   if #characters < vRP.cfg.max_characters then
-    local rows = vRP:query("vRP/create_character", {user_id = self.id})
-    if #rows > 0 then
-      return rows[1].id
+    local ok = vRP:execute("vRP/create_character", {user_id = self.id})
+    if ok then
+      Citizen.Wait(100) -- Small delay to ensure the insert is processed
+      local rows = vRP:query("vRP/get_last_character_id", {})
+      if #rows > 0 then
+        local character_id = rows[1].id
+        if character_id and character_id > 0 then
+          -- Initialize character data for new character
+          self:_initCharacterData(character_id)
+          return character_id
+        end
+      end
     end
   end
+end
+
+-- initialize character data
+function User:_initCharacterData(character_id)
+  -- Initialize cdata with default values for all modules
+  self.cdata = {
+    -- Player state data
+    state = {
+      position = nil,
+      heading = nil,
+      health = nil,
+      weapons = nil,
+      components = nil,
+      customization = nil
+    },
+    -- Group data
+    groups = {},
+    -- HUD settings
+    hud_settings = {},
+    hud_enabled = true,
+    hud_show_health = true,
+    hud_show_armor = true,
+    hud_show_hunger = true,
+    hud_show_thirst = true,
+    hud_show_stamina = false
+  }
+
+  -- Save initial character data
+  vRP:setCData(character_id, "vRP:datatable", msgpack.pack(self.cdata))
 end
 
 -- use character
@@ -107,6 +145,9 @@ function User:useCharacter(id, bypass)
     local sdata = vRP:getCData(self.cid, "vRP:datatable")
     if sdata and string.len(sdata) > 0 then
       self.cdata = msgpack.unpack(sdata)
+    else
+      -- Initialize with default values for new or empty character data
+      self:_initCharacterData(self.cid)
     end
 
     vRP:triggerEventSync("characterLoad", self)

@@ -7,6 +7,7 @@ local modules = {
   admin = true,
   group = true,
   gui = true,
+  hud = true,
   map = true,
   weather = true,
   misc = true,

@@ -215,14 +215,39 @@ function vRP:authUser(source)
     if #rows > 0 then return rows[1].user_id end
   end
   -- no ids found, create user
-  local rows, affected = self:query("vRP/create_user", {})
-  if #rows > 0 then
-    local user_id = rows[1].id
-    -- add identifiers
-    for _, id in pairs(ids) do
-      self:execute("vRP/add_identifier", {user_id = user_id, identifier = id})
+  local ok = self:execute("vRP/create_user", {})
+  if ok then
+    Citizen.Wait(100) -- Small delay to ensure the insert is processed
+    local rows = self:query("vRP/get_last_user_id", {})
+    if #rows > 0 then
+      local user_id = rows[1].id
+      if user_id and user_id > 0 then
+        -- add identifiers
+        for _, id in pairs(ids) do
+          local add_ok = self:execute("vRP/add_identifier", {user_id = user_id, identifier = id})
+          if not add_ok then
+            self:error("Failed to add identifier: "..id.." for user_id: "..user_id)
+          end
+        end
+        return user_id
+      else
+        self:error("Invalid user_id returned from LAST_INSERT_ID: "..(user_id or "nil")..", rows: "..json.encode(rows))
+        -- Fallback: try to get the maximum user_id + 1
+        local max_rows = self:query("vRP/get_max_user_id", {})
+        if #max_rows > 0 then
+          local fallback_id = (max_rows[1].max_id or 0) + 1
+          self:error("Using fallback user_id: "..fallback_id)
+          for _, id in pairs(ids) do
+            self:execute("vRP/add_identifier", {user_id = fallback_id, identifier = id})
+          end
+          return fallback_id
+        end
+      end
+    else
+      self:error("No rows returned from get_last_user_id query")
     end
-    return user_id
+  else
+    self:error("Failed to execute create_user query, result: "..ok)
   end
 end
 
@@ -254,11 +279,29 @@ function vRP:connectUser(source)
     if type(data) == "table" then user.data = data end
   end
   --- character
-  if not user:useCharacter(user.data.current_character or 0) then -- use last used character
+  local current_char = user.data.current_character
+  if current_char and current_char > 0 then
+    -- Try to use the last used character
+    if not user:useCharacter(current_char) then
+      -- Fallback to first available character or create new one
+      local characters = user:getCharacters()
+      if #characters > 0 then
+        user:useCharacter(characters[1])
+      else
+        local cid = user:createCharacter()
+        if cid then
+          user:useCharacter(cid)
+        else
+          self:error("couldn't create character (user_id = "..user_id..")")
+        end
+      end
+    end
+  else
+    -- No previous character, get first available or create new one
     local characters = user:getCharacters()
-    if #characters > 0 then -- use existing character
+    if #characters > 0 then
       user:useCharacter(characters[1])
-    else -- use new character
+    else
       local cid = user:createCharacter()
       if cid then
         user:useCharacter(cid)
