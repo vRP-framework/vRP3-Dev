@@ -16,6 +16,7 @@ server_script {
   "modules/gui.lua",
   "modules/admin.lua",
   "modules/group.lua",
+  "modules/money.lua",
   "modules/hud.lua",
   "modules/identity.lua",
   "modules/weather.lua",
