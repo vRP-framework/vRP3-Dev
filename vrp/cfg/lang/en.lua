@@ -342,15 +342,15 @@ local lang = {
     title = "Identity",
     citizenship = {
       title = "Citizenship",
-      info = "<em>Name: </em>{1}<br /><em>First name: </em>{2}<br /><em>Age: </em>{3}<br /><em>Registration n°: </em>{4}<br /><em>Phone: </em>{5}",
+      info = "Name: </em>{2} {1}<br /><em>Age: </em>{3}<br /><em>Registration n°: </em>{4}<br /><em>Phone: </em>{5}",
     },
     cityhall = {
       title = "City Hall",
       new_identity = {
         title = "New identity",
         description = "Create a new identity, cost = ${1}.",
-        prompt_firstname = "Enter your firstname:",
-        prompt_name = "Enter your name:",
+        prompt_firstname = "Enter your first name:",
+        prompt_lastname = "Enter your last name:",
         prompt_age = "Enter your age:",
       }
     }
