@@ -17,65 +17,26 @@ pvRP.loadScript = module
 Proxy.addInterface("vRP", pvRP)
 
 -- queries
-vRP:prepare("vRP/base_tables",[[
-CREATE TABLE IF NOT EXISTS vrp_users(
-  id INTEGER AUTO_INCREMENT,
-  CONSTRAINT pk_user PRIMARY KEY(id)
-);
+vRP:prepare("vRP/base_tables","CREATE TABLE IF NOT EXISTS vrp_users(id INTEGER AUTO_INCREMENT, CONSTRAINT pk_user PRIMARY KEY(id))")
+vRP:prepare("vRP/base_tables2","CREATE TABLE IF NOT EXISTS vrp_user_ids(identifier VARCHAR(100), user_id INTEGER, CONSTRAINT pk_user_ids PRIMARY KEY(identifier), CONSTRAINT fk_user_ids_users FOREIGN KEY(user_id) REFERENCES vrp_users(id) ON DELETE CASCADE)")
+vRP:prepare("vRP/base_tables3","CREATE TABLE IF NOT EXISTS vrp_characters(id INTEGER AUTO_INCREMENT, user_id INTEGER, CONSTRAINT pk_characters PRIMARY KEY(id), CONSTRAINT fk_characters_users FOREIGN KEY(user_id) REFERENCES vrp_users(id) ON DELETE CASCADE)")
+vRP:prepare("vRP/base_tables4","CREATE TABLE IF NOT EXISTS vrp_user_data(user_id INTEGER, dkey VARCHAR(100), dvalue BLOB, CONSTRAINT pk_user_data PRIMARY KEY(user_id,dkey), CONSTRAINT fk_user_data_users FOREIGN KEY(user_id) REFERENCES vrp_users(id) ON DELETE CASCADE)")
+vRP:prepare("vRP/base_tables5","CREATE TABLE IF NOT EXISTS vrp_character_data(character_id INTEGER, dkey VARCHAR(100), dvalue BLOB, CONSTRAINT pk_character_data PRIMARY KEY(character_id,dkey), CONSTRAINT fk_character_data_characters FOREIGN KEY(character_id) REFERENCES vrp_characters(id) ON DELETE CASCADE)")
+vRP:prepare("vRP/base_tables6","CREATE TABLE IF NOT EXISTS vrp_server_data(id VARCHAR(100), dkey VARCHAR(100), dvalue BLOB, CONSTRAINT pk_server_data PRIMARY KEY(id, dkey))")
+vRP:prepare("vRP/base_tables7","CREATE TABLE IF NOT EXISTS vrp_global_data(dkey VARCHAR(100), dvalue BLOB, CONSTRAINT pk_global_data PRIMARY KEY(dkey))")
 
-CREATE TABLE IF NOT EXISTS vrp_user_ids(
-  identifier VARCHAR(100),
-  user_id INTEGER,
-  CONSTRAINT pk_user_ids PRIMARY KEY(identifier),
-  CONSTRAINT fk_user_ids_users FOREIGN KEY(user_id) REFERENCES vrp_users(id) ON DELETE CASCADE
-);
+vRP:prepare("vRP/create_user","INSERT INTO vrp_users(id) VALUES(DEFAULT)")
+vRP:prepare("vRP/get_last_user_id","SELECT LAST_INSERT_ID() AS id")
 
-CREATE TABLE IF NOT EXISTS vrp_characters(
-  id INTEGER AUTO_INCREMENT,
-  user_id INTEGER,
-  CONSTRAINT pk_characters PRIMARY KEY(id),
-  CONSTRAINT fk_characters_users FOREIGN KEY(user_id) REFERENCES vrp_users(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS vrp_user_data(
-  user_id INTEGER,
-  dkey VARCHAR(100),
-  dvalue BLOB,
-  CONSTRAINT pk_user_data PRIMARY KEY(user_id,dkey),
-  CONSTRAINT fk_user_data_users FOREIGN KEY(user_id) REFERENCES vrp_users(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS vrp_character_data(
-  character_id INTEGER,
-  dkey VARCHAR(100),
-  dvalue BLOB,
-  CONSTRAINT pk_character_data PRIMARY KEY(character_id,dkey),
-  CONSTRAINT fk_character_data_characters FOREIGN KEY(character_id) REFERENCES vrp_characters(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS vrp_server_data(
-  id VARCHAR(100),
-  dkey VARCHAR(100),
-  dvalue BLOB,
-  CONSTRAINT pk_server_data PRIMARY KEY(id, dkey)
-);
-
-CREATE TABLE IF NOT EXISTS vrp_global_data(
-  dkey VARCHAR(100),
-  dvalue BLOB,
-  CONSTRAINT pk_global_data PRIMARY KEY(dkey)
-);
-]])
-
-vRP:prepare("vRP/create_user","INSERT INTO vrp_users(id) VALUES(DEFAULT); SELECT LAST_INSERT_ID() AS id")
-
-vRP:prepare("vRP/create_character", "INSERT INTO vrp_characters(user_id) VALUES(@user_id); SELECT LAST_INSERT_ID() AS id")
+vRP:prepare("vRP/create_character", "INSERT INTO vrp_characters(user_id) VALUES(@user_id)")
+vRP:prepare("vRP/get_last_character_id", "SELECT LAST_INSERT_ID() AS id")
 vRP:prepare("vRP/delete_character", "DELETE FROM vrp_characters WHERE id = @id AND user_id = @user_id")
 vRP:prepare("vRP/get_characters", "SELECT id FROM vrp_characters WHERE user_id = @user_id")
 vRP:prepare("vRP/check_character", "SELECT id FROM vrp_characters WHERE id = @id AND user_id = @user_id")
 
 vRP:prepare("vRP/add_identifier","INSERT INTO vrp_user_ids(identifier,user_id) VALUES(@identifier,@user_id)")
 vRP:prepare("vRP/userid_byidentifier","SELECT user_id FROM vrp_user_ids WHERE identifier = @identifier")
+vRP:prepare("vRP/get_max_user_id","SELECT MAX(id) as max_id FROM vrp_users")
 
 vRP:prepare("vRP/set_userdata","REPLACE INTO vrp_user_data(user_id,dkey,dvalue) VALUES(@user_id,@key,UNHEX(@value))")
 vRP:prepare("vRP/get_userdata","SELECT dvalue FROM vrp_user_data WHERE user_id = @user_id AND dkey = @key")
@@ -89,7 +50,16 @@ vRP:prepare("vRP/set_globaldata","REPLACE INTO vrp_global_data(dkey,dvalue) VALU
 vRP:prepare("vRP/get_globaldata","SELECT dvalue FROM vrp_global_data WHERE dkey = @key")
 
 -- init tables
-async(function() vRP:execute("vRP/base_tables") end)
+async(function()
+  -- Create tables in dependency order
+  vRP:execute("vRP/base_tables")   -- vrp_users (no dependencies)
+  vRP:execute("vRP/base_tables2")  -- vrp_user_ids (depends on vrp_users)
+  vRP:execute("vRP/base_tables3")  -- vrp_characters (depends on vrp_users)
+  vRP:execute("vRP/base_tables4")  -- vrp_user_data (depends on vrp_users)
+  vRP:execute("vRP/base_tables5")  -- vrp_character_data (depends on vrp_characters)
+  vRP:execute("vRP/base_tables6")  -- vrp_server_data (no dependencies)
+  vRP:execute("vRP/base_tables7")  -- vrp_global_data (no dependencies)
+end)
 
 -- handlers
 
