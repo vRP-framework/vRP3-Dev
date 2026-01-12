@@ -43,9 +43,9 @@ local function menu_cityhall(self)
     local firstname = user:prompt(lang.identity.cityhall.new_identity.prompt_firstname(),"")
     if string.len(firstname) >= 2 and string.len(firstname) < 50 then
       firstname = sanitizeString(firstname, self.sanitizes.name[1], self.sanitizes.name[2])
-      local name = user:prompt(lang.identity.cityhall.new_identity.prompt_name(),"")
-      if string.len(name) >= 2 and string.len(name) < 50 then
-        name = sanitizeString(name, self.sanitizes.name[1], self.sanitizes.name[2])
+      local lastname = user:prompt(lang.identity.cityhall.new_identity.prompt_lastname(),"")
+      if string.len(lastname) >= 2 and string.len(lastname) < 50 then
+        lastname = sanitizeString(lastname, self.sanitizes.name[1], self.sanitizes.name[2])
         local age = user:prompt(lang.identity.cityhall.new_identity.prompt_age(),"")
         age = parseInt(age)
         if age >= 16 and age <= 150 then
@@ -54,7 +54,7 @@ local function menu_cityhall(self)
             local phone = self:generatePhoneNumber()
 
             user.identity.firstname = firstname
-            user.identity.name = name
+            user.identity.lastname = lastname
             user.identity.age = age
             user.identity.registration = registration
             user.identity.phone = phone
@@ -62,7 +62,7 @@ local function menu_cityhall(self)
             vRP:execute("vRP/update_character_identity", {
               character_id = user.cid,
               firstname = firstname,
-              name = name,
+              lastname = lastname,
               age = age,
               registration = registration,
               phone = phone
@@ -101,7 +101,7 @@ local function menu_identity(self)
     local identity = self:getIdentity(menu.data.cid)
 
     if identity then
-      menu:addOption(lang.identity.citizenship.title(), nil, lang.identity.citizenship.info({htmlEntities.encode(identity.name), htmlEntities.encode(identity.firstname), identity.age, identity.registration, identity.phone}))
+      menu:addOption(lang.identity.citizenship.title(), nil, lang.identity.citizenship.info({htmlEntities.encode(identity.lastname), htmlEntities.encode(identity.firstname), identity.age, identity.registration, identity.phone}))
     end
   end)
 end
@@ -157,7 +157,7 @@ function Identity:__construct()
       registration VARCHAR(20),
       phone VARCHAR(20),
       firstname VARCHAR(50),
-      name VARCHAR(50),
+      lastname VARCHAR(50),
       age INTEGER,
       CONSTRAINT pk_character_identities PRIMARY KEY(character_id),
       CONSTRAINT fk_character_identities_characters FOREIGN KEY(character_id) REFERENCES vrp_characters(id) ON DELETE CASCADE,
@@ -167,8 +167,8 @@ function Identity:__construct()
     ]])
 
     vRP:prepare("vRP/get_character_identity","SELECT * FROM vrp_character_identities WHERE character_id = @character_id")
-    vRP:prepare("vRP/init_character_identity","INSERT IGNORE INTO vrp_character_identities(character_id,registration,phone,firstname,name,age) VALUES(@character_id,@registration,@phone,@firstname,@name,@age)")
-    vRP:prepare("vRP/update_character_identity","UPDATE vrp_character_identities SET firstname = @firstname, name = @name, age = @age, registration = @registration, phone = @phone WHERE character_id = @character_id")
+    vRP:prepare("vRP/init_character_identity","INSERT IGNORE INTO vrp_character_identities(character_id,registration,phone,firstname,lastname,age) VALUES(@character_id,@registration,@phone,@firstname,@lastname,@age)")
+    vRP:prepare("vRP/update_character_identity","UPDATE vrp_character_identities SET firstname = @firstname, lastname = @lastname, age = @age, registration = @registration, phone = @phone WHERE character_id = @character_id")
     vRP:prepare("vRP/get_characterbyreg","SELECT character_id FROM vrp_character_identities WHERE registration = @registration")
     vRP:prepare("vRP/get_characterbyphone","SELECT character_id FROM vrp_character_identities WHERE phone = @phone")
 
@@ -245,7 +245,7 @@ function Identity.event:characterLoad(user)
       registration = self:generateRegistrationNumber(),
       phone = self:generatePhoneNumber(),
       firstname = self.cfg.random_first_names[math.random(1,#self.cfg.random_first_names)],
-      name = self.cfg.random_last_names[math.random(1,#self.cfg.random_last_names)],
+      lastname = self.cfg.random_last_names[math.random(1,#self.cfg.random_last_names)],
       age = math.random(18,40)
     }
 
@@ -254,7 +254,7 @@ function Identity.event:characterLoad(user)
       registration = user.identity.registration,
       phone = user.identity.phone,
       firstname = user.identity.firstname,
-      name = user.identity.name,
+      lastname = user.identity.lastname,
       age = user.identity.age
     })
   end
@@ -290,5 +290,6 @@ end
 function Identity.event:characterIdentityUpdate(user)
   self.remote._setRegistrationNumber(user.source, user.identity.registration)
 end
+
 
 vRP:registerExtension(Identity)
