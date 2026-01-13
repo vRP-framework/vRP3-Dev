@@ -101,7 +101,7 @@ local function menu_identity(self)
     local identity = self:getIdentity(menu.data.cid)
 
     if identity then
-      menu:addOption(lang.identity.citizenship.title(), nil, lang.identity.citizenship.info({htmlEntities.encode(identity.lastname), htmlEntities.encode(identity.firstname), identity.age, identity.registration, identity.phone}))
+      menu:addOption(lang.identity.citizenship.title(), nil, lang.identity.citizenship.info({htmlEntities.encode(identity.firstname), htmlEntities.encode(identity.lastname), identity.age, identity.registration, identity.phone}))
     end
   end)
 end
@@ -293,3 +293,4 @@ end
 
 
 vRP:registerExtension(Identity)
+
