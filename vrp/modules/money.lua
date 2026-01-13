@@ -57,7 +57,7 @@ end
 -- Deduct from wallet if enough funds exist.
 -- 'dry' mode allows checking without modifying data.
 function Money.User:tryPayment(amount, dry)
-	if type(amount) ~= "number" or amount <= 0 then return false end
+	if type(amount) ~= "number" or amount < 0 then return false end
   if self:getWallet() >= amount then
     if not dry then
       self:setWallet(self:getWallet() - amount)
