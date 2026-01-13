@@ -342,7 +342,7 @@ local lang = {
     title = "Identity",
     citizenship = {
       title = "Citizenship",
-      info = "Name: </em>{2} {1}<br /><em>Age: </em>{3}<br /><em>Registration n°: </em>{4}<br /><em>Phone: </em>{5}",
+      info = "Name: </em>{1} {2}<br /><em>Age: </em>{3}<br /><em>Registration n°: </em>{4}<br /><em>Phone: </em>{5}",
     },
     cityhall = {
       title = "City Hall",
