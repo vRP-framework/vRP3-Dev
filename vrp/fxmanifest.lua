@@ -20,6 +20,7 @@ server_script {
   "modules/weather.lua",
   "modules/commands.lua",
   "modules/misc.lua",
+  "modules/money.lua",
   "modules/player_state.lua",
   "modules/weapon.lua",
   "modules/log.lua"
