@@ -119,7 +119,6 @@ cfg.random_first_names = {
   "Earl",
   "Jimmy",
   "Antonio",
-
   "Mary",
   "Patricia",
   "Linda",
@@ -324,5 +323,6 @@ cfg.random_last_names = {
   "Diaz",
   "Hayes"
 }
+
 
 return cfg
