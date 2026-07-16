@@ -21,7 +21,6 @@ client_script {
 }
 
 files {
-  "cfg/*.lua",
   'html/index.html',
   'html/favicon.svg',
   'html/assets/*.js',

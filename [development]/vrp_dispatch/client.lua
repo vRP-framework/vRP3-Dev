@@ -13,24 +13,9 @@ end
 Proxy.addInterface("vRP", pvRP)
 
 local Dispatch = class("Dispatch", vRP.Extension)
-local cfg = module("vrp_dispatch", "cfg/cfg")
 
 function Dispatch:__construct()
   vRP.Extension.__construct(self)
-
-  CreateThread(function()
-    print("Starting delay...")
-    Wait(10000) -- Wait for 10000 milliseconds (10 seconds)
-    self:secretKey(cfg.openAIApiKey)
-  end)
-end
-
-function Dispatch:secretKey(key)
-  print("[RADIO] Received secret key, sending to NUI")
-  SendNuiMessage(json.encode({
-    type      = "radioConfig",
-    openaiKey = key
-  }))
 end
 
 -- Displays dispatch text.
@@ -65,7 +50,6 @@ end
 
 Dispatch.tunnel = {}
 Dispatch.tunnel.radio = Dispatch.radio
-Dispatch.tunnel.secretKey = Dispatch.secretKey
 
 Dispatch.tunnel.radioDev = Dispatch.radioDev
 Dispatch.tunnel.playRadioMessage = Dispatch.playRadioMessage
