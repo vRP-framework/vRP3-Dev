@@ -78,7 +78,16 @@ function Police.tunnel:reportArmedTheftIncident(user, extra)
   return vRP.EXT.Dispatch:reportIncident("ARMED_THEFT", user, extra)
 end
 
-function Police.tunnel:reportShootingIncident(user, extra)
+function Police.tunnel:reportShootingIncident(extra)
+  local user = vRP.users_by_source[source]
+  if not user then return false end
+
+  if type(extra) ~= "table" or type(extra.weapon) ~= "number" then
+    return false
+  end
+
+  -- extra.coords (if present) is client-reported metadata only;
+  -- Dispatch:handleIncident resolves the authoritative location from user.source.
   return vRP.EXT.Dispatch:reportIncident("SHOOTING", user, extra)
 end
 
