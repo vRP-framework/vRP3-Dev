@@ -13,6 +13,21 @@ cfg.transactions = {
 
 cfg.admin_permission = "player.kick"
 
+-- Per-source, per-action cooldowns for Banking.tunnel:action, in milliseconds.
+-- Server time only (GetGameTimer()) -- never derived from client input.
+-- admin_add, admin_remove, and admin_del share the single "admin" bucket.
+cfg.rateLimits = {
+	deposit    = 1500,
+	withdrawal = 1500,
+	transfer   = 2000,
+	admin      = 5000,
+}
+
+-- Minimum time between repeated [BANKING][RATE_LIMIT] console log lines for
+-- the same source/action, in milliseconds, so spam bursts log once, not once
+-- per attempt.
+cfg.rateLimitLogIntervalMs = 5000
+
 cfg.padValue = 4
 cfg.startValue = 0
 

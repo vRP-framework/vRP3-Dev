@@ -11,6 +11,8 @@ function Banking:__construct()
 	self.cfg = module("vrp_banking", "cfg/cfg")
 	self.allUsersData = {} -- table to hold all user info
 	self.blockedUsers = {}  -- table to hold blocked users
+	self.rateLimits = {}      -- [source][normalizedActionType] = last allowed GetGameTimer() ms
+	self.rateLimitAbuse = {}  -- [source][normalizedActionType] = { count, lastLoggedAtMs }
 
 	self.atms = {} -- table to hold atm locations
 	-- Persist if DB is enabled
@@ -376,6 +378,73 @@ function Banking:logAdminAction(actor, actionName, target, amount)
 end
 
 --**********************************
+-- Rate Limiting
+--**********************************
+
+-- Per-connection, per-action cooldowns for Banking.tunnel:action. Server
+-- time only (GetGameTimer()), keyed exclusively by the FiveM-assigned
+-- 'source' -- never client input. Cooldown values live in cfg.rateLimits so
+-- they can be tuned without touching this logic. admin_add/admin_remove/
+-- admin_del are normalized to a single shared "admin" bucket.
+local ADMIN_ACTION_TYPES = {
+	admin_add    = true,
+	admin_remove = true,
+	admin_del    = true,
+}
+
+local function normalizeActionType(actionType)
+	if ADMIN_ACTION_TYPES[actionType] then
+		return "admin"
+	end
+	return actionType
+end
+
+-- Returns true if the action is currently allowed (and records this attempt
+-- as the new cooldown start), or false if still cooling down. Recording
+-- happens as soon as the gate is passed, regardless of what the caller does
+-- afterward, so a failed/invalid follow-up request still consumes the
+-- cooldown rather than allowing unlimited retries.
+function Banking:checkRateLimit(source, actionType)
+	local key = normalizeActionType(actionType)
+	local cooldown = self.cfg.rateLimits[key] or 2000
+	local now = GetGameTimer()
+
+	self.rateLimits[source] = self.rateLimits[source] or {}
+	local last = self.rateLimits[source][key]
+
+	if last and (now - last) < cooldown then
+		self:logRateLimitAbuse(source, key, now)
+		return false
+	end
+
+	self.rateLimits[source][key] = now
+	return true
+end
+
+-- Logs at most once per cfg.rateLimitLogIntervalMs per source/action,
+-- folding in how many attempts were suppressed since the last log line.
+function Banking:logRateLimitAbuse(source, key, now)
+	self.rateLimitAbuse[source] = self.rateLimitAbuse[source] or {}
+	local entry = self.rateLimitAbuse[source][key] or { count = 0, lastLoggedAtMs = 0 }
+	entry.count = entry.count + 1
+
+	if (now - entry.lastLoggedAtMs) >= (self.cfg.rateLimitLogIntervalMs or 5000) then
+		print(("[BANKING][RATE_LIMIT] source=%s action=%s result=rejected suppressed=%d"):format(
+			tostring(source), tostring(key), entry.count - 1
+		))
+		entry.count = 0
+		entry.lastLoggedAtMs = now
+	end
+
+	self.rateLimitAbuse[source][key] = entry
+end
+
+function Banking:clearRateLimits(source)
+	self.rateLimits[source] = nil
+	self.rateLimitAbuse[source] = nil
+end
+
+--**********************************
 -- Banking Actions
 --**********************************
 
@@ -619,6 +688,8 @@ function Banking.event:playerSpawn(user, first_spawn)
 end
 
 function Banking.event:playerLeave(user)
+  self:clearRateLimits(user.source)
+
   for id, allUsers in pairs(vRP.users) do
 		self:broadcastContacts(allUsers)
 	end
@@ -632,13 +703,39 @@ function Banking.tunnel:action(data)
 	local user = vRP.users_by_source[source]
 	if not user then return false end
 
-	if data.type == "admin_del" then
-		return self:admin_del(source, data) 
+	local actionType = data.type
+
+	if ADMIN_ACTION_TYPES[actionType] then
+		-- Admin path: authorize first (existing auth path, unchanged), and
+		-- only consume the stricter admin cooldown once authorized.
+		local authorized = self:authorizeAdmin(source, actionType)
+		if not authorized then return false end
+
+		if not self:checkRateLimit(source, actionType) then
+			return false
+		end
+
+		if actionType == "admin_del" then
+			return self:admin_del(source, data)
+		end
+
+		local handler = self.actionHandlers[actionType]
+		if not handler then
+			print("[BANKING] Invalid action:", json.encode(data))
+			return false
+		end
+
+		return handler(self, user.source, data)
 	end
 
-	local handler = self.actionHandlers[data.type]
+	-- Self-service path: validate the action type before rate-limiting.
+	local handler = self.actionHandlers[actionType]
 	if not handler then
 		print("[BANKING] Invalid action:", json.encode(data))
+		return false
+	end
+
+	if not self:checkRateLimit(source, actionType) then
 		return false
 	end
 
