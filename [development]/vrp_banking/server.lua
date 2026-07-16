@@ -45,10 +45,14 @@ function Banking:__construct()
 
 	-- will remove user from blocked list
 	RegisterCommand("whitelist", function(source, args, rawCommand)
+		local ok, actor = self:authorizeAdmin(source, "whitelist")
+		if not ok then return end
+
 		for k,v in pairs(self.blockedUsers) do
 			if args[1] and tonumber(args[1]) == tonumber(k) then
 
 				self.blockedUsers[k] = nil
+				self:logAdminAction(actor, "whitelist", { id = k })
 
 				for id, user in pairs(vRP.users) do
 					self:broadcastContacts(user)
@@ -63,12 +67,16 @@ function Banking:__construct()
 
 	-- will remove user from blocked list
 	RegisterCommand("blacklist", function(source, args, rawCommand)
+		local ok, actor = self:authorizeAdmin(source, "blacklist")
+		if not ok then return end
+
 		for id, users in pairs(vRP.users) do
 			for k, v in pairs(self.allUsersData) do
 				if tonumber(args[1]) == tonumber(v.user.accountId) then
 					table.remove(self.allUsersData, k)
 
 					self.blockedUsers[id] = true  -- add to block list
+					self:logAdminAction(actor, "blacklist", { id = id })
 
 					for id, user in pairs(vRP.users) do
 						self:broadcastContacts(users)
@@ -317,7 +325,58 @@ function Banking:validateAmount(user, amount, forWallet)
 end
 
 --**********************************
--- Banking Actions 
+-- Authorization
+--**********************************
+
+-- Reusable server-side authorization primitive for administrative banking
+-- actions. Never trusts client-supplied identity: 'source' must be the
+-- FiveM-assigned invoker id, and the real user is resolved exclusively via
+-- vRP.users_by_source[source]. Wired into admin, admin_del, whitelist, and
+-- blacklist (Phase 1).
+-- actionName: optional label used only for log clarity.
+-- Returns: ok (boolean), user (resolved vRP user, or nil if rejected)
+function Banking:authorizeAdmin(source, actionName)
+	local label = tostring(actionName or "unknown")
+	local user = vRP.users_by_source[source]
+
+	if not user then
+		print(("[BANKING][AUTH] action=%s source=%s result=rejected reason=%s"):format(
+			label, tostring(source), "no_connected_user"
+		))
+		return false, nil
+	end
+
+	if not user:hasPermission(self.cfg.admin_permission) then
+		print(("[BANKING][AUTH] action=%s source=%s user=%s result=rejected reason=%s"):format(
+			label, tostring(source), tostring(user.id), "missing_permission:" .. tostring(self.cfg.admin_permission)
+		))
+		return false, nil
+	end
+
+	return true, user
+end
+
+--**********************************
+-- Auditing
+--**********************************
+
+-- Structured, actor-attributed audit log for administrative banking actions.
+-- Distinct from Banking:addTransaction, which is player-facing transaction
+-- history and never records who performed an admin action.
+-- target may be a resolved vRP user (has .id/.cid) or a plain {id=...} table
+-- for actions (whitelist/blacklist/admin_del) that only carry a raw id.
+function Banking:logAdminAction(actor, actionName, target, amount)
+	local actorId = actor and actor.id or "unknown"
+	local targetId = target and (target.id or target.cid) or "unknown"
+
+	print(("[BANKING][AUDIT] action=%s actor=%s target=%s amount=%s ts=%s"):format(
+		tostring(actionName), tostring(actorId), tostring(targetId),
+		tostring(amount or "n/a"), os.date("%Y-%m-%d %H:%M:%S")
+	))
+end
+
+--**********************************
+-- Banking Actions
 --**********************************
 
 function Banking:deposit(source, data)
@@ -391,12 +450,22 @@ end
 function Banking:transfer(source, data)
 	print("BANKING TRANSFER:", json.encode(data))
 	local user = vRP.users_by_source[source]                 	-- sender
-	local id = tonumber(data.contact.id)
-	local target = vRP.users_by_cid[id]						-- recipient 
+	local id = tonumber(data.contact and data.contact.id)
+	local target = vRP.users_by_cid[id]						-- recipient
 	local amount = tonumber(data.amount)
 
 	-- Validation
 	if not user or not target then return false end
+
+	-- Cannot transfer to yourself outside of debug mode. Real money never
+	-- moves below when cfg.debug is true, so this only guards the live path,
+	-- where a client-supplied contact.id equal to the sender's own cid would
+	-- otherwise let tryWithdraw+giveBank run on the same user object and
+	-- mint money (bank ends unchanged, wallet gains the transferred amount).
+	if not self.cfg.debug and target.cid == user.cid then
+		vRP.EXT.Base.remote._notify(source, self.lang.transfer.error())
+		return false
+	end
 
 	-- Blocked users cannot be transfer money
 	if self.blockedUsers[target.cid] then return false end
@@ -440,6 +509,9 @@ end
 --**********************************
 
 function Banking:admin_del(source, data)
+	local ok, actor = self:authorizeAdmin(source, "admin_del")
+	if not ok then return false end
+
 	local userData = data.user
 	if not userData then return false end
 
@@ -451,6 +523,7 @@ function Banking:admin_del(source, data)
 			table.remove(self.allUsersData, k)
 
 			self.blockedUsers[id] = true  -- add to block list
+			self:logAdminAction(actor, "admin_del", { id = id })
 
 			for userId, allUsers in pairs(vRP.users) do
 				self:broadcastContacts(allUsers)
@@ -470,13 +543,13 @@ function Banking:admin_del(source, data)
 end
 
 function Banking:adminRemoveFunds(target, amount)
-	if target:tryFullPayment(amount) then return end
-
-	target:setWallet(0)
-	target:setBank(0)
+	return target:tryFullPayment(amount)
 end
 
 function Banking:admin(source, data)
+	local ok, actor = self:authorizeAdmin(source, "admin")
+	if not ok then return false end
+
 	local userData = data.user
 	if not userData then return false end
 
@@ -496,8 +569,11 @@ function Banking:admin(source, data)
 	local description = data.description
 
 	if process == "admin_remove" then
-		self:adminRemoveFunds(target, amount)
+		if not self:adminRemoveFunds(target, amount) then
+			return false
+		end
 
+		self:logAdminAction(actor, "admin_remove", target, amount)
 		self:addTransaction(target, process, amount, nil, description)
 		self:sendUserData(target)
 
@@ -508,6 +584,7 @@ function Banking:admin(source, data)
 	-- Deposit (no branching inside)
 	target:giveBank(amount)
 
+	self:logAdminAction(actor, "admin_add", target, amount)
 	self:addTransaction(target, process, amount, nil, description)
 	self:sendUserData(target)
 
