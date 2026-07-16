@@ -1,0 +1,25 @@
+name: Upload to CFX Portal
+
+on:
+  push:
+    branches: [master, main]
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload and Deploy luman-bridge
+        uses: luman-studio/cfx-portal-upload@main
+        with:
+          cookie: ${{ secrets.FORUM_COOKIE }}
+          openSource: |
+            asset_name: 'luman-bridge'
+          # Deploy
+          deploy: true
+          ssh_host: ${{ secrets.SERVER_HOST }}
+          ssh_user: ${{ secrets.SERVER_USER }}
+          ssh_key: ${{ secrets.SSH_KEY }}
+          deploy_path: '~/server-data/resources/[tebex]'
+          discord_webhook: ${{ secrets.DISCORD_WEBHOOK }}

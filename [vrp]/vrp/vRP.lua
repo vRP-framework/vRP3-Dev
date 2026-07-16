@@ -7,6 +7,9 @@ local vRPShared = module("vrp", "vRPShared")
 -- Server vRP
 local vRP = class("vRP", vRPShared)
 
+-- local helpers
+local table_insert = table.insert
+
 -- SUBCLASSES
 
 vRP.DBDriver = class("vRP.DBDriver")
@@ -52,9 +55,20 @@ end
 function vRP:__construct()
   vRPShared.__construct(self)
 
+  -- Framework info
+  self.init = 0
+
   -- load config
   self.cfg = module("vrp", "cfg/base")
   self.log_level = self.cfg.log_level
+  -- pending character data writes (debounced)
+  self._pending_cdata = {}
+  self._pending_cdata_timers = {}
+  self.cdata_debounce_ms = self.cfg.cdata_debounce_ms or 2000
+  -- pending user saves (debounced)
+  self._pending_user_saves = {}
+  self._user_save_timer = nil
+  self.user_save_debounce_ms = self.cfg.user_save_debounce_ms or 2000
 
   -- load language
   self.luang = Luang()
@@ -92,8 +106,8 @@ function vRP:__construct()
     SetTimeout(self.cfg.save_interval*1000, task_save)
     self:save()
   end
+  
   task_save()
-
 end
 
 -- register a DB driver
@@ -131,6 +145,8 @@ function vRP:registerDBDriver(db_driver)
   else
     self:error("Not a DBDriver class.")
   end
+
+  self:frameworkInfo()
 end
 
 -- prepare a query
@@ -146,7 +162,7 @@ function vRP:prepare(name, query)
   if self.db_initialized then -- direct call
     self.db_driver:onPrepare(name, query)
   else
-    table.insert(self.cached_prepares, {name, query})
+    table_insert(self.cached_prepares, {name, query})
   end
 end
 
@@ -164,14 +180,32 @@ function vRP:query(name, params, mode)
     self:error("query "..name.." doesn't exist.")
   end
   if self.log_level > 0 then
-    self:log("query "..name.." ("..mode..") params = "..json.encode(params or {}))
+    -- lightweight params summary to avoid expensive json.encode on every query
+    local p_summary = "#params=0"
+    if params then
+      local c = 0
+      for _ in pairs(params) do c = c + 1 end
+      p_summary = "#params="..c
+    end
+    if self.log_level > 1 and self.cfg and self.cfg.log_query_params then
+      self:log("query "..name.." ("..mode..") params = "..json.encode(params or {}))
+    else
+      self:log("query "..name.." ("..mode..") "..p_summary)
+    end
   end
+  local t0 = GetGameTimer()
   if self.db_initialized then -- direct call
-    return self.db_driver:onQuery(name, params or {}, mode)
+    local res1, res2 = self.db_driver:onQuery(name, params or {}, mode)
+    local dur = GetGameTimer() - t0
+    
+    return res1, res2
   else -- async call, wait query result
     local r = async()
-    table.insert(self.cached_queries, {{name, params or {}, mode}, r})
-    return r:wait()
+    table_insert(self.cached_queries, {{name, params or {}, mode}, r})
+    local res = r:wait()
+    local dur = GetGameTimer() - t0
+    
+    return res
   end
 end
 
@@ -198,7 +232,7 @@ function vRP:authUser(source)
   if raw_ids then
     for _, id in ipairs(raw_ids) do
       if not self.cfg.ignore_ip_identifier or not string.find(id, "^ip:") then
-        table.insert(ids, id)
+        table_insert(ids, id)
       end
     end
   end
@@ -244,8 +278,16 @@ function vRP:connectUser(source)
   --- data
   local sdata = self:getUData(user_id, "vRP:datatable")
   if string.len(sdata) > 0 then
-    local data = msgpack.unpack(sdata)
-    if type(data) == "table" then user.data = data end
+    local ok, data = pcall(msgpack.unpack, sdata)
+    if not ok then
+      self:log("warning: failed to unpack user data for user_id="..tostring(user_id))
+    elseif type(data) == "table" then
+      if user.loadData then
+        user:loadData(data)
+      else
+        user.data = data
+      end
+    end
   end
   --- character
   if not user:useCharacter(user.data.current_character or 0) then -- use last used character
@@ -267,6 +309,16 @@ function vRP:connectUser(source)
   -- trigger join
   self:log(user.name.." ("..user.endpoint..") connected (user_id = "..user.id..")")
   self:triggerEvent("playerJoin", user)
+
+  -- run a rate-limited GC to keep memory in check on joins (uses utils.runGCNow if available)
+  pcall(function()
+    if type(self.runGCNowRateLimited) == "function" then
+      self:runGCNowRateLimited(10) -- 10s min interval
+    elseif type(self.runGCNow) == "function" then
+      -- fallback: directly call runGCNow if present
+      self.runGCNow()
+    end
+  end)
   return user
 end
 
@@ -283,6 +335,37 @@ function vRP:disconnectUser(source, reason)
     self.users[user.id] = nil
     self.users_by_source[user.source] = nil
     self:log(user.name.." ("..user.endpoint..") disconnected (user_id = "..user.id..")")
+    -- run a small, rate-limited GC on disconnect to free transient state
+    pcall(function()
+      if type(self.runGCNowRateLimited) == "function" then
+        self:runGCNowRateLimited(10)
+      elseif type(self.runGCNow) == "function" then
+        self.runGCNow()
+      end
+    end)
+  end
+end
+
+-- Rate-limited GC trigger helper
+function vRP:runGCNowRateLimited(min_interval)
+  min_interval = min_interval or 10
+  local now = GetGameTimer()/1000
+  if not self._last_gc_run or (now - self._last_gc_run) >= min_interval then
+    self._last_gc_run = now
+    pcall(function()
+      if type(self.runGCNow) == "function" then
+        self:runGCNow()
+      elseif type(runGCNow) == "function" then
+        -- fallback to global helper if available (lib/utils may have exposed it)
+        runGCNow()
+      else
+        -- fallback: do a direct local GC if runGCNow not exposed
+        collectgarbage("collect")
+        if type(self.log) == "function" and (not self.log_level or self.log_level > 0) then
+          pcall(function() self:log("runGCNowRateLimited: fallback collectgarbage executed") end)
+        end
+      end
+    end)
   end
 end
 
@@ -300,7 +383,41 @@ end
 -- character data
 -- value: binary string
 function vRP:setCData(character_id, key, value)
-  self:execute("vRP/set_characterdata", {character_id = character_id, key = key, value = tohex(value)})
+  -- Debounce character data writes per-character to coalesce frequent updates.
+  if not character_id or not key then return end
+
+  local pending = self._pending_cdata[character_id]
+  if not pending then
+    pending = {}
+    self._pending_cdata[character_id] = pending
+  end
+
+  pending[key] = value
+
+  -- schedule a single flush per character
+  if self._pending_cdata_timers[character_id] then return end
+  self._pending_cdata_timers[character_id] = true
+
+  SetTimeout(self.cdata_debounce_ms, function()
+    self._pending_cdata_timers[character_id] = nil
+    local pdata = self._pending_cdata[character_id]
+    self._pending_cdata[character_id] = nil
+    if not pdata then return end
+    for k,v in pairs(pdata) do
+      pcall(function()
+        local out = v
+        if type(v) == "table" then
+          local okp, packed = pcall(msgpack.pack, v)
+          if okp and packed then out = packed end
+        end
+        self:execute("vRP/set_characterdata", {character_id = character_id, key = k, value = tohex(out)})
+      end)
+    end
+  end)
+end
+
+function vRP:delCData(character_id, key)
+	self:execute("vRP/del_characterdata", {character_id = character_id, key = key})
 end
 
 function vRP:getCData(character_id, key)
@@ -340,7 +457,27 @@ end
 function vRP:save()
   if self.log_level > 0 then self:log("save users") end
   self:triggerEvent("save")
-  for user_id, user in pairs(self.users) do user:save() end
+
+  for user_id, user in pairs(self.users) do
+    user:save()
+  end
+end
+
+-- schedule a user save (debounced per-framework)
+function vRP:scheduleUserSave(user)
+  if not user or not user.id then return end
+  self._pending_user_saves[user.id] = user
+  if self._user_save_timer then return end
+
+  self._user_save_timer = true
+  SetTimeout(self.user_save_debounce_ms, function()
+    self._user_save_timer = nil
+    local pending = self._pending_user_saves
+    self._pending_user_saves = {}
+    for id, u in pairs(pending) do
+      pcall(function() u:save() end)
+    end
+  end)
 end
 
 -- events
@@ -384,11 +521,29 @@ function vRP:onPlayerDied(source)
   if user then self:triggerEvent("playerDeath", user) end
 end
 
--- restart everything defined in cfg
-RegisterServerEvent("vRP:reload")
-AddEventHandler("vRP:reload", function()
-  cfg = module("vrp", "cfg/base")
-  for k,v in pairs(cfg.moduals) do StartResource(v) end
-end)
+--[[
+  for printing all the framework info in the console
+
+  proper syntax for color codes:
+  "\x1b[".. style .. ";" .. background .. ";" .. color.green .. "m" .. text .. "\x1b[0m"
+]]
+function vRP:frameworkInfo()
+  local info, codes = self.cfg.framework_info, self.cfg.codes
+  local ver, img, dev = codes.defaults.ver, codes.defaults.img, codes.defaults.dev
+  
+	-- print the framework version
+	--Version check to come later
+  print("\x1b[".. ver.style .. ";".. ver.color .. "m" .. info.version .. "\x1b[0m")
+	
+  if self.init == 0 then    
+    --print the server ASCII image
+    for line in info.server_img:gmatch("[^\n]+") do
+      print("\x1b[".. img.style .. ";".. img.color .. "m" .. line .. "\x1b[0m")
+    end
+
+    --print the dev build version
+    print("\x1b[".. dev.style .. ";".. dev.color .. "m" .. info.dev_build .. "\x1b[0m")  
+  end
+end
 
 return vRP

@@ -35,6 +35,105 @@ end
 
 -- PRIVATE METHODS
 
+-- menu: cityhall
+local function menu_cityhall(self)
+  local function m_new_identity(menu)
+    local user = menu.user
+
+    local notify = vRP.EXT.Base.remote._notify
+    local sanitize = sanitizeString
+    local parse_int = parseInt
+    local sconf = self.sanitizes.name
+    local cost = self.new_identity_cost
+
+    local firstname = user:prompt(lang.identity.cityhall.new_identity.prompt_firstname(), "") or ""
+    firstname = sanitize(firstname, sconf[1], sconf[2])
+    if string.len(firstname) < 2 or string.len(firstname) >= 50 then
+      notify(user.source, lang.common.invalid_value())
+      return
+    end
+
+    local name = user:prompt(lang.identity.cityhall.new_identity.prompt_name(), "") or ""
+    name = sanitize(name, sconf[1], sconf[2])
+    if string.len(name) < 2 or string.len(name) >= 50 then
+      notify(user.source, lang.common.invalid_value())
+      return
+    end
+
+    local age_raw = user:prompt(lang.identity.cityhall.new_identity.prompt_age(), "") or ""
+    local age = parse_int(age_raw)
+    if not age or age < 16 or age > 150 then
+      notify(user.source, lang.common.invalid_value())
+      return
+    end
+
+    if not user:tryPayment(cost) then
+      notify(user.source, lang.money.not_enough())
+      return
+    end
+
+    local registration = self:generateRegistrationNumber()
+    local phone = self:generatePhoneNumber()
+
+    user.identity.firstname = firstname
+    user.identity.name = name
+    user.identity.age = age
+    user.identity.registration = registration
+    user.identity.phone = phone
+
+    vRP:execute("vRP/update_character_identity", {
+      character_id = user.cid,
+      firstname = firstname,
+      name = name,
+      age = age,
+      registration = registration,
+      phone = phone
+    })
+
+    vRP:triggerEvent("characterIdentityUpdate", user)
+    notify(user.source, lang.money.paid({cost}))
+  end
+
+  vRP.EXT.GUI:registerMenuBuilder("cityhall", function(menu)
+    menu.title = lang.identity.cityhall.title()
+    menu.css.header_color = "rgba(0,125,255,0.75)"
+
+    menu:addOption(lang.identity.cityhall.new_identity.title(), m_new_identity, lang.identity.cityhall.new_identity.description({self.new_identity_cost}))
+  end)
+end
+
+-- menu: identity
+local function menu_identity(self)
+  vRP.EXT.GUI:registerMenuBuilder("identity", function(menu)
+    menu.title = lang.identity.title()
+    menu.css.header_color="rgba(0,125,255,0.75)"
+
+    local identity = self:getIdentity(menu.data.cid)
+
+    if identity then
+      menu:addOption(lang.identity.citizenship.title(), nil, lang.identity.citizenship.info({htmlEntities.encode(identity.name), htmlEntities.encode(identity.firstname), identity.age, identity.registration, identity.phone}))
+    end
+  end)
+end
+
+-- menu: admin users user
+local function menu_admin_users_user(self)
+  vRP.EXT.GUI:registerMenuBuilder("admin.users.user", function(menu)
+    local user = menu.user
+    local tuser = vRP.users[menu.data.id]
+
+    if tuser then
+			menu:addOption(lang.identity.title(), function(menu)
+				local tuser = vRP.users[menu.data.id]
+
+				if tuser and tuser:isReady() then
+					menu.user:openMenu("identity", {cid = tuser.cid})
+				end
+			end)
+    end
+  end)
+end
+
 -- METHODS
 
 function Identity:__construct()
@@ -42,6 +141,38 @@ function Identity:__construct()
 
   self.cfg = module("cfg/identity")
   self.sanitizes = module("cfg/sanitizes")
+
+  -- in-memory maps to avoid frequent DB lookups
+  self.reg_map = {}   -- registration -> cid
+  self.phone_map = {} -- phone -> cid
+  self.cid_reg = {}   -- cid -> registration
+  self.cid_phone = {} -- cid -> phone
+
+  -- menus
+  menu_cityhall(self)
+  menu_identity(self)
+  menu_admin_users_user(self)
+
+  -- add identity to main menu
+  vRP.EXT.GUI:registerMenuBuilder("main", function(menu)
+		menu:addOption(lang.identity.title(), function(menu)
+			menu.user:openMenu("identity", {cid = menu.user.cid})
+		end)
+  end)
+
+  -- copy small cfg pieces and avoid copying large name arrays to reduce memory
+  if type(self.cfg) == "table" then
+    self.phone_format = self.cfg.phone_format or "DDDDDDDDDD"
+    self.city_hall = self.cfg.city_hall
+    self.city_hall_map_entity = self.cfg.city_hall_map_entity
+    self.new_identity_cost = self.cfg.new_identity_cost
+    self.spawn_enabled = self.cfg.spawn_enabled
+    self.spawn_position = self.cfg.spawn_position
+    self.spawn_radius = self.cfg.spawn_radius
+  end
+  -- do not copy random_first_names/random_last_names here (lazy-loaded on demand)
+  self.cfg = nil
+
 
   async(function()
     -- init sql
@@ -84,17 +215,35 @@ end
 
 -- return character_id or nil
 function Identity:getByRegistration(registration)
+  if not registration then return end
+
+  -- check in-memory map first
+  local cid = self.reg_map[registration]
+  if cid then return cid end
+
   local rows = vRP:query("vRP/get_characterbyreg", {registration = registration or ""})
   if #rows > 0 then
-    return rows[1].character_id
+    cid = rows[1].character_id
+    self.reg_map[registration] = cid
+    self.cid_reg[cid] = registration
+    return cid
   end
 end
 
 -- return character_id or nil
 function Identity:getByPhone(phone)
+  if not phone then return end
+
+  -- check in-memory map first
+  local cid = self.phone_map[phone]
+  if cid then return cid end
+
   local rows = vRP:query("vRP/get_characterbyphone", {phone = phone or ""})
   if #rows > 0 then
-    return rows[1].character_id
+    cid = rows[1].character_id
+    self.phone_map[phone] = cid
+    self.cid_phone[cid] = phone
+    return cid
   end
 end
 
@@ -118,7 +267,7 @@ function Identity:generatePhoneNumber()
 
   -- generate phone number
   repeat
-    phone = Identity.generateStringNumber(self.cfg.phone_format)
+    phone = Identity.generateStringNumber(self.phone_format)
     character_id = self:getByPhone(phone)
   until not character_id
 
@@ -135,11 +284,15 @@ function Identity.event:characterLoad(user)
   if #rows > 0 then -- loaded
     user.identity = rows[1]
   else -- create
+    -- lazy-load name lists from config module to avoid retaining large arrays in the extension
+    local idcfg = module("cfg/identity")
+    local first_names = idcfg.random_first_names or {}
+    local last_names = idcfg.random_last_names or {}
     user.identity = {
       registration = self:generateRegistrationNumber(),
       phone = self:generatePhoneNumber(),
-      firstname = self.cfg.random_first_names[math.random(1,#self.cfg.random_first_names)],
-      name = self.cfg.random_last_names[math.random(1,#self.cfg.random_last_names)],
+      firstname = first_names[math.random(1, math.max(1,#first_names))],
+      name = last_names[math.random(1, math.max(1,#last_names))],
       age = math.random(18,40)
     }
 
@@ -153,7 +306,36 @@ function Identity.event:characterLoad(user)
     })
   end
 
+  -- populate in-memory maps for quick lookups
+  if user.identity and user.identity.registration then
+    self.reg_map[user.identity.registration] = user.cid
+    self.cid_reg[user.cid] = user.identity.registration
+  end
+  if user.identity and user.identity.phone then
+    self.phone_map[user.identity.phone] = user.cid
+    self.cid_phone[user.cid] = user.identity.phone
+  end
+
   vRP:triggerEvent("characterIdentityUpdate", user)
+end
+
+function Identity.event:characterUnload(user)
+  -- cleanup in-memory maps for this character
+  if not user then return end
+  local cid = user.cid
+  if not cid then return end
+
+  local old_reg = self.cid_reg[cid]
+  if old_reg then
+    self.reg_map[old_reg] = nil
+    self.cid_reg[cid] = nil
+  end
+
+  local old_phone = self.cid_phone[cid]
+  if old_phone then
+    self.phone_map[old_phone] = nil
+    self.cid_phone[cid] = nil
+  end
 end
 
 function Identity.event:playerSpawn(user, first_spawn)
@@ -171,9 +353,9 @@ function Identity.event:playerSpawn(user, first_spawn)
       user:closeMenu(menu)
     end
 
-    local x,y,z = table.unpack(self.cfg.city_hall)
+    local x,y,z = table.unpack(self.city_hall)
 
-    local ment = clone(self.cfg.city_hall_map_entity)
+    local ment = clone(self.city_hall_map_entity)
     ment[2].title = lang.identity.cityhall.title()
     ment[2].pos = {x,y,z-1}
     vRP.EXT.Map.remote._addEntity(user.source,ment[1],ment[2])
@@ -182,7 +364,27 @@ function Identity.event:playerSpawn(user, first_spawn)
 end
 
 function Identity.event:characterIdentityUpdate(user)
+  -- update registration shown to client
   self.remote._setRegistrationNumber(user.source, user.identity.registration)
+
+  -- update in-memory maps (keep reverse maps to remove old values)
+  local old_reg = self.cid_reg[user.cid]
+  if old_reg and old_reg ~= user.identity.registration then
+    self.reg_map[old_reg] = nil
+  end
+  if user.identity.registration then
+    self.reg_map[user.identity.registration] = user.cid
+    self.cid_reg[user.cid] = user.identity.registration
+  end
+
+  local old_phone = self.cid_phone[user.cid]
+  if old_phone and old_phone ~= user.identity.phone then
+    self.phone_map[old_phone] = nil
+  end
+  if user.identity.phone then
+    self.phone_map[user.identity.phone] = user.cid
+    self.cid_phone[user.cid] = user.identity.phone
+  end
 end
 
 vRP:registerExtension(Identity)

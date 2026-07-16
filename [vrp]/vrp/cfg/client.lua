@@ -5,6 +5,8 @@ local cfg = {}
 
 cfg.iplload = true
 
+cfg.loading = true -- set to loading screen to be active for spawning
+
 cfg.voice_proximity = 30.0 -- default voice proximity (outside)
 cfg.voice_proximity_vehicle = 5.0
 cfg.voice_proximity_inside = 9.0

@@ -1,0 +1,20 @@
+﻿name: Security concern
+description: Do not publish an active exploit; use the private security policy where possible
+title: "[SECURITY] "
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include working exploit details in a public issue.
+  - type: textarea
+    id: area
+    attributes:
+      label: Affected area
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Potential impact
+    validations:
+      required: true

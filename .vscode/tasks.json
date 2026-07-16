@@ -1,0 +1,23 @@
+﻿{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Git: Status",
+      "type": "shell",
+      "command": "git status --short --branch",
+      "problemMatcher": []
+    },
+    {
+      "label": "Git: Diff Check",
+      "type": "shell",
+      "command": "git diff --check",
+      "problemMatcher": []
+    },
+    {
+      "label": "Search: Network Events",
+      "type": "shell",
+      "command": "rg -n \"RegisterNetEvent|AddEventHandler|Tunnel\\.bindInterface|Proxy\\.addInterface\" .",
+      "problemMatcher": []
+    }
+  ]
+}

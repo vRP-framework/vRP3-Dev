@@ -38,7 +38,6 @@ end
 function Map.Entity:frame(time) 
 end
 
-
 -- basic entities
 
 local PosEntity = class("PosEntity", Map.Entity)
@@ -49,9 +48,8 @@ function PosEntity:load()
   self.pos = self.cfg.pos
 end
 
-function PosEntity:active(px,py,pz)
-  local dist = GetDistanceBetweenCoords(self.pos[1],self.pos[2],self.pos[3],px,py,pz,true)
-  return (dist <= self.active_distance)
+function PosEntity:active(px, py, pz)
+  return GetDistanceBetweenCoords(self.pos[1], self.pos[2], self.pos[3], px, py, pz, true) <= self.active_distance
 end
 
 -- PoI
@@ -62,14 +60,11 @@ function PoI:load()
 
   -- blip
   if self.cfg.blip_id and self.cfg.blip_color then
-    self.blip = AddBlipForCoord(self.cfg.pos[1],self.cfg.pos[2],self.cfg.pos[3])
+    self.blip = AddBlipForCoord(self.pos[1], self.pos[2], self.pos[3])
     SetBlipSprite(self.blip, self.cfg.blip_id)
     SetBlipAsShortRange(self.blip, true)
     SetBlipColour(self.blip, self.cfg.blip_color)
-
-    if self.cfg.blip_scale then
-      SetBlipScale(self.blip, self.cfg.blip_scale)
-    end
+    SetBlipScale(self.blip, self.cfg.blip_scale or 1.0)
 
     if self.cfg.blip_flashes then
       if self.cfg.blip_flashes == 2 then
@@ -98,6 +93,7 @@ end
 function PoI:unload()
   if self.blip then
     RemoveBlip(self.blip)
+		self.blip = nil
   end
 end
 
@@ -134,13 +130,10 @@ function PlayerMark:setup()
   -- blip
   if self.ped and self.cfg.blip_id and self.cfg.blip_color then
     self.blip = AddBlipForEntity(self.ped)
-    SetBlipSprite(self.blip, self.cfg.blip_id)
-    SetBlipAsShortRange(self.blip, true)
-    SetBlipColour(self.blip, self.cfg.blip_color)
-
-    if self.cfg.blip_scale then
-      SetBlipScale(self.blip, self.cfg.blip_scale)
-    end
+		SetBlipSprite(self.blip, self.cfg.blip_id)
+		SetBlipAsShortRange(self.blip, true)
+		SetBlipColour(self.blip, self.cfg.blip_color)
+		SetBlipScale(self.blip, self.cfg.blip_scale or 1.0)
 
     if self.cfg.blip_flashes then
       if self.cfg.blip_flashes == 2 then
@@ -165,6 +158,7 @@ end
 function PlayerMark:unload()
   if self.blip then
     RemoveBlip(self.blip)
+    self.blip = nil
   end
 end
 
@@ -187,34 +181,42 @@ function Map:__construct()
   self.frame_entities = {} -- active entities for the next frames
 
   self.areas = {}
-
+	
   -- basic entities
   self:registerEntity(PoI)
   self:registerEntity(PlayerMark)
+	
+  -- task: entities active check -- Optimized
+	Citizen.CreateThread(function()
+		while true do
+			Citizen.Wait(100)
 
-  -- task: entities active check
-  Citizen.CreateThread(function()
-    while true do
-      Citizen.Wait(100)
+			-- Reuse table, clear existing entries without recreating
+			for key in pairs(self.frame_entities) do
+				self.frame_entities[key] = nil
+			end
 
-      local px,py,pz = vRP.EXT.Base:getPosition()
-      self.frame_entities = {}
+			-- Get player position
+			local px, py, pz = vRP.EXT.Base:getPosition()
 
-      for id,entity in pairs(self.entities) do
-        if entity:active(px,py,pz) then
-          self.frame_entities[entity] = true
-        end
-      end
-    end
-  end)
+			for id, entity in pairs(self.entities) do
+				-- Perform a quick distance check before calling entity:active()
+				local ex, ey, ez = entity.pos[1], entity.pos[2], entity.pos[3]
+				local dist = GetDistanceBetweenCoords(px, py, pz, ex, ey, ez, true)
+
+				-- Only check entities within a broader threshold distance
+				if dist <= (entity.active_distance * 1.5) and entity:active(px, py, pz) then
+					self.frame_entities[entity] = true
+				end
+			end
+		end
+	end)
 
   -- task: entities frame
   Citizen.CreateThread(function()
     local last_time = GetGameTimer()
-
     while true do
       Citizen.Wait(0)
-
       local time = GetGameTimer()
       local elapsed = (last_time-time)*0.001
       last_time = time
@@ -229,20 +231,16 @@ function Map:__construct()
   Citizen.CreateThread(function()
     while true do
       Citizen.Wait(250)
-
       local px,py,pz = vRP.EXT.Base:getPosition()
 
       for k,v in pairs(self.areas) do
         -- detect enter/leave
-
         local player_in = (GetDistanceBetweenCoords(v.x,v.y,v.z,px,py,pz,true) <= v.radius and math.abs(pz-v.z) <= v.height)
-
         if v.player_in and not player_in then -- was in: leave
           self.remote._leaveArea(k)
         elseif not v.player_in and player_in then -- wasn't in: enter
           self.remote._enterArea(k)
         end
-
         v.player_in = player_in -- update area player_in
       end
     end
@@ -270,17 +268,15 @@ end
 -- creates permanent marker
 function Map:addEntity(ent, cfg)
   local cent = self.def_entities[ent]
-
-  local id
-
+	
   if cent then
-    id = self.entities_ids:gen()
+    local id = self.entities_ids:gen()
     local nent = cent(id, cfg)
     self.entities[id] = nent
     nent:load()
+		
+    return id
   end
-
-  return id
 end
 
 -- id: number or string
@@ -293,6 +289,34 @@ function Map:removeEntity(id)
 
     if type(id) == "number" then
       self.entities_ids:free(id)
+    end
+  end
+end
+
+-- * 4/01/2024: 
+-- * added getAllEntities debugging
+-- onEach: function(id, ent) (optional callback per entity)
+-- iterates through all registered entities
+-- prints entity ID and title for debugging
+function Map:getAllEntities()
+  for id, ent in pairs(self.entities) do
+    if ent then
+      print("Entity ID: " .. id .. ", Title: " .. ent.cfg.title)
+    else
+      print("Entity: nil")
+    end
+  end
+end
+
+-- * 4/01/2024: 
+-- * added getEntityByName entity management
+-- name: string (entity title to search for)
+-- returns: entity ID if found, nil otherwise
+-- finds the first entity matching the given title
+function Map:getEntityByName(name)
+  for id, ent in pairs(self.entities) do
+    if ent.cfg.title == name then
+      return id
     end
   end
 end
@@ -342,13 +366,9 @@ end
 -- AREA
 
 -- create/update a cylinder area
-function Map:setArea(name,x,y,z,radius,height)
-  local area = {x=x,y=y,z=z,radius=radius,height=height}
-
-  -- default values
-  if area.height == nil then area.height = 6 end
-
-  self.areas[name] = area
+-- defualt height is 6
+function Map:setArea(name, x, y, z, radius, height)
+  self.areas[name] = { x = x, y = y, z = z, radius = radius, height = height or 6 }
 end
 
 -- remove area
@@ -363,13 +383,9 @@ end
 -- locked: boolean
 -- doorswing: -1 to 1
 function Map:setStateOfClosestDoor(doordef, locked, doorswing)
-  local x,y,z = vRP.EXT.Base:getPosition()
-  local hash = doordef.modelhash
-  if hash == nil then
-    hash = GetHashKey(doordef.model)
-  end
-
-  SetStateOfClosestDoorOfType(hash,x,y,z,locked,doorswing)
+  local x, y, z = vRP.EXT.Base:getPosition()
+  local hash = doordef.modelhash or GetHashKey(doordef.model)
+  SetStateOfClosestDoorOfType(hash, x, y, z, locked, doorswing)
 end
 
 -- TUNNEL
@@ -378,6 +394,8 @@ Map.tunnel = {}
 
 Map.tunnel.addEntity = Map.addEntity
 Map.tunnel.setEntity = Map.setEntity
+Map.tunnel.getAllEntities = Map.getAllEntities
+Map.tunnel.getEntityByName = Map.getEntityByName
 Map.tunnel.removeEntity = Map.removeEntity
 Map.tunnel.commandEntity = Map.commandEntity
 Map.tunnel.setGPS = Map.setGPS

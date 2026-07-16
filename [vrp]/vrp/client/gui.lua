@@ -9,6 +9,8 @@ function GUI:__construct()
   vRP.Extension.__construct(self)
 
   self.paused = false
+	self.resolution = {0, 0}
+	self.minimap = {0, 0, 0, 0}
 
   -- task: gui controls (from cellphone)
   Citizen.CreateThread(function()
@@ -17,47 +19,36 @@ function GUI:__construct()
 
       if not self.paused then
         -- menu controls
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.up)) then SendNUIMessage({act="event",event="UP"}) end
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.down)) then SendNUIMessage({act="event",event="DOWN"}) end
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.left)) then SendNUIMessage({act="event",event="LEFT"}) end
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.right)) then SendNUIMessage({act="event",event="RIGHT"}) end
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.select)) then SendNUIMessage({act="event",event="SELECT"}) end
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.cancel)) then
+        local phone = vRP.cfg.controls.phone
+        -- Cache control checks to avoid repeated unpacking
+        if IsControlJustPressed(table.unpack(phone.up)) then SendNUIMessage({act="event", event="UP"}) end
+        if IsControlJustPressed(table.unpack(phone.down)) then SendNUIMessage({act="event", event="DOWN"}) end
+        if IsControlJustPressed(table.unpack(phone.left)) then SendNUIMessage({act="event", event="LEFT"}) end
+        if IsControlJustPressed(table.unpack(phone.right)) then SendNUIMessage({act="event", event="RIGHT"}) end
+        if IsControlJustPressed(table.unpack(phone.select)) then SendNUIMessage({act="event", event="SELECT"}) end
+        if IsControlJustPressed(table.unpack(phone.cancel)) then
           self.remote._closeMenu()
-          SendNUIMessage({act="event",event="CANCEL"})
+          SendNUIMessage({act="event", event="CANCEL"})
         end
 
         -- open general menu
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.phone.open)) and not self.menu_data then
-          local ok = true
-
-          -- coma check
-          if vRP.EXT.Survival and vRP.cfg.coma_disable_menu and vRP.EXT.Survival:isInComa() then
-            ok = false
-          end
-
-          -- handcuff check
-          if ok and vRP.EXT.Police and vRP.cfg.handcuff_disable_menu and vRP.EXT.Police:isHandcuffed() then
-            ok = false
-          end
-
-          if ok then
+				if IsControlJustPressed(table.unpack(phone.open)) and not self.menu_data then
+          if not (vRP.EXT.Survival and vRP.cfg.coma_disable_menu and vRP.EXT.Survival:isInComa()) and
+             not (vRP.EXT.Police and vRP.cfg.handcuff_disable_menu and vRP.EXT.Police:isHandcuffed()) then
             self.remote._openMainMenu()
           end
         end
 
         -- F5,F6 (default: control michael, control franklin)
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.request.yes)) then SendNUIMessage({act="event",event="F5"}) end
-        if IsControlJustPressed(table.unpack(vRP.cfg.controls.request.no)) then SendNUIMessage({act="event",event="F6"}) end
+        local request = vRP.cfg.controls.request
+        if IsControlJustPressed(table.unpack(request.yes)) then SendNUIMessage({act="event", event="F5"}) end
+        if IsControlJustPressed(table.unpack(request.no)) then SendNUIMessage({act="event", event="F6"}) end
       end
 
-      -- pause events
-      local pause_menu = IsPauseMenuActive()
-      if pause_menu and not self.paused then
-        self.paused = true
-        vRP:triggerEvent("pauseChange", self.paused)
-      elseif not pause_menu and self.paused then
-        self.paused = false
+      -- Pause menu checks with optimized state handling
+      local pause_menu_active = IsPauseMenuActive()
+      if pause_menu_active ~= self.paused then
+        self.paused = pause_menu_active
         vRP:triggerEvent("pauseChange", self.paused)
       end
     end
@@ -65,11 +56,8 @@ function GUI:__construct()
 
   -- task: GUI resolution data
   Citizen.CreateThread(function()
-    while true do
-      Citizen.Wait(10000)
-
-      self:updateGUIData()
-    end
+		Citizen.Wait(10000)
+		self:updateGUIData()
   end)
 end
 
@@ -104,28 +92,34 @@ end
 -- return x, y, w, h
 function GUI:getMinimapRect()
   local w, h = GetActiveScreenResolution()
-  local x_align, y_align = string.byte("L"), string.byte("B")
+	
+	if w ~= self.resolution[1] or h ~= self.resolution[2] then
+    local x_align, y_align = string.byte("L"), string.byte("B")
+    
+    -- Cache the resolution for future checks
+    self.resolution = {w, h}
+    
+    -- Calculate and cache minimap coordinates
+    local x1, y2 = self:getNativeCoords(x_align, y_align, -0.0045, 0.002)
+    local x2, y1 = self:getNativeCoords(x_align, y_align, -0.0045 + 0.150, 0.002 - 0.188888)
 
-  local x1, y2 = self:getNativeCoords(x_align, y_align, -0.0045, 0.002)
-  local x2, y1 = self:getNativeCoords(x_align, y_align, -0.0045+0.150, 0.002-0.188888)
-
-  return x1*w, y1*h, (x2-x1)*w, (y2-y1)*h
+    self.minimap = {x1 * w, y1 * h, (x2 - x1) * w, (y2 - y1) * h}
+  end
+	
+	return self.minimap[1], self.minimap[2], self.minimap[3], self.minimap[4]
 end
 
 function GUI:updateGUIData()
   local w, h = GetActiveScreenResolution()
-  local minimap = {self:getMinimapRect()}
+  local x, y, mw, mh = self:getMinimapRect()
 
-  SendNUIMessage({act = "gui_data", data = {
-    w = w,
-    h = h,
-    minimap = {
-      x = minimap[1],
-      y = minimap[2],
-      w = minimap[3],
-      h = minimap[4]
+  SendNUIMessage({
+    act = "gui_data",
+    data = {
+      w = w, h = h,
+      minimap = {x = x, y = y, w = mw, h = mh}
     }
-  }})
+  })
 end
 
 -- ANNOUNCE

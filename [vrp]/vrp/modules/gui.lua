@@ -8,6 +8,13 @@ local htmlEntities = module("vrp", "lib/htmlEntities")
 local EventDispatcher = module("vrp", "lib/EventDispatcher")
 local lang = vRP.lang
 
+-- localize globals for hot paths
+local pairs = pairs
+local ipairs = ipairs
+local table_insert = table.insert
+local table_remove = table.remove
+local SetTimeout = SetTimeout
+
 -- Menu
 local Menu = class("Menu", EventDispatcher)
 
@@ -111,9 +118,9 @@ end
 -- index: (optional) by default the option is added at the end, but an index can be used to insert the option
 function Menu:addOption(title, action, description, value, index)
   if index then
-    table.insert(self.options, index, {title, action, description, value or #self.options+1})
+    table_insert(self.options, index, {title, action, description, value or #self.options+1})
   else
-    table.insert(self.options, {title, action, description, value or #self.options+1})
+    table_insert(self.options, {title, action, description, value or #self.options+1})
   end
 end
 
@@ -150,7 +157,7 @@ function GUI.User:openMenu(name, data)
   vRP.EXT.GUI:buildMenu(menu)
 
   -- add to stack, mark as current
-  table.insert(self.menu_stack, menu)
+  table_insert(self.menu_stack, menu)
   menu.stack_index = #self.menu_stack
 
   -- open client menu
@@ -187,7 +194,7 @@ function GUI.User:closeMenu(menu)
     end
 
     -- remove from stack
-    table.remove(self.menu_stack, menu.stack_index)
+    table_remove(self.menu_stack, menu.stack_index)
 
     -- re-open previous menu
     if current then
@@ -280,7 +287,7 @@ function GUI:registerMenuBuilder(name, builder)
     self.menu_builders[name] = mbuilders
   end
 
-  table.insert(mbuilders, builder)
+  table_insert(mbuilders, builder)
 end
 
 -- build a menu

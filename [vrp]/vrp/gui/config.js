@@ -1,5 +1,5 @@
 var config = {
-  bg_img: true, // adds alpha background image to menu
+  bg_img: false, // adds alpha background image to menu
   
   menu_bg: "rgba(0,0,0,0.75)", // menu Background color
   menu_color: "white", // menu font color

@@ -73,6 +73,8 @@ function vRPShared.Extension:__construct()
   self.remote = Tunnel.getInterface("vRP.EXT."..class.name(self))
 end
 
+-- Metrics helpers removed
+
 -- level: (optional) level, 0 by default
 function vRPShared.Extension:log(msg, level)
   vRP:log(msg, class.name(self), level)
@@ -92,11 +94,16 @@ function vRPShared:__construct()
   self.modules = module("vrp", "cfg/modules")
 
   self.log_level = 0
+
+  AddEventHandler("vRP:reload", function(event)
+    -- for potential reload
+  end)
 end
 
 -- register an extension
 -- extension: Extension class
 function vRPShared:registerExtension(extension)
+	--self:log("register EXT: " .. tostring(extension))
   if class.is(extension, vRPShared.Extension) then
     if not self.EXT[class.name(extension)] then
       -- instantiate
@@ -105,6 +112,7 @@ function vRPShared:registerExtension(extension)
 
       -- bind listeners
       if extension.event then
+        local ext_name = class.name(extension)
         for name,cb in pairs(extension.event or {}) do
           local exts = self.ext_listeners[name]
           if not exts then -- create
@@ -116,6 +124,7 @@ function vRPShared:registerExtension(extension)
         end
       end
 
+      
       self:log("Extension "..class.name(ext).." loaded.")
 
       self:triggerEvent("extensionLoad", ext)
@@ -127,114 +136,63 @@ function vRPShared:registerExtension(extension)
   end
 end
 
--- COMPONENT CLASS
-
--- Component class
--- define .proxy/.tunnel for proxy and tunnel interfaces
--- ex: 
--- MyComp.tunnel = {}
--- function MyComp.tunnel:add(a,b) return a+b end
--- MyComp.remote.add(1,1) => 2
---
--- .proxy will create the component proxy with interface name "vRP.COMP.<name>"
---
--- .event properties are listener callbacks
--- ex:
--- function MyComp.event:playerJoin(...) ... end
---
--- .User: optional class inherited by User (to extend User behavior, constructor will be executed)
-vRPShared.Component = class("vRPShared.Component")
-
-function vRPShared.Component:__construct()
-  -- init component tunnel and proxy
-  if self.tunnel then -- build tunnel interface
-    self.tunnel_interface = {}
-    for k,v in pairs(self.tunnel) do
-      self.tunnel_interface[k] = function(...)
-        return v(self, ...)
+-- Unregister an extension
+function vRPShared:unregisterExtension(extension_name)
+  local ext = self.EXT[extension_name]
+  if ext then
+    -- Unbind listeners
+    for name, exts in pairs(self.ext_listeners) do
+      exts[ext] = nil
+      if not next(exts) then
+        self.ext_listeners[name] = nil
       end
     end
-
-    Tunnel.bindInterface("vRP.COMP."..class.name(self), self.tunnel_interface)
-  end
-
-  if self.proxy then -- build proxy interface
-    self.proxy_interface = {}
-    for k,v in pairs(self.proxy) do
-      self.proxy_interface[k] = function(...)
-        return v(self, ...)
-      end
+    -- Trigger unload event (optional, if extensions handle their cleanup)
+    if ext.event and ext.event.unload then
+      ext.event.unload(ext)
     end
-
-    Proxy.addInterface("vRP.COMP."..class.name(self), self.proxy_interface)
-  end
-
-  -- tunnel remote
-  self.remote = Tunnel.getInterface("vRP.COMP."..class.name(self))
-end
-
--- level: (optional) level, 0 by default
-function vRPShared.Component:log(msg, level)
-  vRP:log(msg, class.name(self), level)
-end
-
-function vRPShared.Component:error(msg)
-  vRP:error(msg, class.name(self))
-end
-
--- METHODS
-
-function vRPShared:__construct()
-  -- components and extensions
-  self.COMP = {} -- map of name => comp
-  self.EXT = {}  -- map of name => ext
-  
-  self.comp_listeners = {} -- map of name => map of comp => callback
-  self.ext_listeners = {}  -- map of name => map of ext => callback
-
-  self.modules = module("vrp", "cfg/modules")
-
-  self.log_level = 0
-end
-
--- register a component
--- component: Component class
-function vRPShared:registerComponent(component)
-  if class.is(component, vRPShared.Component) then
-    if not self.COMP[class.name(component)] then
-      -- instantiate
-      local comp = component()
-      self.COMP[class.name(component)] = comp
-
-      -- bind listeners
-      if component.event then
-        for name,cb in pairs(component.event or {}) do
-          local comps = self.comp_listeners[name]
-          if not comps then -- create
-            comps = {}
-            self.comp_listeners[name] = comps
-          end
-
-          comps[comp] = cb
-        end
-      end
-
-      --self:log("Component "..class.name(comp).." loaded.")
-
-      self:triggerEvent("componentLoad", comp)
-    else
-      self:error("A component named "..class.name(component).." is already registered.")
-    end
+    -- Remove the extension
+    self.EXT[extension_name] = nil
+    self:log("Extension " .. extension_name .. " unloaded.")
   else
-    self:error("Not a Component class.")
+    self:error("Extension " .. extension_name .. " not found for unloading.")
   end
+end
+
+
+function vRPShared:reloadExtensions()
+  -- Step 1: Collect extension names
+  local ext = {}
+  for extension_name in pairs(self.EXT) do
+    table.insert(ext, extension_name)
+  end
+	
+	-- Step 2: Unload all currently loaded extensions
+  for _, extension_name in ipairs(ext) do
+    self:unregisterExtension(extension_name)
+  end
+
+  -- Step 2: Reinitialize the same extensions
+  --[[
+  for _, extension_name in ipairs(ext) do
+    local ext_class = module("vrp", "modules/" .. string.lower(extension_name))
+
+    if ext_class then
+      self:registerExtension(ext_class)
+    else
+      self:error("Failed to reload module: " .. extension_name)
+    end
+  end
+  --]]
+
+  -- Trigger optional reload event
+  --self:triggerEvent("frameworkReloaded")
+  self:log("All initialized extensions have been reloaded.")
 end
 
 -- trigger event (with async call for each listener)
 function vRPShared:triggerEvent(name, ...)
   local exts = self.ext_listeners[name]
-  local comps = self.comp_listeners[name]
-
   if exts then
     local params = table.pack(...)
     for ext,func in pairs(exts) do
@@ -243,63 +201,30 @@ function vRPShared:triggerEvent(name, ...)
       end)
     end
   end
-
-  if comps then
-    local params = table.pack(...)
-    for comp,func in pairs(comps) do
-      async(function()
-        func(comp, table.unpack(params, 1, params.n))
-      end)
-    end
-  end
 end
 
 -- trigger event and wait for all listeners to complete
 function vRPShared:triggerEventSync(name, ...)
   local exts = self.ext_listeners[name]
-  local comps = self.comp_listeners[name]
-
-  local count = 0
-  local r = async()
-
-  -- Collect parameters for the event
-  local params = table.pack(...)
-
-  -- Handle extensions
   if exts then
+    local params = table.pack(...)
+    local count = 0
+    local r = async()
     for ext, func in pairs(exts) do
-      count = count + 1
+      count = count+1
     end
-    for ext, func in pairs(exts) do
+    for ext,func in pairs(exts) do
       async(function()
         func(ext, table.unpack(params, 1, params.n))
-        count = count - 1
+        count = count-1
         if count == 0 then -- all done
           r()
         end
       end)
     end
+    r:wait() -- wait events completion
   end
-
-  -- Handle components
-  if comps then
-    for comp, func in pairs(comps) do
-      count = count + 1
-    end
-    for comp, func in pairs(comps) do
-      async(function()
-        func(comp, table.unpack(params, 1, params.n))
-        count = count - 1
-        if count == 0 then -- all done
-          r()
-        end
-      end)
-    end
-  end
-
-  r:wait() -- wait events completion
 end
-
 
 -- msg: log message
 -- suffix: (optional) category, string
@@ -326,4 +251,4 @@ function vRPShared:error(msg, suffix)
   end
 end
 
-return vRPShared
+return vRPShared;

@@ -1,0 +1,25 @@
+﻿name: Bug report
+description: Report reproducible vRP3 behavior
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: resources
+    attributes:
+      label: Affected resources and versions
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant client/server logs

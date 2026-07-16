@@ -21,78 +21,67 @@ function Misc:getEntity() -- checks if entity is ped or not
 end
 
 function Misc:getClosestPeds(radius) -- gets all nearby ped
-	local playerCoords = GetEntityCoords(GetPlayerPed(-1))
-	local nearbyPeds = {}
-	local peds = GetGamePool('CPed') -- Get all peds in the game world
-
-	for _, ped in ipairs(peds) do
-			if ped ~= GetPlayerPed(-1) then -- Avoid comparing the player Ped with itself
-					local pedCoords = GetEntityCoords(ped)
-					local distance = Vdist(playerCoords, pedCoords)
-
-					if distance <= radius then
-							table.insert(nearbyPeds, ped)
-					end
+	local r = {}
+	local px,py,pz = table.unpack(GetEntityCoords(GetPlayerPed(-1)))
+	
+	for _,pedAI in ipairs(GetGamePool('CPed')) do
+		if pedAI ~= GetPlayerPed(-1) then
+			local x,y,z = table.unpack(GetEntityCoords(pedAI))
+			local dist = GetDistanceBetweenCoords(x,y,z,px,py,pz,true)
+			if dist <= radius then
+				r[pedAI] = dist
 			end
+		end
 	end
-
-	return nearbyPeds
+	
+	return r
 end
 
 function Misc:getClosestPed(radius)	--gets closest ped
-	local playerCoords = GetEntityCoords(GetPlayerPed(-1))
-	local nearbyPeds = getNearbyPeds(radius)
-	local closestPed = nil
-	local closestDistance = radius
-
-	for _, ped in ipairs(nearbyPeds) do
-			local pedCoords = GetEntityCoords(ped)
-			local distance = Vdist(playerCoords, pedCoords)
-
-			if distance < closestDistance then
-					closestDistance = distance
-					closestPed = ped
-			end
+	local p = nil
+	
+	local ai = self:getClosestPeds(radius)
+	local min = radius+10.0
+	for k,v in pairs(ai) do
+		if v < min then
+		  min = v
+		  p = k
+		end
 	end
-
-	return closestPed
+	
+	return p
 end
 
 function Misc:getClosestObjects(radius) -- gets all nearby objects
-	local playerCoords = GetEntityCoords(GetPlayerPed(-1))
-	local nearbyObjects = {}
-	local objects = GetGamePool('CObject') -- Get all objects in the game world
-
-	for _, object in ipairs(objects) do
-		local objectCoords = GetEntityCoords(object)
-		local distance = Vdist(playerCoords, objectCoords)
-
-		if distance <= tonumber(radius) then
-			local modelHash = GetEntityModel(object)
-			table.insert(nearbyObjects, {hash = modelHash, coords = objectCoords})
+	local r = {}
+	local px,py,pz = table.unpack(GetEntityCoords(GetPlayerPed(-1)))
+	
+	for _,obj in ipairs(GetGamePool('CObject')) do
+		if obj ~= GetPlayerPed(-1) then
+			local x,y,z = table.unpack(GetEntityCoords(obj))
+			local dist = GetDistanceBetweenCoords(x,y,z,px,py,pz,true)
+			if dist <= radius then
+				r[obj] = dist
+			end
 		end
 	end
-
-	return nearbyObjects
+	
+	return r
 end
 
 function Misc:getClosestObject(radius)	--gets closest object
-	local playerCoords = GetEntityCoords(GetPlayerPed(-1))
-	local nearbyObjects = getNearbyObjects(playerPed, radius)
-	local closestObject = nil
-	local closestDistance = radius
-
-	for _, object in ipairs(nearbyObjects) do
-		local objectCoords = GetEntityCoords(object)
-		local distance = Vdist(playerCoords, objectCoords)
-
-		if distance < closestDistance then
-			closestDistance = distance
-			closestObject = object
+	local p = nil
+	
+	local obj = self:getClosestObjects(radius)
+	local min = radius+10.0
+	for k,v in pairs(obj) do
+		if v < min then
+		  min = v
+		  p = k
 		end
 	end
-
-	return closestObject
+	
+	return p
 end
 
 Misc.tunnel = {}

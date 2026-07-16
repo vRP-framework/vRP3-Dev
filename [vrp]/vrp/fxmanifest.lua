@@ -1,9 +1,8 @@
 fx_version 'cerulean'
 games { 'gta5' }
-lua54 'yes'
 
 description "RP module/framework"
-version '3.0.1'
+version '3.0.0'
 
 ui_page "gui/index.html"
 
@@ -14,42 +13,44 @@ shared_script {
 server_script {
   "base.lua",
 	"modules/map.lua",
-  "modules/gui.lua",
+	"modules/gui.lua", 
   "modules/admin.lua",
-  "modules/identity.lua",
-  "modules/group.lua",
+  "modules/group.lua", 
+  "modules/identity.lua", 
   "modules/player_state.lua",
-  "modules/money.lua",
-  "modules/vehicle.lua",
-	"modules/vehicle_state.lua",
+	"modules/money.lua",
+	
+	-- Utility
+	"modules/transformer.lua",
+	
 	--Sub Modules
+	"modules/aptitude.lua",
+	"modules/weapon.lua",
 	"modules/weather.lua",
-  "modules/commands.lua",
-  "modules/misc.lua",
-  "modules/weapon.lua",
-  "modules/log.lua",
-  "modules/banking.lua"
-
+	"modules/misc.lua",	
+	"modules/commands.lua", 
+  "modules/log.lua",  
+	"modules/vehicle.lua"
 }
 
 client_scripts {
-  "client/base.lua",
+  "client/base.lua",	
   "client/map.lua",
   "client/gui.lua",
-  "client/admin.lua",
-  "client/player_state.lua",
+	"client/admin.lua",
   "client/identity.lua",
-  "client/vehicle.lua",
-	"client/vehicle_state.lua",
+  "client/player_state.lua",
+	
 	--Sub Modules
+	"client/weapon.lua",
 	"client/weather.lua",
+	"client/misc.lua",
   "client/commands.lua",
-  "client/misc.lua",
-  "client/weapon.lua",
-  "client/banking.lua"
+	"client/vehicle.lua"
 }
 
 files {
+	-- lib
   "lib/Luaoop.lua",
   "lib/Tunnel.lua",
   "lib/Proxy.lua",
@@ -57,10 +58,16 @@ files {
   "lib/ActionDelay.lua",
   "lib/Luang.lua",
   "lib/ELProfiler.lua",
+	
+	-- Core
   "client/vRP.lua",
   "vRPShared.lua",
+	
+	-- CFG
   "cfg/client.lua",
   "cfg/modules.lua",
+	
+	-- Gui
   "gui/index.html",
   "gui/design.css",
   "gui/main.js",

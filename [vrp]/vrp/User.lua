@@ -17,13 +17,46 @@ end
 
 local User = class("User", table.unpack(extensions))
 
+-- helper: create a proxy table that forwards to raw and marks dirty on writes
+local function make_dirty_proxy(raw, mark_dirty)
+  local proxy = {}
+  setmetatable(proxy, {
+    __index = raw,
+    __newindex = function(_, k, v)
+      raw[k] = v
+      if mark_dirty then mark_dirty() end
+    end,
+    __pairs = function()
+      return function(t, k) return next(raw, k) end, proxy, nil
+    end,
+    __ipairs = function()
+      return ipairs(raw)
+    end,
+    __len = function() return #raw end
+  })
+  return proxy
+end
+
 function User:__construct(source, id)
   self.source = source
   self.id = id
   self.endpoint = "0.0.0.0"
-  self.data = {}
+  self._raw_data = {}
+  self._udirty = false
+  self.data = make_dirty_proxy(self._raw_data, function() self._udirty = true end)
   self.loading_character = false
   self.use_character_action = ActionDelay()
+
+  self._raw_cdata = nil
+  self._cdirty = false
+  self.cdata = nil
+
+  -- schedule initial not-dirty
+  -- ensure any transient writes done during construction don't mark the user as dirty
+  SetTimeout(5000, function()
+    self._udirty = false
+    if self.cdata then self._cdirty = false end
+  end)
 
   -- extensions constructors
   for _,uext in pairs(extensions) do
@@ -34,17 +67,49 @@ function User:__construct(source, id)
   end
 end
 
+-- mark data/cdata dirty and schedule server save (if available)
+local function mark_user_dirty(user)
+  user._udirty = true
+  if user.cdata then user._cdirty = user._cdirty or false end
+  -- schedule save via vRP if available
+  pcall(function()
+    if vRP and type(vRP.scheduleUserSave) == "function" then
+      vRP:scheduleUserSave(user)
+    end
+  end)
+end
+
 -- return true if the user character is ready (loaded, not loading)
 function User:isReady()
   return self.cid and not self.loading_character
 end
 
 function User:save()
-  vRP:setUData(self.id, "vRP:datatable", msgpack.pack(self.data))
-
-  if not self.loading_character then
-    vRP:setCData(self.cid, "vRP:datatable", msgpack.pack(self.cdata))
+  -- write user data only if dirty
+  if self._udirty then
+    vRP:setUData(self.id, "vRP:datatable", msgpack.pack(self._raw_data))
+    self._udirty = false
   end
+
+  -- write character data only if dirty and not loading
+  if not self.loading_character and self.cdata and self._cdirty then
+    vRP:setCData(self.cid, "vRP:datatable", msgpack.pack(self._raw_cdata))
+    self._cdirty = false
+  end
+end
+
+-- load user data without marking dirty
+function User:loadData(data)
+  self._raw_data = data or {}
+  self._udirty = false
+  self.data = make_dirty_proxy(self._raw_data, function() self._udirty = true end)
+end
+
+-- load character data without marking dirty
+function User:loadCData(cdata)
+  self._raw_cdata = cdata or {}
+  self._cdirty = false
+  self.cdata = make_dirty_proxy(self._raw_cdata, function() self._cdirty = true end)
 end
 
 -- return characters id list
@@ -100,10 +165,19 @@ function User:useCharacter(id)
     self.loading_character = true
 
     -- load character
-    self.cdata = {}
     local sdata = vRP:getCData(self.cid, "vRP:datatable")
     if sdata and string.len(sdata) > 0 then
-      self.cdata = msgpack.unpack(sdata)
+      local ok, cdata = pcall(msgpack.unpack, sdata)
+      if not ok then
+        vRP:log("warning: failed to unpack character data for cid="..tostring(self.cid))
+        self:loadCData({})
+      elseif type(cdata) == "table" then
+        self:loadCData(cdata)
+      else
+        self:loadCData({})
+      end
+    else
+      self:loadCData({})
     end
 
     vRP:triggerEventSync("characterLoad", self)

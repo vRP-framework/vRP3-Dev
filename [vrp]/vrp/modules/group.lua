@@ -156,6 +156,84 @@ end
 
 -- PRIVATE METHODS
 
+-- menu: group_selector
+local function menu_group_selector(self)
+  local function m_select(menu, group_name)
+    local user = menu.user
+
+    user:addGroup(group_name)
+    user:closeMenu(menu)
+  end
+
+  vRP.EXT.GUI:registerMenuBuilder("group_selector", function(menu)
+    menu.title = menu.data.name
+    menu.css.header_color = "rgba(255,154,24,0.75)"
+
+    for k,group_name in pairs(menu.data.groups) do
+      if k ~= "_config" then
+        local title = self:getGroupTitle(group_name)
+        if title then
+          menu:addOption(title, m_select, nil, group_name)
+        end
+      end
+    end
+  end)
+end
+
+-- menu: admin users user
+local function menu_user_groups(self)
+  local function m_groups(menu, index)
+    local user = menu.user
+    local tuser = vRP.users[menu.data.id]
+
+    local groups = ""
+    if tuser and tuser:isReady() then
+      for group in pairs(tuser.cdata.groups) do
+        groups = groups..group.." "
+      end
+    end
+
+    menu:updateOption(index, nil, lang.admin.users.user.groups.description({groups}))
+  end
+
+  local function m_addgroup(menu)
+    local user = menu.user
+    local tuser = vRP.users[menu.data.id]
+
+    if tuser then
+      local group = user:prompt(lang.admin.users.user.group_add.prompt(),"")
+      tuser:addGroup(group)
+    end
+  end
+
+  local function m_removegroup(menu)
+    local user = menu.user
+    local tuser = vRP.users[menu.data.id]
+
+    if tuser then
+      local group = user:prompt(lang.admin.users.user.group_remove.prompt(),"")
+      tuser:removeGroup(group)
+    end
+  end
+
+  vRP.EXT.GUI:registerMenuBuilder("user.groups", function(menu)
+    menu.title = "Groups"
+    local user = menu.user
+    local tuser = vRP.users[menu.data.id]
+
+    if tuser then
+      menu:addOption(lang.admin.users.user.groups.title(), m_groups, lang.admin.users.user.groups.description())
+
+      if user:hasPermission("player.group.add") then
+        menu:addOption(lang.admin.users.user.group_add.title(), m_addgroup)
+      end
+      if user:hasPermission("player.group.remove") then
+        menu:addOption(lang.admin.users.user.group_remove.title(), m_removegroup)
+      end
+    end
+  end)
+end
+
 -- METHODS
 
 function Group:__construct()
@@ -178,26 +256,38 @@ function Group:__construct()
 
     return false
   end)
+
+  -- menu
+  menu_group_selector(self)
+  menu_user_groups(self)
+  
+  -- main menu
+  vRP.EXT.GUI:registerMenuBuilder("admin.users.user", function(menu)
+    menu:addOption("Groups", function(menu)
+      menu.user:openMenu("user.groups", menu.data)
+    end)
+  end)
   
   -- task: group count display
-  if next(self.cfg.count_display_permissions) then
-    Citizen.CreateThread(function()
-      while true do
-        Citizen.Wait(self.cfg.count_display_interval*1000)
+	-- Note: if used slightly increases memory usage
+  if self.cfg.display then
+		Citizen.CreateThread(function()
+			while true do
+				Citizen.Wait(self.cfg.count_display_interval * 1000)
 
-        -- display
-        local content = ""
-        for _, dperm in ipairs(self.cfg.count_display_permissions) do
-          local count = #self:getUsersByPermission(dperm[1])
-          local img = dperm[2]
+				-- display
+				local content = ""
+				for _, dperm in ipairs(self.cfg.count_display_permissions) do
+					local count = #self:getUsersByPermission(dperm[1])
+					local img = dperm[2]
 
-          content = content.."<div><img src=\""..img.."\" />"..count.."</div>"
-        end
+					content = content.."<div><img src=\""..img.."\" />"..count.."</div>"
+				end
 
-        vRP.EXT.GUI.remote.setDivContent(-1, "group_count_display", content)
-      end
-    end)
-  end
+				vRP.EXT.GUI.remote.setDivContent(-1, "group_count_display", content)
+			end
+		end)
+	end
 end
 
 -- return users list
@@ -273,24 +363,20 @@ function Group.event:playerSpawn(user, first_spawn)
             user:closeMenu(menu)
           end
         end
-		
-		if v.show then
-		  local ment = clone(gcfg.map_entity)
-          ment[2].title = k
-          ment[2].pos = {x,y,z-1}
-          vRP.EXT.Map.remote._addEntity(user.source, ment[1], ment[2])
 
-          user:setArea("vRP:gselector:"..k,x,y,z,1,1.5,enter,leave)
-		end
+        local ment = clone(gcfg.map_entity)
+        ment[2].title = k
+        ment[2].pos = {x,y,z-1}
+        vRP.EXT.Map.remote._addEntity(user.source, ment[1], ment[2])
+
+        user:setArea("vRP:gselector:"..k,x,y,z,1,1.5,enter,leave)
       end
     end
 
     -- group count display
-    if next(self.cfg.count_display_permissions) then
-	  if self.cfg.display then
-        vRP.EXT.GUI.remote.setDiv(user.source, "group_count_display", self.cfg.count_display_css, "")
-      end
-	end
+    if next(self.cfg.count_display_permissions) and self.cfg.display then
+			vRP.EXT.GUI.remote.setDiv(user.source, "group_count_display", self.cfg.count_display_css, "")
+		end
   end
 
   -- call group onspawn callback at spawn

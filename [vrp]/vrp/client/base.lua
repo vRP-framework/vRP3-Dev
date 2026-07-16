@@ -76,7 +76,11 @@ function Base:__construct()
 
   self.anims = {}
   self.anim_ids = IDManager()
-  
+end
+
+-- trigger vRP respawn
+function Base:loadIn()
+	DoScreenFadeIn(0) 
 end
 
 -- trigger vRP respawn
@@ -104,7 +108,7 @@ end
 -- heading: (optional) entity heading
 function Base:teleport(x,y,z,heading)
   local ped = GetPlayerPed(-1)
-	
+
   SetEntityCoords(ped, x+0.0001, y+0.0001, z+0.0001, 1,0,0,1)
   if heading then SetEntityHeading(ped, heading) end
   vRP:triggerEvent("playerTeleport")
@@ -235,6 +239,16 @@ function Base:notifyPicture(icon, type, sender, title, text)
   AddTextComponentString(text)
   SetNotificationMessage(icon, icon, true, type, sender, title, text)
   DrawNotification(false, true)
+end
+
+-- GTA 5 help notification
+function Base:notifyHelp(msg)
+  AddTextEntry("HELP_VRP", msg)
+  DisplayHelpTextThisFrame("HELP_VRP", false)
+end
+
+function Base:clearHelp()
+  ClearHelp(true)
 end
 
 -- SCREEN
@@ -388,6 +402,7 @@ function Base.tunnel:removePlayer(player)
 end
 
 Base.tunnel.triggerRespawn = Base.triggerRespawn
+Base.tunnel.loadIn = Base.loadIn
 Base.tunnel.screenFade = Base.screenFade
 Base.tunnel.teleport = Base.teleport
 Base.tunnel.vehicleTeleport = Base.vehicleTeleport
@@ -399,6 +414,8 @@ Base.tunnel.getNearestPlayers = Base.getNearestPlayers
 Base.tunnel.getNearestPlayer = Base.getNearestPlayer
 Base.tunnel.notify = Base.notify
 Base.tunnel.notifyPicture = Base.notifyPicture
+Base.tunnel.notifyHelp = Base.notifyHelp
+Base.tunnel.clearHelp = Base.clearHelp
 Base.tunnel.playScreenEffect = Base.playScreenEffect
 Base.tunnel.stopScreenEffect = Base.stopScreenEffect
 Base.tunnel.playAnim = Base.playAnim

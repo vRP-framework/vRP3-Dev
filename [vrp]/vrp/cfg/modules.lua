@@ -4,22 +4,27 @@
 -- It's recommended to disable things from the modules configurations directly if possible.
 
 local modules = {
+	-- core
   admin = true,
   group = true,
   gui = true,
   map = true,
-  weather = true,
-  misc = true,
-  money = true,
-  banking = true,
-  command = true,
   player_state = true,
-  weapon = true,
   user = true,
   identity = true,
-  logs = true, -- discord logs
-  vehicle = true,
-	vehicle_state = true
+	money = true,
+	
+	-- utility
+	transformer = true,
+	
+	-- Sub Modules
+	aptitude = true,
+	weapon = true, 
+	weather = true,
+	misc = true,
+  command = true,
+	logs = true, 				-- discord logs
+	vehicle = true				--leak
 }
 
 return modules

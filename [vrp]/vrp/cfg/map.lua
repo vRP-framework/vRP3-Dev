@@ -4,8 +4,6 @@
 
 local cfg = {}
 
-cfg.show_icons = false  -- show icons of entities below
-
 -- list of entities
 -- {ent, cfg}
 cfg.entities = {

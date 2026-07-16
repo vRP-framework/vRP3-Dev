@@ -1,0 +1,16 @@
+/* use rgb format without commas */
+/* more details you can find here */
+/* https://tailwindcss.com/docs/customizing-colors#using-css-variables */
+
+:root {
+    /* custom colors */
+    --primary: 253 209 64; /* #fdd140 */
+    --primary-rgba: 253, 209, 64; /* #fdd140 keep comma only here*/
+    --background: 32 46 59; /* #202e3b */
+    --grid-dark-rgba: 11, 19, 32; /* #0b1320 keep comma only here*/
+    --disabled: 83 83 83; /* #535353 */
+    --modal-background: 25 25 31; /* #19191f */
+    --background-body: 11 19 32; /* #0b1320 */
+    --background-border: 49 71 90; /* #31475a */
+    --progress-from: 87 82 52; /* #575234 */
+}

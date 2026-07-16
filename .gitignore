@@ -1,9 +1,15 @@
 
 # [cfg-default]
-/cfg-default/*
+/[cfg-default]/
 
 # [development]
-/development/*
+/[development]/
 
 # [standalone]
-/standalone/*
+/[standalone]/
+# Local vRP backup artifacts
+[[]vrp[]]/vrp - original-backup/
+[[]vrp[]]/vrp.zip
+
+# Standard Cfx.re default resources
+[[]cfx-default[]]/

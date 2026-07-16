@@ -1,0 +1,10 @@
+﻿{
+  "recommendations": [
+    "github.copilot",
+    "github.copilot-chat",
+    "eamodio.gitlens",
+    "editorconfig.editorconfig",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint"
+  ]
+}

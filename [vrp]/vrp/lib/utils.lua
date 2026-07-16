@@ -184,3 +184,98 @@ function splitString(str, sep)
   end
   return t
 end
+
+function formatNumber(number)
+	if type(number) ~= "number" then return number end
+	
+	local _, _, minus, int, fraction = tostring(number):find('([-]?)(%d+)([.]?%d*)')
+	
+	int = int:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+	return minus .. int .. fraction
+end
+
+-- GC manager: allow modules to register lightweight cleanup hooks
+local gc_hooks = {}
+
+-- register a GC hook: called periodically by the GC manager
+function registerGCHook(name, fn)
+  if type(name) ~= "string" or type(fn) ~= "function" then return false end
+  gc_hooks[name] = fn
+  return true
+end
+
+function unregisterGCHook(name)
+  gc_hooks[name] = nil
+end
+
+-- also expose on vRP when available
+if type(_G.vRP) == "table" then
+  vRP.registerGCHook = registerGCHook
+  vRP.unregisterGCHook = unregisterGCHook
+end
+
+-- run GC immediately (invoke hooks, ext.performGC, and collectgarbage)
+function runGCNow()
+  local before = collectgarbage("count")
+
+  local pairs_local, pcall_local = pairs, pcall
+  local gc_hooks_ref = gc_hooks
+  for name, fn in pairs_local(gc_hooks_ref) do pcall_local(fn) end
+
+  if type(_G.vRP) == "table" and type(vRP.EXT) == "table" then
+    local ext_ref = vRP.EXT
+    for k, ext in pairs_local(ext_ref) do
+      if type(ext) == "table" and type(ext.performGC) == "function" then
+        pcall_local(ext.performGC, ext)
+      end
+    end
+  end
+
+  collectgarbage("collect")
+
+  local after = collectgarbage("count")
+  if type(_G.vRP) == "table" and type(vRP.log) == "function" then
+    pcall_local(function() vRP:log("runGCNow: before_kb="..tostring(before).." after_kb="..tostring(after) .. " freed_kb="..tostring(before-after)) end)
+  end
+end
+
+if type(_G.vRP) == "table" then vRP.runGCNow = runGCNow end
+
+-- periodic GC runner (server-side by default, but harmless on client)
+local gc_interval = 30 -- seconds default
+if cfg_modules and cfg_modules.gc_interval then gc_interval = cfg_modules.gc_interval end
+Citizen.CreateThread(function()
+  while true do
+    Citizen.Wait((gc_interval or 30) * 10000)
+
+    local before = collectgarbage("count")
+
+    local pairs_local, pcall_local = pairs, pcall
+    local gc_hooks_ref = gc_hooks
+    -- run registered hooks
+    for name, fn in pairs_local(gc_hooks_ref) do
+      pcall_local(fn)
+    end
+
+    -- call extension-level performGC if provided
+    if type(_G.vRP) == "table" and type(vRP.EXT) == "table" then
+      local ext_ref = vRP.EXT
+      for k, ext in pairs_local(ext_ref) do
+        if type(ext) == "table" and type(ext.performGC) == "function" then
+          pcall_local(ext.performGC, ext)
+        end
+      end
+    end
+
+    -- run full GC cycle
+    collectgarbage("collect")
+
+    local after = collectgarbage("count")
+    if type(_G.vRP) == "table" and type(vRP.log) == "function" then
+      pcall_local(function()
+        vRP:log("gc_manager: before_kb="..tostring(before).." after_kb="..tostring(after).." freed_kb="..tostring(before-after))
+      end)
+    end
+  end
+end)
+

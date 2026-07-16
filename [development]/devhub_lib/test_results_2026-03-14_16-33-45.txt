@@ -1,0 +1,155 @@
+================================================================================
+                         DEVHUB LIB - TEST RESULTS
+================================================================================
+Date: 2026-03-14 16:33:45
+  Resource Name:  devhub_lib
+
+CONFIGURATION:
+--------------------------------------------------------------------------------
+  Framework:       VRP
+  Target:          standalone
+  VehicleKeys:     custom
+  VehicleFuel:     custom
+  InventorySystem: custom
+
+SUMMARY:
+--------------------------------------------------------------------------------
+  Passed Tests:     32
+  Failed Tests:     21
+  Required Actions: 1
+  Total Tests:      53
+  Success Rate:     60.4%
+
+DETAILED RESULTS:
+================================================================================
+
+[PASSED TESTS]
+--------------------------------------------------------------------------------
+  [PASS] IsPlayerAdmin
+         Returned true
+  [PASS] AddBank
+         Added 100, bank before: 2000, after: 2100
+  [PASS] AddCash
+         Added 100, cash before: 0, after: 100
+  [PASS] TargetGlobalPlayer
+         Skipped - standalone target
+  [PASS] RemoveItem
+         Removed 1, item count before: 0, after: 0
+  [PASS] FrameworkResource
+         Found resources: 1/1. Most compatible: VRP
+  [PASS] SqlActionAwait
+         Returned [{"10":10}]
+  [PASS] RemoveCash
+         Removed 100, cash before: 100, after: 0
+  [PASS] GetCash
+         Returned 0
+  [PASS] LoadedSystems_client_inventory
+  [PASS] RemoveVehicleKeys
+         RemoveVehicleKeys executed successfully for plate: 22NQK584
+  [PASS] CanCarry
+         Returned true
+  [PASS] SqlResource
+         Status of resource: started : oxmysql
+  [PASS] TargetEntity
+         Skipped - standalone target
+  [PASS] TargetGlobalVehicle
+         Skipped - standalone target
+  [PASS] SqlAction
+         Returned [{"5":5}]
+  [PASS] SetVehicleFuel
+         SetVehicleFuel executed successfully. Fuel level: 50.0
+  [PASS] RemoveBank
+         Removed 100, bank before: 2100, after: 2000
+  [PASS] GetUserSkin
+         Returned {"skinColor":3,"eyesColor":1}
+  [PASS] TargetResource
+         Standalone target - no resource needed
+  [PASS] TargetCoords
+         Skipped - standalone target
+  [PASS] GetIdentifier
+         Returned license:456c38266aa7a0b3f96e1ac78987f57c46835b56
+  [PASS] playerUnloadedClient
+  [PASS] TargetModel
+         Skipped - standalone target
+  [PASS] GetUserInfo
+         Returned {"nationality":"United States","height":"5.9","sex":"Male","dateOfBirth":"03/26/1990"}
+  [PASS] GetFullName
+         Returned Kimberly Nelson
+  [PASS] GetJob
+         Returned {"grade":1,"name":"Citizen","onDuty":true,"gradeLabel":"Citizen","label":"Citizen"}
+  [PASS] GetBank
+         Returned 2000
+  [PASS] LoadedSystems_client_callbacks
+  [PASS] AddVehicleKeys
+         AddVehicleKeys executed successfully for plate: 22NQK584
+  [PASS] LoadedSystems_client_framework
+  [PASS] playerUnloadedServer
+
+[FAILED TESTS]
+--------------------------------------------------------------------------------
+  [FAIL] AddItem
+         Error: Added 1, item count before: 0, after: 0
+
+  [FAIL] RegisterItem
+         Error: Item was not used in time.
+
+  [FAIL] LoadedSystems_server_framework
+         Error: LoadedSystems.framework = nil
+
+  [FAIL] LoadedSystems_server_inventory
+         Error: LoadedSystems.inventory = nil
+
+  [FAIL] CanCarryOverweight
+         Error: Returned true
+
+  [FAIL] playerLoadedClient
+         Error: dh_lib:client:playerLoaded event not triggered.
+
+  [FAIL] SetItemMetadata
+         Error: GetAllItems failed, cannot test SetItemMetadata
+
+  [FAIL] GetAllItems
+         Error: Returned empty or nil
+
+  [FAIL] CoreLoaded_client
+
+  [FAIL] GetItemDataServer
+         Error: GetAllItems failed, cannot test server GetItemData
+
+  [FAIL] PlaySoundLocally
+         Error: Error: @devhub_lib/modules/systems/c.sound.lua:16: No such export PlayUrl in resource xsound
+         Action: Client-side error occurred. Check F8 console for details.
+
+  [FAIL] LoadedSystems_server_callbacks
+         Error: LoadedSystems.callbacks = nil
+
+  [FAIL] LoadedSystems_server_sql
+         Error: LoadedSystems.sql = nil
+
+  [FAIL] playerRevivedClient
+         Error: dh_lib:client:setDeathStatus VALUE false event not triggered.
+
+  [FAIL] playerDiedClient
+         Error: dh_lib:client:setDeathStatus VALUE true event not triggered.
+
+  [FAIL] GetItemMetadata
+         Error: GetAllItems failed, cannot test GetItemMetadata
+
+  [FAIL] GetItemCount
+         Error: Returned 0
+
+  [FAIL] GetItemDataClient
+         Error: GetAllItems failed, cannot test client GetItemData
+
+  [FAIL] LoadedSystems_client_targets
+
+  [FAIL] LoadedSystems_server_admin
+         Error: LoadedSystems.admin = nil
+
+  [FAIL] playerLoadedServer
+         Error: dh_lib:server:playerLoaded event not triggered.
+
+
+================================================================================
+                              END OF REPORT
+================================================================================

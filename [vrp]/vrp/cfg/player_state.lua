@@ -6,7 +6,8 @@ cfg.spawn_enabled = true -- set to false to disable the feature
 cfg.spawn_position = {-538.70001220703,-214.91049194336,37.649784088135}
 cfg.spawn_radius = 3
 
-cfg.update_interval = 15 -- seconds
+cfg.update_interval = 30 -- seconds
+cfg.update_multiplyer = 10000 -- ms 
 
 -- multiplayer models (to enable MP customization)
 -- list of names (string) or hashes (number)

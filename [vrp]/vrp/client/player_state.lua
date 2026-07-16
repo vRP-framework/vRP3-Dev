@@ -14,12 +14,13 @@ function PlayerState:__construct()
 
   self.state_ready = false
   self.update_interval = 30
+	self.update_multiplyer = 10000
   self.mp_models = {} -- map of model hash
 
   -- update task
   Citizen.CreateThread(function()
     while true do
-      Citizen.Wait(self.update_interval * 1000)
+      Citizen.Wait(self.update_interval * self.update_multiplyer)
 
       if self.state_ready then
         local x, y, z = vRP.EXT.Base:getPosition()
@@ -28,22 +29,12 @@ function PlayerState:__construct()
           heading = GetEntityHeading(GetPlayerPed(-1)),
           customization = self:getCustomization(),
           health = self:getHealth(),
-					armour = self:getArmour(),
           weapons = vRP.EXT.Weapon:getWeapons(),
           components = vRP.EXT.Weapon:getComponents(),
         })
       end
     end
   end)
-end
-
--- set player armour (0-100)
-function PlayerState:setArmour(amount)
-  SetPedArmour(GetPlayerPed(-1), amount)
-end
-
-function PlayerState:getArmour()
-  return GetPedArmour(GetPlayerPed(-1))
 end
 
 -- amount: 100-200 ?
@@ -87,10 +78,7 @@ end
 -- return custom parts
 function PlayerState:getCustomization()
   local ped = GetPlayerPed(-1)
-
-  local custom = {}
-
-  custom.modelhash = GetEntityModel(ped)
+  local custom = { modelhash = GetEntityModel(ped) }
 
   -- ped parts
   for i = 0, 20 do -- index limit to 20
@@ -123,22 +111,15 @@ end
 --- "prop:<index>": {prop_index, prop_texture}
 --- "hair_color": {primary, secondary}
 --- "overlay:<index>": {overlay_index, primary color, secondary color, opacity}
-function PlayerState:setCustomization(custom) 
+function PlayerState:setCustomization(custom)
   local r = async()
-	
+
   Citizen.CreateThread(function() -- new thread
     if custom then
-			local ped = GetPlayerPed(-1)
-      local mhash = nil
-			
-			-- model
-      if custom.modelhash then
-        mhash = custom.modelhash
-      elseif custom.model then
-        mhash = GetHashKey(custom.model)
-      end
-			
-			if mhash then
+      local ped = GetPlayerPed(-1)
+      local mhash = custom.modelhash or (custom.model and GetHashKey(custom.model))
+
+      if mhash and not self.mp_models[mhash] then
         local i = 0
         while not HasModelLoaded(mhash) and i < 10000 do
           RequestModel(mhash)
@@ -146,57 +127,44 @@ function PlayerState:setCustomization(custom)
         end
 
         if HasModelLoaded(mhash) then
-          -- changing player model remove weapons, armour and health, so save it
-
-          --vRP:triggerEventSync("playerModelSave")
-
-          --local weapons = self:getWeapons()
-          local armour = self:getArmour()
           local health = self:getHealth()
-
-          SetPlayerModel(ped, mhash)
-
-          --self:giveWeapons(weapons,true)
-          self:setArmour(armour)
+					
+          SetPlayerModel(PlayerId(), mhash)
           self:setHealth(health)
-
-          --vRP:triggerEventSync("playerModelRestore")
-
           SetModelAsNoLongerNeeded(mhash)
         end
       end
-			
-			local is_mp = self.mp_models[GetEntityModel(ped)]
-			
-			if is_mp then
+
+      ped = GetPlayerPed(-1)
+
+      local is_mp = self.mp_models[GetEntityModel(ped)]
+
+      if is_mp then
         -- face blend data
-        local face = (custom["drawable:0"] and custom["drawable:0"][1]) or GetPedDrawableVariation(ped,0)
+        local face = (custom["drawable:0"] and custom["drawable:0"][1]) or GetPedDrawableVariation(ped, 0)
         SetPedHeadBlendData(ped, face, face, 0, face, face, 0, 0.5, 0.5, 0.0, false)
       end
-			
-			-- drawable, prop, overlay
-      for k,v in pairs(custom) do
+
+      -- drawable, prop, overlay
+      for k, v in pairs(custom) do
         local args = splitString(k, ":")
         local index = parseInt(args[2])
 
         if args[1] == "prop" then
           if v[1] < 0 then
-            ClearPedProp(ped,index)
+            ClearPedProp(ped, index)
           else
-            SetPedPropIndex(ped,index,v[1],v[2],true)
+            SetPedPropIndex(ped, index, v[1], v[2], true)
           end
         elseif args[1] == "drawable" then
-          SetPedComponentVariation(ped,index,v[1],v[2],v[3] or 2)
+          SetPedComponentVariation(ped, index, v[1], v[2], v[3] or 2)
         elseif args[1] == "overlay" and is_mp then
-          local ctype = 0
-          if index == 1 or index == 2 or index == 10 then ctype = 1
-          elseif index == 5 or index == 8 then ctype = 2 end
-
+          local ctype = (index == 1 or index == 2 or index == 10) and 1 or ((index == 5 or index == 8) and 2 or 0)
           SetPedHeadOverlay(ped, index, v[1], v[4] or 1.0)
           SetPedHeadOverlayColor(ped, index, ctype, v[2] or 0, v[3] or 0)
         end
       end
-			
+
       if custom.hair_color and is_mp then
         SetPedHairColor(ped, table.unpack(custom.hair_color))
       end
@@ -223,17 +191,12 @@ function PlayerState.tunnel:setStateReady(state)
   self.state_ready = state
 end
 
-function PlayerState.tunnel:setConfig(update_interval, mp_models)
+function PlayerState.tunnel:setConfig(update_interval, update_multiplyer, mp_models)
   self.update_interval = update_interval
+	self.update_multiplyer = update_multiplyer
 
   for _, model in pairs(mp_models) do
-    local hash
-    if type(model) == "string" then
-      hash = GetHashKey(model)
-    else
-      hash = model
-    end
-
+    local hash = type(model) == "string" and GetHashKey(model) or model
     self.mp_models[hash] = true
   end
 end

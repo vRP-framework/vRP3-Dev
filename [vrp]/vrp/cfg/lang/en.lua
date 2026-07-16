@@ -280,14 +280,7 @@ local lang = {
     transformer_recipe = "{2} {1}<br />"
   },
   atm = {
-	title = "ATM",
-    info = {
-      title = "Info",
-      bank = "atm: ${1}"
-    },
-  },
-  bank = {
-    title = "Bank",
+    title = "ATM",
     info = {
       title = "Info",
       bank = "bank: ${1}"
@@ -303,15 +296,6 @@ local lang = {
       description = "bank to wallet",
       prompt = "Enter amount of money to withdraw:",
       withdrawn = "~g~${1}~s~ withdrawn.",
-      not_enough = "~r~You don't have enough money in bank."
-    },
-	transfer = {
-      title = "Transfer",
-      description = "send money to another player",
-      money = "Enter amount of money to transfer:",
-	  user = "Enter the user id of player",
-      sent = "~r~${1}~s~ sent .",
-	  recieved = "~g~${1}~s~ recieved .",
       not_enough = "~r~You don't have enough money in bank."
     }
   },
