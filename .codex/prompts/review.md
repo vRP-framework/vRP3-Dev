@@ -1,1 +1,0 @@
-﻿Read AGENTS.md. Review the current diff as an independent vRP3/FiveM reviewer. Do not modify files. Prioritize security, compatibility, CfxLua correctness, modular boundaries, and runtime validation gaps.
