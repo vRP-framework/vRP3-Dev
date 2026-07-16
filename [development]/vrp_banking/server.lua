@@ -193,6 +193,63 @@ function Banking:getAllContacts(user)
 	return self.allUsersData
 end
 
+-- Builds the contacts list exactly once and pushes it to every connected
+-- user, replacing the O(n) rebuild-per-recipient that calling
+-- Banking:broadcastContacts in a loop performs. Used only by
+-- Banking.event:playerSpawn/playerLeave -- Banking:getAllContacts and the
+-- admin_del/whitelist/blacklist call sites that still use
+-- Banking:broadcastContacts directly are unmodified and unaffected.
+-- Preserves Banking:getAllContacts' exact visibility rules and payload
+-- shape: blocked users excluded, and in non-debug mode each recipient's own
+-- entry excluded from the copy they receive. Self-exclusion is keyed by
+-- 'source' (always valid for any connected user, unaffected by whether
+-- userInit has run yet) rather than accountId, so a not-yet-initialized
+-- recipient safely falls back to receiving the unfiltered list -- which is
+-- correct, since such a recipient has no entry of their own to exclude.
+function Banking:broadcastAllContacts()
+	self.allUsersData = {}
+	local entryIndexBySource = {}
+
+	for id, user in pairs(vRP.users) do
+		local bank = user.data.bank
+		if not self.blockedUsers[id] and bank then
+			table.insert(self.allUsersData, {
+				user = {
+					name = {
+						first = bank.user.name.first,
+						last  = bank.user.name.last,
+					},
+					accountId = bank.accountId,
+					phone = bank.phone,
+					avatar = bank.avatar,
+					isAdmin = bank.admin
+				},
+				balance = {
+					bank = bank.balance,
+					wallet = bank.wallet
+				},
+			})
+			entryIndexBySource[user.source] = #self.allUsersData
+		end
+	end
+
+	for id, recipient in pairs(vRP.users) do
+		local payload = self.allUsersData
+		local ownIndex = not self.cfg.debug and entryIndexBySource[recipient.source]
+
+		if ownIndex then
+			payload = {}
+			for i, entry in ipairs(self.allUsersData) do
+				if i ~= ownIndex then
+					table.insert(payload, entry)
+				end
+			end
+		end
+
+		self.remote._updateContacts(recipient.source, payload)
+	end
+end
+
 function Banking:userInit(user)
 	local data = user.data or {}
 	user.data = data
@@ -677,22 +734,16 @@ function Banking.event:playerSpawn(user, first_spawn)
 
 		-- send user banking data to client
 		self:sendUserData(user)
-
-		-- update all users banking data
-		self:broadcastContacts(user)
 	end
 
-	for id, allUsers in pairs(vRP.users) do
-		self:broadcastContacts(allUsers)
-	end
+	-- update all users' banking contact data (built once, pushed to everyone)
+	self:broadcastAllContacts()
 end
 
 function Banking.event:playerLeave(user)
   self:clearRateLimits(user.source)
 
-  for id, allUsers in pairs(vRP.users) do
-		self:broadcastContacts(allUsers)
-	end
+  self:broadcastAllContacts()
 end
 
 --**********************************
