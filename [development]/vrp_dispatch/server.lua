@@ -41,18 +41,59 @@ end
 -- ============================================================================
 
 function Dispatch:registerDebugCommands()
+  -- Shared server-side authorization for all debug/admin-only commands in this
+  -- resource. Never trusts client input: the only identity source is
+  -- vRP.users_by_source[source], where 'source' is the FiveM-assigned invoker id.
+  -- requiresPlayer = true rejects source == 0 (server console) since those
+  -- commands need a connected player's identity and/or in-game position.
+  local function authorizeDebugCommand(name, source, requiresPlayer)
+    if not self.cfg.debug then
+      self:log(("Rejected debug command '%s' from source %s: cfg.debug is disabled"):format(
+        name, tostring(source)
+      ))
+      return false
+    end
+
+    if source == 0 then
+      if requiresPlayer then
+        self:log(("Rejected debug command '%s' from server console: requires a connected player"):format(name))
+        return false
+      end
+      return true, nil
+    end
+
+    local user = vRP.users_by_source[source]
+    if not self:isDebugAdmin(user) then
+      self:log(("Rejected debug command '%s' from source %s (user=%s): not authorized"):format(
+        name, tostring(source), user and tostring(user.id) or "unknown"
+      ))
+      return false
+    end
+
+    return true, user
+  end
+
   -- DEBUG: remove later
   RegisterCommand("getMap", function(source)
+    local ok = authorizeDebugCommand("getMap", source, true)
+    if not ok then return end
+
     vRP.EXT.Map.remote._getAllEntities(source)
   end, false)
 
   -- DEBUG: remove later
   RegisterCommand("radioDev", function(source)
+    local ok = authorizeDebugCommand("radioDev", source, true)
+    if not ok then return end
+
     self.remote._radioDev(source)
   end, false)
 
   -- DEBUG: remove later
   RegisterCommand("playAudio", function(source)
+    local ok = authorizeDebugCommand("playAudio", source, true)
+    if not ok then return end
+
     print("Testing playAudio command with sample data...")
 
     local data = {
@@ -67,10 +108,15 @@ function Dispatch:registerDebugCommands()
 
   -- DEBUG: remove later
   RegisterCommand("testStart", function(source, args)
-    local user = vRP.users_by_source[source]
-    if not user then return end
+    local ok, user = authorizeDebugCommand("testStart", source, true)
+    if not ok then return end
 
     local eventType = tostring(args[1] or "VEHICLE_CRASH")
+
+    if not self:getEventConfig(eventType) then
+      self:log(("testStart rejected: unknown event type '%s'"):format(eventType))
+      return
+    end
 
     self:log("testStart triggering event: " .. eventType)
     self:handleIncident(eventType, user, {
@@ -80,22 +126,37 @@ function Dispatch:registerDebugCommands()
 
   -- DEBUG: remove later
   RegisterCommand("testEnd", function(source, args)
+    local ok = authorizeDebugCommand("testEnd", source, false)
+    if not ok then return end
+
     if not args[1] then
       self:log("testEnd failed: no incident id or name provided")
       return
     end
 
-    self:log("Ending incident with input: " .. tostring(args[1]))
-    self:removeIncident(args[1])
+    local incidentId = tonumber(args[1])
+    if not incidentId or not self.incidents[incidentId] then
+      self:log(("testEnd rejected: unknown incident id '%s'"):format(tostring(args[1])))
+      return
+    end
+
+    self:log("Ending incident with input: " .. tostring(incidentId))
+    self:removeIncident(incidentId)
   end, false)
 
   -- DEBUG: remove later
-  RegisterCommand("testIncidents", function()
+  RegisterCommand("testIncidents", function(source)
+    local ok = authorizeDebugCommand("testIncidents", source, false)
+    if not ok then return end
+
     print(json.encode(self.incidents))
   end, false)
 
   -- DEBUG: remove later
-  RegisterCommand("resetAI", function()
+  RegisterCommand("resetAI", function(source)
+    local ok = authorizeDebugCommand("resetAI", source, false)
+    if not ok then return end
+
     self.aiActive = {
       police = 0,
       ems = 0,
