@@ -8,6 +8,22 @@ local IDManager = module("lib/IDManager")
 local Proxy = {}
 local rscname = GetCurrentResourceName()
 
+-- max time (ms) to wait for a proxy response before freeing the request
+-- (covers the target resource stopping/erroring before it can respond)
+Proxy.request_timeout = 30000
+
+-- free a pending request if it never got a response (timeout)
+local function schedule_timeout(ids, callbacks, rid)
+  SetTimeout(Proxy.request_timeout, function()
+    local callback = callbacks[rid]
+    if callback then -- still pending, no response ever arrived
+      callbacks[rid] = nil
+      ids:free(rid)
+      callback() -- resolve with no values (same as an unbound member response)
+    end
+  end)
+end
+
 local function proxy_resolve(itable,key)
   local mtable = getmetatable(itable)
   local iname = mtable.name
@@ -30,6 +46,7 @@ local function proxy_resolve(itable,key)
       r = async()
       rid = ids:gen()
       callbacks[rid] = r
+      schedule_timeout(ids, callbacks, rid)
     end
     TriggerEvent(iname..":proxy", fname, table.pack(...), identifier, rid)
     if not no_wait then return r:wait() end
@@ -38,7 +55,7 @@ local function proxy_resolve(itable,key)
   return fcall
 end
 
--- add event handler to call interface functions 
+-- add event handler to call interface functions
 -- name: interface name
 -- itable: table containing functions
 function Proxy.addInterface(name, itable)
@@ -46,7 +63,13 @@ function Proxy.addInterface(name, itable)
     local f = itable[member]
     local rets
     if type(f) == "function" then
-      rets = table.pack(f(table.unpack(args, 1, args.n)))
+      local ok, err = xpcall(function()
+        rets = table.pack(f(table.unpack(args, 1, args.n)))
+      end, debug.traceback)
+      if not ok then
+        print("^1[Proxy] error in "..name.."."..tostring(member)..": "..tostring(err).."^7")
+        rets = nil
+      end
       -- CancelEvent() -- cancel event doesn't seem to cancel the event for the other handlers, but if it does, uncomment this
     else
       print("error: proxy call "..name..":"..member.." not found")

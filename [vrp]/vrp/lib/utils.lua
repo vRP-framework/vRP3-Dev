@@ -246,7 +246,7 @@ local gc_interval = 30 -- seconds default
 if cfg_modules and cfg_modules.gc_interval then gc_interval = cfg_modules.gc_interval end
 Citizen.CreateThread(function()
   while true do
-    Citizen.Wait((gc_interval or 30) * 10000)
+    Citizen.Wait((gc_interval or 30) * 1000)
 
     local before = collectgarbage("count")
 

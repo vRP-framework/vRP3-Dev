@@ -20,11 +20,27 @@ local Tunnel = {}
 -- define per dest regulator
 Tunnel.delays = {}
 
+-- max time (ms) to wait for a tunnel response before freeing the request
+-- (covers disconnects/resource stops/network drops where no response can ever arrive)
+Tunnel.request_timeout = 30000
+
 -- set the base delay between Triggers for a destination
 -- dest: player source
 -- delay: milliseconds (0 for instant trigger)
 function Tunnel.setDestDelay(dest, delay)
   Tunnel.delays[dest] = {delay, 0}
+end
+
+-- free a pending request if it never got a response (timeout)
+local function schedule_timeout(ids, callbacks, rid)
+  SetTimeout(Tunnel.request_timeout, function()
+    local callback = callbacks[rid]
+    if callback then -- still pending, no response ever arrived
+      callbacks[rid] = nil
+      ids:free(rid)
+      callback() -- resolve with no values (same as an unbound member response)
+    end
+  end)
 end
 
 local function tunnel_resolve(itable, key)
@@ -68,6 +84,7 @@ local function tunnel_resolve(itable, key)
         if r then
           rid = ids:gen()
           callbacks[rid] = r
+          schedule_timeout(ids, callbacks, rid)
         end
         if SERVER then
           TriggerRemoteEvent(iname..":tunnel_req", dest, fname, args, identifier, rid)
@@ -81,6 +98,7 @@ local function tunnel_resolve(itable, key)
       if r then
         rid = ids:gen()
         callbacks[rid] = r
+        schedule_timeout(ids, callbacks, rid)
       end
       if SERVER then
         TriggerRemoteEvent(iname..":tunnel_req", dest, fname, args, identifier, rid)
@@ -105,10 +123,16 @@ function Tunnel.bindInterface(name, interface)
     local f = interface[member]
     local rets = {}
     if type(f) == "function" then -- call bound function
-      rets = table.pack(f(table.unpack(args, 1, args.n)))
+      local ok, err = xpcall(function()
+        rets = table.pack(f(table.unpack(args, 1, args.n)))
+      end, debug.traceback)
+      if not ok then
+        print("^1[Tunnel] error in "..name.."."..tostring(member)..": "..tostring(err).."^7")
+        rets = {}
+      end
       -- CancelEvent() -- cancel event doesn't seem to cancel the event for the other handlers, but if it does, uncomment this
     end
-    -- send response (even if the function doesn't exist)
+    -- send response (even if the function doesn't exist, or the call errored)
     if rid >= 0 then
       if SERVER then
         TriggerRemoteEvent(name..":"..identifier..":tunnel_res", source, rid, rets)
