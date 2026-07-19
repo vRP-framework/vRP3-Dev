@@ -3,19 +3,7 @@
 
 -- init vRP client context
 
-Tunnel = module("vrp", "lib/Tunnel")
-Proxy = module("vrp", "lib/Proxy")
-
-local cvRP = module("vrp", "client/vRP")
-vRP = cvRP() -- instantiate vRP
-
-local pvRP = {}
--- load script in vRP context
-function pvRP.loadScript(resource, path)
-  module(resource, path)
-end
-
-Proxy.addInterface("vRP", pvRP)
+vRP = module("vrp", "client/bootstrap")
 
 -- events
 
@@ -25,11 +13,14 @@ AddEventHandler("playerSpawned",function()
 end)
 
 -- dead event task
+-- a death-state transition doesn't need frame-level precision; polling every
+-- 250ms instead of every tick cuts this from 4 natives/frame to 4/250ms for
+-- the whole session, for every player, with no perceptible delay
 Citizen.CreateThread(function()
   local was_dead = false
 
   while true do
-    Citizen.Wait(0)
+    Citizen.Wait(250)
 
     local player = PlayerId()
     if NetworkIsPlayerActive(player) then
@@ -176,7 +167,6 @@ end
 function Base:getNearestPlayers(radius)
   local r = {}
 
-  local ped = GetPlayerPed(i)
   local pid = PlayerId()
   local px,py,pz = self:getPosition()
 
@@ -316,14 +306,18 @@ function Base:playAnim(upper, seq, looping)
             local first = (k == 1 and i == 1)
             local last = (k == #seq and i == loops)
 
-            -- request anim dict
+            -- request anim dict (issuing it once is enough; re-issuing every
+            -- poll doesn't speed up streaming, it's idempotent)
             RequestAnimDict(dict)
-            local i = 0
-            while not HasAnimDictLoaded(dict) and i < 1000 do -- max time, 10 seconds
+            local waited = 0
+            while not HasAnimDictLoaded(dict) and waited < 1000 do -- max time, 10 seconds
               Citizen.Wait(10)
-              RequestAnimDict(dict)
-              i = i+1
+              waited = waited+1
             end
+
+            -- cache the ped for this segment instead of re-fetching it every
+            -- frame in the wait loop below (it can run for several seconds)
+            local ped = GetPlayerPed(-1)
 
             -- play anim
             if HasAnimDictLoaded(dict) and self.anims[id] then
@@ -332,11 +326,11 @@ function Base:playAnim(upper, seq, looping)
               if not first then inspeed = 2.0001 end
               if not last then outspeed = 2.0001 end
 
-              TaskPlayAnim(GetPlayerPed(-1),dict,name,inspeed,outspeed,-1,flags,0,0,0,0)
+              TaskPlayAnim(ped,dict,name,inspeed,outspeed,-1,flags,0,0,0,0)
             end
 
             Citizen.Wait(0)
-            while GetEntityAnimCurrentTime(GetPlayerPed(-1),dict,name) <= 0.95 and IsEntityPlayingAnim(GetPlayerPed(-1),dict,name,3) and self.anims[id] do
+            while GetEntityAnimCurrentTime(ped,dict,name) <= 0.95 and IsEntityPlayingAnim(ped,dict,name,3) and self.anims[id] do
               Citizen.Wait(0)
             end
           end
@@ -395,6 +389,14 @@ end
 
 function Base.tunnel:addPlayer(player)
   self.players[player] = true
+end
+
+-- batched version of addPlayer, used to sync a newly-spawned player with
+-- every already-connected player in one call instead of one call each
+function Base.tunnel:addPlayers(players)
+  for _, player in ipairs(players) do
+    self.players[player] = true
+  end
 end
 
 function Base.tunnel:removePlayer(player)

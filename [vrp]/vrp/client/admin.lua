@@ -16,55 +16,55 @@ function Admin:__construct()
   self.target = nil
   self.noclipEntity = nil
   self.noclip_speed = 1.0
-
-  -- noclip task
-  Citizen.CreateThread(function()
-    local Base = vRP.EXT.Base
-
-    while true do
-      Citizen.Wait(0)
-      if self.noclip then
-        local ped = GetPlayerPed(-1)
-        local x,y,z = Base:getPosition(self.noclipEntity)
-        local dx,dy,dz = Base:getCamDirection(self.noclipEntity)
-        local speed = self.noclip_speed
-
-        -- reset velocity
-        SetEntityVelocity(self.noclipEntity, 0.0001, 0.0001, 0.0001)
-		
-		if not self.spectate then
-			-- forward
-			if IsControlPressed(0,32) then -- MOVE UP
-			  x = x+speed*dx
-			  y = y+speed*dy
-			  z = z+speed*dz
-			end
-
-			-- backward
-			if IsControlPressed(0,269) then -- MOVE DOWN
-			  x = x-speed*dx
-			  y = y-speed*dy
-			  z = z-speed*dz
-			end
-		end
-        SetEntityCoordsNoOffset(self.noclipEntity,x,y,z,true,true,true)
-      end
-    end
-  end)
 end
 
 function Admin:toggleNoclip()
   self.noclip = not self.noclip
 
   self.noclipEntity = vRP.EXT.Misc:getEntity()
-  
+
   SetEntityCollision(self.noclipEntity, not self.noclip, not self.noclip)
   SetEntityInvincible(self.noclipEntity, self.noclip)
   SetEntityVisible(self.noclipEntity, not self.noclip, false)
-  
+
   -- rotate entity
   vx,vy,vz = GetGameplayCamRot(2)
   SetEntityRotation(self.noclipEntity, vx, nil, nil, 0, false)
+
+  -- noclip task: spawned only while actually in use (most players never
+  -- toggle this), and exits on its own once noclip is turned back off,
+  -- instead of running a permanent Wait(0) thread for every player forever
+  if self.noclip then
+    local Base = vRP.EXT.Base
+    Citizen.CreateThread(function()
+      while self.noclip do
+        Citizen.Wait(0)
+        local x,y,z = Base:getPosition(self.noclipEntity)
+        local dx,dy,dz = Base:getCamDirection(self.noclipEntity)
+        local speed = self.noclip_speed
+
+        -- reset velocity
+        SetEntityVelocity(self.noclipEntity, 0.0001, 0.0001, 0.0001)
+
+        if not self.spectate then
+          -- forward
+          if IsControlPressed(0,32) then -- MOVE UP
+            x = x+speed*dx
+            y = y+speed*dy
+            z = z+speed*dz
+          end
+
+          -- backward
+          if IsControlPressed(0,269) then -- MOVE DOWN
+            x = x-speed*dx
+            y = y-speed*dy
+            z = z-speed*dz
+          end
+        end
+        SetEntityCoordsNoOffset(self.noclipEntity,x,y,z,true,true,true)
+      end
+    end)
+  end
 end
 
 function Admin:toggleSpectate(target)

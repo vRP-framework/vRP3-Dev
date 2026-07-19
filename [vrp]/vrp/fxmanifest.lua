@@ -61,6 +61,7 @@ files {
 	
 	-- Core
   "client/vRP.lua",
+  "client/bootstrap.lua",
   "vRPShared.lua",
 	
 	-- CFG

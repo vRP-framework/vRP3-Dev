@@ -90,12 +90,19 @@ end
 function Weather:toggleFreeze()
   self.freeze = not self.freeze
   SetMillisecondsPerGameMinute(self.normal)
-  local hours, minutes, seconds = GetClockHours(), GetClockMinutes(), GetClockSeconds()
 
-  while self.freeze do
-        Wait(1)
+  -- own thread instead of looping inline in the tunnel-request handler
+  -- (which would otherwise stay parked here for as long as freeze is on,
+  -- possibly the whole session); 250ms is plenty to keep the clock pinned,
+  -- no need to re-assert it on every single game tick
+  if self.freeze then
+    Citizen.CreateThread(function()
+      while self.freeze do
+        Citizen.Wait(250)
         NetworkOverrideClockTime(GetClockHours(), GetClockMinutes(), GetClockSeconds())
-    end
+      end
+    end)
+  end
 end
 
 function Weather:toggleBlackout()

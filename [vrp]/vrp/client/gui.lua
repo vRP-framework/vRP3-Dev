@@ -12,6 +12,20 @@ function GUI:__construct()
 	self.resolution = {0, 0}
 	self.minimap = {0, 0, 0, 0}
 
+  -- pre-unpack control bindings once; vRP.cfg.controls is static config, no
+  -- need to re-unpack table.unpack(phone.up) etc. on every single game tick
+  local phone = vRP.cfg.controls.phone
+  local request = vRP.cfg.controls.request
+  local up_a, up_b = table.unpack(phone.up)
+  local down_a, down_b = table.unpack(phone.down)
+  local left_a, left_b = table.unpack(phone.left)
+  local right_a, right_b = table.unpack(phone.right)
+  local select_a, select_b = table.unpack(phone.select)
+  local cancel_a, cancel_b = table.unpack(phone.cancel)
+  local open_a, open_b = table.unpack(phone.open)
+  local yes_a, yes_b = table.unpack(request.yes)
+  local no_a, no_b = table.unpack(request.no)
+
   -- task: gui controls (from cellphone)
   Citizen.CreateThread(function()
     while true do
@@ -19,20 +33,18 @@ function GUI:__construct()
 
       if not self.paused then
         -- menu controls
-        local phone = vRP.cfg.controls.phone
-        -- Cache control checks to avoid repeated unpacking
-        if IsControlJustPressed(table.unpack(phone.up)) then SendNUIMessage({act="event", event="UP"}) end
-        if IsControlJustPressed(table.unpack(phone.down)) then SendNUIMessage({act="event", event="DOWN"}) end
-        if IsControlJustPressed(table.unpack(phone.left)) then SendNUIMessage({act="event", event="LEFT"}) end
-        if IsControlJustPressed(table.unpack(phone.right)) then SendNUIMessage({act="event", event="RIGHT"}) end
-        if IsControlJustPressed(table.unpack(phone.select)) then SendNUIMessage({act="event", event="SELECT"}) end
-        if IsControlJustPressed(table.unpack(phone.cancel)) then
+        if IsControlJustPressed(up_a, up_b) then SendNUIMessage({act="event", event="UP"}) end
+        if IsControlJustPressed(down_a, down_b) then SendNUIMessage({act="event", event="DOWN"}) end
+        if IsControlJustPressed(left_a, left_b) then SendNUIMessage({act="event", event="LEFT"}) end
+        if IsControlJustPressed(right_a, right_b) then SendNUIMessage({act="event", event="RIGHT"}) end
+        if IsControlJustPressed(select_a, select_b) then SendNUIMessage({act="event", event="SELECT"}) end
+        if IsControlJustPressed(cancel_a, cancel_b) then
           self.remote._closeMenu()
           SendNUIMessage({act="event", event="CANCEL"})
         end
 
         -- open general menu
-				if IsControlJustPressed(table.unpack(phone.open)) and not self.menu_data then
+				if IsControlJustPressed(open_a, open_b) and not self.menu_data then
           if not (vRP.EXT.Survival and vRP.cfg.coma_disable_menu and vRP.EXT.Survival:isInComa()) and
              not (vRP.EXT.Police and vRP.cfg.handcuff_disable_menu and vRP.EXT.Police:isHandcuffed()) then
             self.remote._openMainMenu()
@@ -40,9 +52,8 @@ function GUI:__construct()
         end
 
         -- F5,F6 (default: control michael, control franklin)
-        local request = vRP.cfg.controls.request
-        if IsControlJustPressed(table.unpack(request.yes)) then SendNUIMessage({act="event", event="F5"}) end
-        if IsControlJustPressed(table.unpack(request.no)) then SendNUIMessage({act="event", event="F6"}) end
+        if IsControlJustPressed(yes_a, yes_b) then SendNUIMessage({act="event", event="F5"}) end
+        if IsControlJustPressed(no_a, no_b) then SendNUIMessage({act="event", event="F6"}) end
       end
 
       -- Pause menu checks with optimized state handling
