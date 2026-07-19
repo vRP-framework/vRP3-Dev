@@ -267,7 +267,7 @@ function GUI:__construct()
   self.cfg = module("vrp", "cfg/gui")
   self.menu_builders = {} -- map of name => callbacks list
 
-  self:registerMenuBuilder("main", function(menu)
+  self:registerMenuBuilder(self, "main", function(menu)
     menu.title = lang.common.menu.title()
     menu.css.header_color = "rgba(0,125,255,0.75)"
   end)
@@ -278,16 +278,37 @@ end
 -- GENERIC MENU BUILDER
 
 -- register a menu builder function
+-- owner_ext: the calling extension's own "self" instance -- pass it so the
+--   builder can be traced back to its owner and removed if that extension
+--   stops (see unregisterMenuBuilders, called from
+--   vRPShared:unregisterExtension). Pass nil for a permanent builder that
+--   won't be cleaned up on stop/reload.
 -- name: menu type name
 -- builder(menu): callback to modify the menu
-function GUI:registerMenuBuilder(name, builder)
+function GUI:registerMenuBuilder(owner_ext, name, builder)
   local mbuilders = self.menu_builders[name]
   if not mbuilders then
     mbuilders = {}
     self.menu_builders[name] = mbuilders
   end
 
-  table_insert(mbuilders, builder)
+  table_insert(mbuilders, {owner = owner_ext and class.name(owner_ext) or nil, fn = builder})
+end
+
+-- remove every menu builder registered by a given extension name. Called by
+-- vRPShared:unregisterExtension so a stopped/reloaded extension's menu
+-- builders don't keep running (as closures over its now-unregistered
+-- instance) or pile up as duplicates on the next start/reload.
+-- owner: extension name (string), as stored from registerMenuBuilder's owner_ext
+function GUI:unregisterMenuBuilders(owner)
+  if not owner then return end
+  for _, mbuilders in pairs(self.menu_builders) do
+    for i = #mbuilders, 1, -1 do
+      if mbuilders[i].owner == owner then
+        table_remove(mbuilders, i)
+      end
+    end
+  end
 end
 
 -- build a menu
@@ -295,8 +316,8 @@ function GUI:buildMenu(menu)
   local mbuilders = self.menu_builders[menu.name]
 
   if mbuilders then
-    for _,builder in ipairs(mbuilders) do -- trigger builders
-      builder(menu)
+    for _,entry in ipairs(mbuilders) do -- trigger builders
+      entry.fn(menu)
     end
   end
 end

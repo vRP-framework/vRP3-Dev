@@ -14,7 +14,7 @@ local string_upper = string.upper
 
 local function menu_types(self)
 
-  vRP.EXT.GUI:registerMenuBuilder("types", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "types", function(menu)
 		local user = menu.user
 		local remote = self.remote
 		menu.title = "Forcast Types"
@@ -29,7 +29,7 @@ local function menu_types(self)
 end
 
 local function menu_forcast(self)
-  vRP.EXT.GUI:registerMenuBuilder("forcast", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "forcast", function(menu)
 		local user = menu.user
 		local remote = self.remote
 		menu.title = "Forcast"
@@ -51,7 +51,7 @@ local function menu_forcast(self)
 end
 
 local function menu_timeOfDay(self)
-  vRP.EXT.GUI:registerMenuBuilder("timeOfDay", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "timeOfDay", function(menu)
 		local user = menu.user
 		local remote = self.remote
 		menu.title = "Time of Day"
@@ -68,7 +68,7 @@ end
 
 local function menu_time(self)
 
-  vRP.EXT.GUI:registerMenuBuilder("time", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "time", function(menu)
 		local user = menu.user
 		local remote = self.remote
 		menu.title = "Time"
@@ -101,7 +101,7 @@ end
 
 local function menu_weather(self)
 
-  vRP.EXT.GUI:registerMenuBuilder("weather", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "weather", function(menu)
 		local user = menu.user
 		menu.title = "Weather"
 		menu.css.header_color = "rgba(200,0,0,0.75)"
@@ -132,7 +132,7 @@ function Weather:__construct()
   menu_timeOfDay(self)
 	
   -- main menu
-  vRP.EXT.GUI:registerMenuBuilder("admin", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "admin", function(menu)
 		menu:addOption("Weather", function(menu)
 			menu.user:openMenu("weather")
 		end)

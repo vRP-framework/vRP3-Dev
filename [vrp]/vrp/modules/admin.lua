@@ -7,9 +7,31 @@ local htmlEntities = module("lib/htmlEntities")
 local lang = vRP.lang
 local Admin = class("Admin", vRP.Extension)
 
+-- shared gate for the vrpReload/vrpStop/vrpStart commands: source 0 (server
+-- console) is trusted implicitly, otherwise requires core.reload
+local function checkReloadPermission(source)
+  if source == 0 then return true end
+  local user = vRP.users_by_source[source]
+  if not user or not user:hasPermission("core.reload") then
+    if user then vRP.EXT.Base.remote._notify(source, "You are not authorized to use this command.") end
+    return false
+  end
+  return true
+end
+
+-- refresh every connected user's currently-open menu (no-op for users with
+-- none open) so a stop/start/reload becomes visible immediately instead of
+-- requiring them to close and reopen the menu themselves.
+local function actualizeAllMenus()
+  if not vRP.EXT.GUI then return end
+  for _, user in pairs(vRP.users) do
+    user:actualizeMenu()
+  end
+end
+
 --menu movement. gives all location based options
 local function menu_admin_movement(self)
-  vRP.EXT.GUI:registerMenuBuilder("admin.movement", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "admin.movement", function(menu)
 		local user = menu.user
 		menu.title = "Movement"
 		menu.css.header_color = "rgba(200,0,0,0.75)"
@@ -43,7 +65,7 @@ end
 
 -- menu emote. give emote related options
 local function menu_admin_emotes(self)
-  vRP.EXT.GUI:registerMenuBuilder("admin.emotes", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "admin.emotes", function(menu)
 		local user = menu.user
 		menu.title = "Emotes"
 		menu.css.header_color = "rgba(200,0,0,0.75)"
@@ -68,7 +90,7 @@ end
 
 --menu users. List all current users
 local function menu_admin_users(self)	
-  vRP.EXT.GUI:registerMenuBuilder("admin.users", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "admin.users", function(menu)
 		local user = menu.user
 		menu.title = lang.admin.users.title()
 		menu.css.header_color = "rgba(200,0,0,0.75)"
@@ -88,7 +110,7 @@ end
 
 --menu user. options for seleced user
 local function menu_admin_users_user(self)		-- individual user options
-  vRP.EXT.GUI:registerMenuBuilder("admin.users.user", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "admin.users.user", function(menu)
 		local user = menu.user
     local id = menu.data.id
     local tuser = vRP.users[id]
@@ -174,7 +196,7 @@ end
 
 -- menu: admin
 local function menu_admin(self)
-  vRP.EXT.GUI:registerMenuBuilder("admin", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "admin", function(menu)
     local user = menu.user
     menu.title = lang.admin.title()
     menu.css.header_color = "rgba(200,0,0,0.75)"
@@ -256,11 +278,56 @@ function Admin:__construct()
   menu_admin_movement(self)
 
   -- main menu
-  vRP.EXT.GUI:registerMenuBuilder("main", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "main", function(menu)
     menu:addOption("Admin", function(menu)
       menu.user:openMenu("admin")
     end)
   end)
+
+  -- hot-reload extensions registered with a module source (see
+  -- vRPShared:reloadExtensions); gated on core.reload, granted only to the
+  -- superadmin group (which includes the server owner, see cfg/groups.lua's
+  -- cfg.users[1]). Server console (source 0) is trusted implicitly.
+  -- usage: /vrpReload            -- reload every reloadable extension
+  --        /vrpReload Weapon GUI -- reload only the named extensions
+  RegisterCommand("vrpReload", function(source, args)
+    if not checkReloadPermission(source) then return end
+
+    self:log("Extension reload triggered by source " .. tostring(source) ..
+      (args[1] and (" for: " .. table.concat(args, ", ")) or " (all)"))
+    vRP:reloadExtensions(args[1] and args or nil)
+    actualizeAllMenus()
+  end, false)
+
+  -- stop a running extension and leave it stopped (e.g. before editing its
+  -- code on disk); same permission gate as vrpReload.
+  -- usage: /vrpStop Weapon
+  RegisterCommand("vrpStop", function(source, args)
+    if not checkReloadPermission(source) then return end
+    if not args[1] then
+      self:log("vrpStop: usage /vrpStop <ExtensionName>")
+      return
+    end
+
+    self:log("Extension stop triggered by source " .. tostring(source) .. " for: " .. args[1])
+    vRP:stopExtension(args[1])
+    actualizeAllMenus()
+  end, false)
+
+  -- (re)start a previously-stopped extension from its remembered module
+  -- source; same permission gate as vrpReload.
+  -- usage: /vrpStart Weapon
+  RegisterCommand("vrpStart", function(source, args)
+    if not checkReloadPermission(source) then return end
+    if not args[1] then
+      self:log("vrpStart: usage /vrpStart <ExtensionName>")
+      return
+    end
+
+    self:log("Extension start triggered by source " .. tostring(source) .. " for: " .. args[1])
+    vRP:startExtension(args[1])
+    actualizeAllMenus()
+  end, false)
 end
 
 vRP:registerExtension(Admin)

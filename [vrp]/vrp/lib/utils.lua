@@ -43,6 +43,19 @@ function module(rsc, path)
   end
 end
 
+-- evict a cached module so the next module() call re-reads and re-executes
+-- the file from disk instead of returning the cached result. Needed for
+-- extension hot-reload (see vRPShared:reloadExtensions); has no effect if
+-- the module was never loaded.
+-- rsc/path: same arguments as module(), including the vrp shortcut
+function unloadModule(rsc, path)
+  if not path then
+    path = rsc
+    rsc = "vrp"
+  end
+  modules[rsc.."/"..path] = nil
+end
+
 -- Luaoop class
 
 local Luaoop = module("vrp", "lib/Luaoop")

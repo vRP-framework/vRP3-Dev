@@ -165,7 +165,7 @@ local function menu_group_selector(self)
     user:closeMenu(menu)
   end
 
-  vRP.EXT.GUI:registerMenuBuilder("group_selector", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "group_selector", function(menu)
     menu.title = menu.data.name
     menu.css.header_color = "rgba(255,154,24,0.75)"
 
@@ -216,7 +216,7 @@ local function menu_user_groups(self)
     end
   end
 
-  vRP.EXT.GUI:registerMenuBuilder("user.groups", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "user.groups", function(menu)
     menu.title = "Groups"
     local user = menu.user
     local tuser = vRP.users[menu.data.id]
@@ -262,7 +262,7 @@ function Group:__construct()
   menu_user_groups(self)
   
   -- main menu
-  vRP.EXT.GUI:registerMenuBuilder("admin.users.user", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "admin.users.user", function(menu)
     menu:addOption("Groups", function(menu)
       menu.user:openMenu("user.groups", menu.data)
     end)

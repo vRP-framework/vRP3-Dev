@@ -94,7 +94,7 @@ local function menu_cityhall(self)
     notify(user.source, lang.money.paid({cost}))
   end
 
-  vRP.EXT.GUI:registerMenuBuilder("cityhall", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "cityhall", function(menu)
     menu.title = lang.identity.cityhall.title()
     menu.css.header_color = "rgba(0,125,255,0.75)"
 
@@ -104,7 +104,7 @@ end
 
 -- menu: identity
 local function menu_identity(self)
-  vRP.EXT.GUI:registerMenuBuilder("identity", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "identity", function(menu)
     menu.title = lang.identity.title()
     menu.css.header_color="rgba(0,125,255,0.75)"
 
@@ -118,7 +118,7 @@ end
 
 -- menu: admin users user
 local function menu_admin_users_user(self)
-  vRP.EXT.GUI:registerMenuBuilder("admin.users.user", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "admin.users.user", function(menu)
     local user = menu.user
     local tuser = vRP.users[menu.data.id]
 
@@ -154,7 +154,7 @@ function Identity:__construct()
   menu_admin_users_user(self)
 
   -- add identity to main menu
-  vRP.EXT.GUI:registerMenuBuilder("main", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "main", function(menu)
 		menu:addOption(lang.identity.title(), function(menu)
 			menu.user:openMenu("identity", {cid = menu.user.cid})
 		end)

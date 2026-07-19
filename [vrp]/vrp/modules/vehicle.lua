@@ -113,7 +113,7 @@ local function menu_buy(self)
 	end
 
 
-  vRP.EXT.GUI:registerMenuBuilder("buy", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "buy", function(menu)
     menu.title = menu.data.type
     menu.css.header_color = "rgba(255,125,0,0.75)"
 		local uvehicles = menu.user:getVehicles()
@@ -153,7 +153,7 @@ local function menu_sell(self)
   end
 
 
-  vRP.EXT.GUI:registerMenuBuilder("sell", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "sell", function(menu)
     menu.title = "Sell " .. tostring(menu.data.type)
     menu.css.header_color = "rgba(255,125,0,0.75)"
 		local user = menu.user
@@ -215,7 +215,7 @@ local function menu_owned(self)
 		end
 	end
 
-  vRP.EXT.GUI:registerMenuBuilder("owned", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "owned", function(menu)
     menu.title = "Owned " .. tostring(menu.data.type)
     menu.css.header_color = "rgba(255,125,0,0.75)"
 		local user = menu.user
@@ -259,7 +259,7 @@ local function menu_garage(self)
   end
 
 
-  vRP.EXT.GUI:registerMenuBuilder("garage", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "garage", function(menu)
     menu.title = "Garage " .. tostring(menu.data.type)
     menu.css.header_color = "rgba(255,125,0,0.75)"
 		local uvehicles = menu.user:getVehicles()

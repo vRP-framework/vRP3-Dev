@@ -45,7 +45,8 @@ cfg.groups = {
     "player.giveitem",
 	"player.giveweapon",
     "profiler.server",
-    "profiler.client"
+    "profiler.client",
+    "core.reload" -- allows /vrpReload (hot-reload extensions), see modules/admin.lua
   },
   ["admin"] = {
     "admin.tickets",

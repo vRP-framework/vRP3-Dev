@@ -112,13 +112,19 @@ local function tunnel_resolve(itable, key)
   return fcall
 end
 
+-- handler registries, so a bound/gotten interface can later be unbound/released
+-- (needed for extension hot-reload: without this the old closure stays live
+-- forever even after the extension that owned it is unregistered)
+Tunnel.bound_handlers = {}    -- name -> AddEventHandler handle, set by bindInterface
+Tunnel.response_handlers = {} -- "name:identifier" -> AddEventHandler handle, set by getInterface
+
 -- bind an interface (listen to net requests)
 -- name: interface name
 -- interface: table containing functions
 function Tunnel.bindInterface(name, interface)
   -- receive request
   RegisterLocalEvent(name..":tunnel_req")
-  AddEventHandler(name..":tunnel_req", function(member, args, identifier, rid)
+  local handler = AddEventHandler(name..":tunnel_req", function(member, args, identifier, rid)
     local source = source
     local f = interface[member]
     local rets = {}
@@ -141,9 +147,21 @@ function Tunnel.bindInterface(name, interface)
       end
     end
   end)
+  Tunnel.bound_handlers[name] = handler
 end
 
--- get a tunnel interface to send requests 
+-- remove a previously bound interface (stop listening for its net requests)
+-- name: interface name, as passed to Tunnel.bindInterface
+-- returns true if an interface was actually removed
+function Tunnel.unbindInterface(name)
+  local handler = Tunnel.bound_handlers[name]
+  if not handler then return false end
+  RemoveEventHandler(handler)
+  Tunnel.bound_handlers[name] = nil
+  return true
+end
+
+-- get a tunnel interface to send requests
 -- name: interface name
 -- identifier: (optional) unique string to identify this tunnel interface access; if nil, will be the name of the resource
 function Tunnel.getInterface(name, identifier)
@@ -154,7 +172,7 @@ function Tunnel.getInterface(name, identifier)
   local r = setmetatable({},{ __index = tunnel_resolve, name = name, ids = ids, callbacks = callbacks, identifier = identifier })
   -- receive response
   RegisterLocalEvent(name..":"..identifier..":tunnel_res")
-  AddEventHandler(name..":"..identifier..":tunnel_res", function(rid, args)
+  local handler = AddEventHandler(name..":"..identifier..":tunnel_res", function(rid, args)
     local callback = callbacks[rid]
     if callback then
       -- free request id
@@ -164,7 +182,22 @@ function Tunnel.getInterface(name, identifier)
       callback(table.unpack(args, 1, args.n))
     end
   end)
+  Tunnel.response_handlers[name..":"..identifier] = handler
   return r
+end
+
+-- release a tunnel interface obtained via Tunnel.getInterface (stop listening
+-- for its responses). Any request still in flight at this point is left to
+-- its own request_timeout rather than resolved here.
+-- name/identifier: same values passed to Tunnel.getInterface
+function Tunnel.releaseInterface(name, identifier)
+  if not identifier then identifier = GetCurrentResourceName() end
+  local key = name..":"..identifier
+  local handler = Tunnel.response_handlers[key]
+  if not handler then return false end
+  RemoveEventHandler(handler)
+  Tunnel.response_handlers[key] = nil
+  return true
 end
 
 return Tunnel

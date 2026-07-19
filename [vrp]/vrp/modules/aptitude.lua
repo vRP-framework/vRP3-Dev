@@ -105,7 +105,7 @@ end
 
 -- menu: aptitudes
 local function menu_aptitudes(self)
-  vRP.EXT.GUI:registerMenuBuilder("aptitudes", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "aptitudes", function(menu)
     local user = menu.user
     menu.title = lang.aptitude.title()
     menu.css.header_color = "rgba(0,125,255,0.75)"
@@ -187,7 +187,7 @@ function Aptitude:__construct()
     menu.user:openMenu("aptitudes")
   end
 
-  vRP.EXT.GUI:registerMenuBuilder("main", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "main", function(menu)
     menu:addOption(lang.aptitude.title(), m_aptitude, lang.aptitude.description())
   end)
 

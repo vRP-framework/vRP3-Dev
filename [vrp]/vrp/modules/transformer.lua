@@ -153,7 +153,7 @@ local function menu_transformer(self)
     end
   end
 
-  vRP.EXT.GUI:registerMenuBuilder("transformer", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "transformer", function(menu)
     local tr = menu.data.transformer
     local user = menu.user
 

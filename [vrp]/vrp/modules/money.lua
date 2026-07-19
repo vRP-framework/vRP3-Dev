@@ -172,7 +172,7 @@ function Money:__construct()
 		end
 	end
 
-	vRP.EXT.GUI:registerMenuBuilder("main", function(menu)
+	vRP.EXT.GUI:registerMenuBuilder(self, "main", function(menu)
 		menu:addOption(vRP.lang.money.give.title(), m_give, vRP.lang.money.give.description())
 	end)
 
@@ -200,7 +200,7 @@ function Money:__construct()
 		remote._notify(targetUser.source, "You received $" .. amount .. " from an admin")
 	end
 
-	vRP.EXT.GUI:registerMenuBuilder("admin.users.user", function(menu)
+	vRP.EXT.GUI:registerMenuBuilder(self, "admin.users.user", function(menu)
 		local adminUser = menu.user
 		local targetUser = vRP.users[menu.data.id]
 

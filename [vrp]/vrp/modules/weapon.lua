@@ -8,7 +8,7 @@ local lang = vRP.lang
 local Weapon = class("Weapon", vRP.Extension)
 
 local function componentsMenu(self)
-	vRP.EXT.GUI:registerMenuBuilder("weapons.type.options.components", function(menu)
+	vRP.EXT.GUI:registerMenuBuilder(self, "weapons.type.options.components", function(menu)
 		local user = menu.user
 
 		menu.title = menu.data.name
@@ -41,7 +41,7 @@ local function componentsMenu(self)
 end
 
 local function optionsMenu(self)
-	vRP.EXT.GUI:registerMenuBuilder("weapons.type.options", function(menu)
+	vRP.EXT.GUI:registerMenuBuilder(self, "weapons.type.options", function(menu)
 		local user = menu.user
 
 		menu.title = menu.data.name
@@ -65,7 +65,7 @@ local function optionsMenu(self)
 end
 
 local function weaponTypeMenu(self)
-	vRP.EXT.GUI:registerMenuBuilder("weapons.type", function(menu)
+	vRP.EXT.GUI:registerMenuBuilder(self, "weapons.type", function(menu)
 		local user = menu.user
 
 		menu.title = menu.data.title
@@ -96,7 +96,7 @@ end
 
 -- menu: admin
 local function weaponsMenu(self)
-	vRP.EXT.GUI:registerMenuBuilder("weapons", function(menu)
+	vRP.EXT.GUI:registerMenuBuilder(self, "weapons", function(menu)
 		local user = menu.user
 
 		menu.title = "Weapons"
@@ -152,7 +152,7 @@ function Weapon:__construct()
 	componentsMenu(self)
   
   -- list for all weapons that are useable
-  vRP.EXT.GUI:registerMenuBuilder("main", function(menu)
+  vRP.EXT.GUI:registerMenuBuilder(self, "main", function(menu)
 		if menu.user:hasGroup("admin") then
 			menu:addOption("Weapons", function(menu)
 				menu.user:openMenu("weapons")

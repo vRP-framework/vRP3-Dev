@@ -11,7 +11,7 @@ local PlayerState = class("PlayerState", vRP.Extension)
 
 -- menu: admin
 local function menu_admin(self)	
-	vRP.EXT.GUI:registerMenuBuilder("admin", function(menu)
+	vRP.EXT.GUI:registerMenuBuilder(self, "admin", function(menu)
     local user = menu.user
     if user:hasPermission("player.custom_model") then
       menu:addOption(lang.admin.custom_model.title(), function()
