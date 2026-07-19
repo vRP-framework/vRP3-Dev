@@ -252,7 +252,26 @@ function runGCNow()
   end
 end
 
-if type(_G.vRP) == "table" then vRP.runGCNow = runGCNow end
+-- run runGCNow, but skip if the last pass was less than min_interval
+-- seconds ago. Shared by the periodic sweep below and by ad-hoc callers
+-- (player join/leave) so they all share one cooldown clock instead of
+-- stacking independent ones and forcing back-to-back full GC passes.
+local last_gc_run = 0
+function runGCNowRateLimited(min_interval)
+  min_interval = min_interval or 10
+  local now = GetGameTimer()/1000
+  if now - last_gc_run >= min_interval then
+    last_gc_run = now
+    runGCNow()
+    return true
+  end
+  return false
+end
+
+if type(_G.vRP) == "table" then
+  vRP.runGCNow = runGCNow
+  vRP.runGCNowRateLimited = runGCNowRateLimited
+end
 
 -- periodic GC runner (server-side by default, but harmless on client)
 local gc_interval = 30 -- seconds default
@@ -260,35 +279,7 @@ if cfg_modules and cfg_modules.gc_interval then gc_interval = cfg_modules.gc_int
 Citizen.CreateThread(function()
   while true do
     Citizen.Wait((gc_interval or 30) * 1000)
-
-    local before = collectgarbage("count")
-
-    local pairs_local, pcall_local = pairs, pcall
-    local gc_hooks_ref = gc_hooks
-    -- run registered hooks
-    for name, fn in pairs_local(gc_hooks_ref) do
-      pcall_local(fn)
-    end
-
-    -- call extension-level performGC if provided
-    if type(_G.vRP) == "table" and type(vRP.EXT) == "table" then
-      local ext_ref = vRP.EXT
-      for k, ext in pairs_local(ext_ref) do
-        if type(ext) == "table" and type(ext.performGC) == "function" then
-          pcall_local(ext.performGC, ext)
-        end
-      end
-    end
-
-    -- run full GC cycle
-    collectgarbage("collect")
-
-    local after = collectgarbage("count")
-    if type(_G.vRP) == "table" and type(vRP.log) == "function" then
-      pcall_local(function()
-        vRP:log("gc_manager: before_kb="..tostring(before).." after_kb="..tostring(after).." freed_kb="..tostring(before-after))
-      end)
-    end
+    runGCNowRateLimited(gc_interval or 30)
   end
 end)
 

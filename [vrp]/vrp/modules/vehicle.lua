@@ -497,15 +497,10 @@ function Vehicle:performGC()
 	local before = collectgarbage("count")
 
 	-- cleanup invalid owned vehicles
-	pcall(function() self:cleanupVehicles() end)
-
-	-- remove out_vehicles that reference unknown models
-	for model in pairs(self.out_vehicles or {}) do
-		if not self.models[model] then self.out_vehicles[model] = nil end
-	end
+	pcall(self.cleanupVehicles, self)
 
 	-- drop empty vehicle state entries (safe, non-destructive)
-	for _, user in pairs(vRP.users_by_source or {}) do
+	for _, user in pairs(vRP.users_by_source) do
 		if user and user.vehicle_states then
 			for m, s in pairs(user.vehicle_states) do
 				if type(s) == "table" and next(s) == nil then
@@ -517,5 +512,5 @@ function Vehicle:performGC()
 
 	-- attempt light cleanup (GC handled centrally by gc_manager)
 	local after = collectgarbage("count")
-	pcall(function() vRP:log("vehicle_gc: before_kb="..tostring(before).." after_kb="..tostring(after).." freed_kb="..tostring(before-after)) end)
+	pcall(vRP.log, vRP, "vehicle_gc: before_kb="..tostring(before).." after_kb="..tostring(after).." freed_kb="..tostring(before-after))
 end

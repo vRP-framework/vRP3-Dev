@@ -137,6 +137,8 @@ function Tunnel.bindInterface(name, interface)
         rets = {}
       end
       -- CancelEvent() -- cancel event doesn't seem to cancel the event for the other handlers, but if it does, uncomment this
+    else
+      print("^1error: tunnel call "..name..":"..tostring(member).." not found^7")
     end
     -- send response (even if the function doesn't exist, or the call errored)
     if rid >= 0 then

@@ -136,12 +136,10 @@ function PlayerState:performGC()
   -- prune empty per-user `cdata.state` tables to reduce retained per-user keys
   if type(_G.vRP) ~= "table" or type(vRP.users) ~= "table" then return end
   for _, user in pairs(vRP.users) do
-    if user and user.cdata and user.cdata.state then
-      local empty = true
-      for k, v in pairs(user.cdata.state) do
-        if v ~= nil then empty = false; break end
-      end
-      if empty then user.cdata.state = nil end
+    -- a Lua table can't hold a key mapped to nil (assigning nil removes it),
+    -- so next(t) == nil is exactly "is this table empty" -- no need to walk it
+    if user and user.cdata and user.cdata.state and next(user.cdata.state) == nil then
+      user.cdata.state = nil
     end
   end
 end

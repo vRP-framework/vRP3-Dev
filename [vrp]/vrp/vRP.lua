@@ -310,15 +310,8 @@ function vRP:connectUser(source)
   self:log(user.name.." ("..user.endpoint..") connected (user_id = "..user.id..")")
   self:triggerEvent("playerJoin", user)
 
-  -- run a rate-limited GC to keep memory in check on joins (uses utils.runGCNow if available)
-  pcall(function()
-    if type(self.runGCNowRateLimited) == "function" then
-      self:runGCNowRateLimited(10) -- 10s min interval
-    elseif type(self.runGCNow) == "function" then
-      -- fallback: directly call runGCNow if present
-      self.runGCNow()
-    end
-  end)
+  -- run a rate-limited GC to keep memory in check on joins (see lib/utils.lua)
+  pcall(runGCNowRateLimited, 10)
   return user
 end
 
@@ -336,36 +329,8 @@ function vRP:disconnectUser(source, reason)
     self.users_by_source[user.source] = nil
     self:log(user.name.." ("..user.endpoint..") disconnected (user_id = "..user.id..")")
     -- run a small, rate-limited GC on disconnect to free transient state
-    pcall(function()
-      if type(self.runGCNowRateLimited) == "function" then
-        self:runGCNowRateLimited(10)
-      elseif type(self.runGCNow) == "function" then
-        self.runGCNow()
-      end
-    end)
-  end
-end
-
--- Rate-limited GC trigger helper
-function vRP:runGCNowRateLimited(min_interval)
-  min_interval = min_interval or 10
-  local now = GetGameTimer()/1000
-  if not self._last_gc_run or (now - self._last_gc_run) >= min_interval then
-    self._last_gc_run = now
-    pcall(function()
-      if type(self.runGCNow) == "function" then
-        self:runGCNow()
-      elseif type(runGCNow) == "function" then
-        -- fallback to global helper if available (lib/utils may have exposed it)
-        runGCNow()
-      else
-        -- fallback: do a direct local GC if runGCNow not exposed
-        collectgarbage("collect")
-        if type(self.log) == "function" and (not self.log_level or self.log_level > 0) then
-          pcall(function() self:log("runGCNowRateLimited: fallback collectgarbage executed") end)
-        end
-      end
-    end)
+    -- (shares its cooldown clock with the periodic sweep, see lib/utils.lua)
+    pcall(runGCNowRateLimited, 10)
   end
 end
 
@@ -490,10 +455,14 @@ function vRP:onPlayerSpawned(source)
     local first_spawn = (user.spawns == 1)
     if first_spawn then
       -- first spawn, reference player
-      -- send players to new player
+      -- send all already-connected players to the new player in one call
+      -- instead of one tunnel call per existing player (was O(n) per join,
+      -- O(n^2) total traffic across a join wave)
+      local existing_sources = {}
       for id, user in pairs(self.users) do
-        self.EXT.Base.remote._addPlayer(source, user.source)
+        table.insert(existing_sources, user.source)
       end
+      self.EXT.Base.remote._addPlayers(source, existing_sources)
       -- send new player to all players
       self.EXT.Base.remote._addPlayer(-1 ,user.source)
       -- set client tunnel delay at first spawn

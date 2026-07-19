@@ -21,7 +21,7 @@ function Money.User:setWallet(amount)
   if self.cdata.wallet ~= amount then
     self.cdata.wallet = amount
     vRP:triggerEvent("playerMoneyUpdate", self)
-    self:save()
+    vRP:scheduleUserSave(self)
   end
 
   return true
@@ -35,7 +35,7 @@ function Money.User:setBank(amount)
   if self.cdata.bank ~= amount then
     self.cdata.bank = amount
     vRP:triggerEvent("playerMoneyUpdate", self)
-    self:save()
+    vRP:scheduleUserSave(self)
   end
 
   return true

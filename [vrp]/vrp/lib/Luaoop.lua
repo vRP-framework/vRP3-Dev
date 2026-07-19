@@ -451,17 +451,21 @@ local function class_new(name, ...)
       __concat = {}
     }
     local bases = {...}
+    -- {...} silently drops a nil/typo'd base (e.g. class("X", vRP.Exetnsion));
+    -- select("#",...) catches it below instead of producing a base-less class
+    local basesN = select("#", ...)
 
     -- check inheritance validity and build
-    for i,base in pairs(bases) do
-      local mtable = getmetatable(base)
+    for i=1,basesN do
+      local base = bases[i]
+      local mtable = base and getmetatable(base)
       local luaoop
       if mtable then
         luaoop = mtable.luaoop
       end
 
       if not luaoop or luaoop.type then -- if not a class
-        error("invalid base class #"..i)
+        error("invalid base class #"..i..": "..tostring(base))
       end
 
       if not luaoop.build then class_build(base) end

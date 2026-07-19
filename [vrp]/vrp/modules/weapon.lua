@@ -16,18 +16,8 @@ local function componentsMenu(self)
 
 		local weaponData = self.weapons[menu.data.weapon]
 		if weaponData then
-			local comps = (self._caches and self._caches.components and self._caches.components[menu.data.weapon])
-			if not comps then
-				local wcfg = module("vrp", "cfg/weapon")
-				local entry = nil
-				if wcfg and wcfg.weapons then
-					for _, e in pairs(wcfg.weapons) do
-						if e.HashKey == menu.data.weapon then entry = e break end
-					end
-				end
-				comps = (entry and entry.Components) or {}
-				if self._caches and self._caches.components then self._caches.components[menu.data.weapon] = comps end
-			end
+			local entry = self.weapon_entries[menu.data.weapon]
+			local comps = (entry and entry.Components) or {}
 			for _, v in pairs(comps) do
 				local hashKey, name, description, enabled = v.HashKey,v.Name,v.Description,v.Enabled
 				if enabled then
@@ -72,13 +62,7 @@ local function weaponTypeMenu(self)
 		menu.css.header_color = "rgba(200,0,0,0.75)"
 
 		for weapon, _ in pairs(self.weapons) do
-			local entry = nil
-			local wcfg = module("vrp", "cfg/weapon")
-			if wcfg and wcfg.weapons then
-				for _, e in pairs(wcfg.weapons) do
-					if e.HashKey == weapon then entry = e break end
-				end
-			end
+			local entry = self.weapon_entries[weapon]
 			local name = (entry and entry.Name) or "unknown"
 			local description = (entry and entry.Description) or ""
 			local group = (entry and entry.Group) or nil
@@ -127,6 +111,7 @@ function Weapon:__construct()
 	end
 
 	self.weapons = {} -- map of all enabled weapons (keyed by HashKey -> true)
+	self.weapon_entries = {} -- map of HashKey -> cfg entry, avoids re-scanning cfg.weapons per menu build
 	self.gtypes = {} -- map of all enabled gtypes
 
 	-- register all enabled weapons (store only HashKey -> group mapping; keep cfg key index)
@@ -134,6 +119,7 @@ function Weapon:__construct()
 		local h,n,d,g,e = v.HashKey,v.Name,v.Description,v.Group,v.Enabled
 		if e then
 			self.weapons[h] = true
+			self.weapon_entries[h] = v
 		end
 	end
   
@@ -153,34 +139,15 @@ function Weapon:__construct()
   
   -- list for all weapons that are useable
   vRP.EXT.GUI:registerMenuBuilder(self, "main", function(menu)
-		if menu.user:hasGroup("admin") then
+		if menu.user:hasPermission("player.giveweapon") then
 			menu:addOption("Weapons", function(menu)
 				menu.user:openMenu("weapons")
 			end)
 		end
   end)
-	-- lightweight weak caches (do not keep values alive)
-	self._caches = {
-		components = setmetatable({}, { __mode = "kv" })
-	}
 
 	-- clear large config reference (cfg already consumed)
 	self.cfg = nil
 end
 
--- cleanup on unload: free any per-user or large caches
-Weapon.event = Weapon.event or {}
-function Weapon.event:characterUnload(user)
-	if self._caches and self._caches.components then
-		for k in pairs(self._caches.components) do self._caches.components[k] = nil end
-	end
-end
-
 vRP:registerExtension(Weapon)
-
--- performGC: lightweight cleanup hook called by GC manager
-function Weapon:performGC()
-	if self._caches and self._caches.components then
-		for k in pairs(self._caches.components) do self._caches.components[k] = nil end
-	end
-end

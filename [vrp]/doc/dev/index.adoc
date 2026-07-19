@@ -85,6 +85,16 @@ Two versions of the same extension (same name) can be loaded: for the server-sid
 local MyExt = class("MyExt", vRP.Extension)
 ----
 
+IMPORTANT: A custom `__construct` must call `vRP.Extension.__construct(self)` first -- it binds `.tunnel`/`.proxy` and builds `self.remote`. Luaoop doesn't auto-chain parent constructors. Omitting it fails silently: no error, `self.remote` is just never set, surfacing later as a generic `attempt to index nil value (field 'remote')`.
+
+[source,lua]
+----
+function MyExt:__construct()
+  vRP.Extension.__construct(self) -- required, see above
+  -- ... your own init here
+end
+----
+
 Loaded extensions are accessibles through the vRP instance:
 [source,lua]
 ----
@@ -207,19 +217,32 @@ splitString(str, sep)
 
 === Proxy and Tunnel
 
+NOTE: A waited Proxy/Tunnel call now times out after `Proxy.request_timeout`/`Tunnel.request_timeout` ms (default `30000`), resolving with no values if nothing ever replies. Override the field if 30s is wrong for your case.
+
 ==== Proxy
 
 [source,lua]
 ----
--- add event handler to call interface functions 
+-- add event handler to call interface functions
 -- name: interface name
 -- itable: table containing functions
 Proxy.addInterface(name, itable)
 
--- get a proxy interface 
+-- remove a previously added interface (stop listening for its proxy calls)
+-- name: interface name, as passed to Proxy.addInterface
+-- returns true if an interface was actually removed
+Proxy.removeInterface(name)
+
+-- get a proxy interface
 -- name: interface name
 -- identifier: (optional) unique string to identify this proxy interface access; if nil, will be the name of the resource
 Proxy.getInterface(name, identifier)
+
+-- release a proxy interface obtained via Proxy.getInterface (stop listening
+-- for its responses). Any request still in flight is left to its own
+-- request_timeout rather than resolved here.
+-- name/identifier: same values passed to Proxy.getInterface
+Proxy.releaseInterface(name, identifier)
 ----
 
 ==== Tunnel
@@ -236,10 +259,21 @@ Tunnel.setDestDelay(dest, delay)
 -- interface: table containing functions
 Tunnel.bindInterface(name,interface)
 
--- get a tunnel interface to send requests 
+-- remove a previously bound interface (stop listening for its net requests)
+-- name: interface name, as passed to Tunnel.bindInterface
+-- returns true if an interface was actually removed
+Tunnel.unbindInterface(name)
+
+-- get a tunnel interface to send requests
 -- name: interface name
 -- identifier: (optional) unique string to identify this tunnel interface access; if nil, will be the name of the resource
 Tunnel.getInterface(name,identifier)
+
+-- release a tunnel interface obtained via Tunnel.getInterface (stop
+-- listening for its responses). Any request still in flight is left to its
+-- own request_timeout rather than resolved here.
+-- name/identifier: same values passed to Tunnel.getInterface
+Tunnel.releaseInterface(name, identifier)
 ----
 
 ==== Interface
@@ -355,7 +389,32 @@ vRP.Extension
 
 -- register an extension
 -- extension: Extension class
-vRP:registerExtension(extension)
+-- source: (optional) {rsc=, path=} module() path this extension was loaded
+--   from, e.g. {rsc="vrp", path="modules/admin"}. Auto-derived for
+--   vrp/modules/* extensions. Only needed to make reloadExtensions() work
+--   for this extension; without it, it just can't be hot-reloaded.
+vRP:registerExtension(extension, source)
+
+-- unregister a currently-running extension: unbinds its tunnel/proxy
+-- interfaces, releases its remote interface, removes any menu builders it
+-- registered on GUI, and calls its event.unload(self) if defined.
+vRP:unregisterExtension(extension_name)
+
+-- stop a currently-running extension and leave it stopped (unlike
+-- reloadExtensions, does not bring it back). Case-insensitive name lookup,
+-- logs instead of throwing if not currently running.
+vRP:stopExtension(name)
+
+-- (re)start a previously-registered extension that isn't currently running,
+-- using its remembered module source. No-op if already running; logs if it
+-- has no known source (never registered with one).
+vRP:startExtension(name)
+
+-- hot-reload extensions that have a recorded source (see registerExtension
+-- above); extensions without one are skipped, not touched.
+-- only: (optional) list of extension names to reload; if omitted, reloads
+--   every currently registered extension that has a source
+vRP:reloadExtensions(only)
 
 -- trigger event (with async call for each listener)
 vRP:triggerEvent(name, ...)
@@ -373,9 +432,15 @@ vRP:log(msg, suffix, level)
 vRP:error(msg, suffix)
 ----
 
+TIP: `TriggerEvent("vRP:reload")` (or `TriggerEvent("vRP:reload", {"MyExt"})` to scope it) also calls `reloadExtensions` -- an alternate entry point alongside the `/vrpReload`, `/vrpStop`, `/vrpStart` admin commands (see `modules/admin.lua`), which call the functions above directly.
+
 .Events
 [horizontal]
 `extensionLoad(extension)`:: called when an extension is loaded, passing the extension instance (can be used to initialize with another extension when loaded before the latter)
+
+.Extension `.event` hooks
+[horizontal]
+`unload(self)`:: called by `unregisterExtension` before tearing an extension down. Stop any background thread/`SetTimeout` loop here, or it keeps running against the dead instance. Example: `modules/group.lua`/`transformer.lua`.
 
 ==== Server
 

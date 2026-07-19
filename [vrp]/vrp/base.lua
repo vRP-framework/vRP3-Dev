@@ -148,10 +148,8 @@ function Base.event:playerSpawn(user, first_spawn)
       SetTimeout(15000, function()
         self.remote._notify(user.source, lang.common.welcome({user.last_login}))
         
-        -- run a garbage collection now and rate limit further calls to avoid hitches
-        if type(vRP.runGCNowRateLimited) == "function" then
-          vRP:runGCNowRateLimited(10)
-        end
+        -- run a garbage collection now, rate-limited (see lib/utils.lua)
+        pcall(runGCNowRateLimited, 10)
       end)
     end
   end

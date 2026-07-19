@@ -48,6 +48,7 @@ function Group.User:addGroup(name)
 
       -- add group
       groups[name] = true
+      self:invalidatePermissionCache()
       if ngroup._config and ngroup._config.onjoin then
         ngroup._config.onjoin(self) -- call join callback
       end
@@ -79,6 +80,7 @@ function Group.User:removeGroup(name)
   end
 
   groups[name] = nil -- remove reference
+  self:invalidatePermissionCache()
 
   vRP:triggerEvent("playerLeaveGroup", self, name, gtype)
 end
@@ -99,11 +101,48 @@ function Group.User:getGroupByType(gtype)
   end
 end
 
+-- (re)build the cached positive/negative permission sets for this user from
+-- their current groups. Called lazily by hasPermission, and eagerly
+-- whenever group membership changes -- see invalidatePermissionCache.
+function Group.User:rebuildPermissionCache()
+  local cfg = vRP.EXT.Group.cfg
+  local groups = self:getGroups()
+  local positive, negative = {}, {}
+
+  for name in pairs(groups) do
+    local group = cfg.groups[name]
+    if group then
+      for l,w in pairs(group) do -- for each group permission
+        if l ~= "_config" then
+          if string.sub(w,1,1) == "-" then
+            negative[string.sub(w,2)] = true
+          else
+            positive[w] = true
+          end
+        end
+      end
+    end
+  end
+
+  self._perm_cache_positive = positive
+  self._perm_cache_negative = negative
+end
+
+-- invalidate the cached permission sets so the next hasPermission call
+-- rebuilds them. Called by addGroup/removeGroup, and unconditionally by
+-- characterLoad -- useCharacter reuses the same User object across a
+-- character switch, so a character with no forced groups would otherwise
+-- silently keep the previous character's cached permissions.
+function Group.User:invalidatePermissionCache()
+  self._perm_cache_positive = nil
+  self._perm_cache_negative = nil
+end
+
 -- check if the user has a specific permission
 function Group.User:hasPermission(perm)
   local fchar = string.sub(perm,1,1)
 
-  if fchar == "!" then -- special function permission
+  if fchar == "!" then -- special function permission: arbitrary live logic, not cached
     local _perm = string.sub(perm,2,string.len(perm))
     local params = splitString(_perm,".")
     if #params > 0 then
@@ -114,30 +153,10 @@ function Group.User:hasPermission(perm)
         return false
       end
     end
-  else -- regular plain permission
-    local cfg = vRP.EXT.Group.cfg
-    local groups = self:getGroups()
-
-    -- precheck negative permission
-    local nperm = "-"..perm
-    for name in pairs(groups) do
-      local group = cfg.groups[name]
-      if group then
-        for l,w in pairs(group) do -- for each group permission
-          if l ~= "_config" and w == nperm then return false end
-        end
-      end
-    end
-
-    -- check if the permission exists
-    for name in pairs(groups) do
-      local group = cfg.groups[name]
-      if group then
-        for l,w in pairs(group) do -- for each group permission
-          if l ~= "_config" and w == perm then return true end
-        end
-      end
-    end
+  else -- regular plain permission: O(1) via cached positive/negative sets
+    if not self._perm_cache_positive then self:rebuildPermissionCache() end
+    if self._perm_cache_negative[perm] then return false end
+    if self._perm_cache_positive[perm] then return true end
   end
 
   return false
@@ -271,9 +290,11 @@ function Group:__construct()
   -- task: group count display
 	-- Note: if used slightly increases memory usage
   if self.cfg.display then
+		self._display_running = true
 		Citizen.CreateThread(function()
-			while true do
+			while self._display_running do
 				Citizen.Wait(self.cfg.count_display_interval * 1000)
+				if not self._display_running then break end
 
 				-- display
 				local content = ""
@@ -340,6 +361,13 @@ end
 
 Group.event = {}
 
+-- called by vRPShared:unregisterExtension; stops the group-count display
+-- thread so it doesn't keep running against this now-unregistered instance
+-- after /vrpStop or a reload.
+function Group.event:unload()
+  self._display_running = false
+end
+
 function Group.event:playerSpawn(user, first_spawn)
   if first_spawn then
     -- init group selectors
@@ -392,6 +420,12 @@ function Group.event:playerSpawn(user, first_spawn)
 end
 
 function Group.event:characterLoad(user)
+  -- invalidate any permission cache left over from a previous character on
+  -- this same connection (useCharacter reuses the User object) -- must
+  -- happen unconditionally, even if this character ends up with no forced
+  -- groups below, or a stale cache would leak the old character's perms
+  user:invalidatePermissionCache()
+
   if not user.cdata.groups then -- init groups table
     user.cdata.groups = {}
   end

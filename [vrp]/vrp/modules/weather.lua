@@ -16,6 +16,7 @@ local function menu_types(self)
 
   vRP.EXT.GUI:registerMenuBuilder(self, "types", function(menu)
 		local user = menu.user
+		if not user:hasPermission("admin.weather") then return end
 		local remote = self.remote
 		menu.title = "Forcast Types"
 		menu.css.header_color = "rgba(200,0,0,0.75)"
@@ -31,6 +32,7 @@ end
 local function menu_forcast(self)
   vRP.EXT.GUI:registerMenuBuilder(self, "forcast", function(menu)
 		local user = menu.user
+		if not user:hasPermission("admin.weather") then return end
 		local remote = self.remote
 		menu.title = "Forcast"
 		menu.css.header_color = "rgba(200,0,0,0.75)"
@@ -53,6 +55,7 @@ end
 local function menu_timeOfDay(self)
   vRP.EXT.GUI:registerMenuBuilder(self, "timeOfDay", function(menu)
 		local user = menu.user
+		if not user:hasPermission("admin.weather") then return end
 		local remote = self.remote
 		menu.title = "Time of Day"
 		menu.css.header_color = "rgba(200,0,0,0.75)"
@@ -70,6 +73,7 @@ local function menu_time(self)
 
   vRP.EXT.GUI:registerMenuBuilder(self, "time", function(menu)
 		local user = menu.user
+		if not user:hasPermission("admin.weather") then return end
 		local remote = self.remote
 		menu.title = "Time"
 		menu.css.header_color = "rgba(200,0,0,0.75)"
@@ -103,6 +107,7 @@ local function menu_weather(self)
 
   vRP.EXT.GUI:registerMenuBuilder(self, "weather", function(menu)
 		local user = menu.user
+		if not user:hasPermission("admin.weather") then return end
 		menu.title = "Weather"
 		menu.css.header_color = "rgba(200,0,0,0.75)"
 		
@@ -133,6 +138,7 @@ function Weather:__construct()
 	
   -- main menu
   vRP.EXT.GUI:registerMenuBuilder(self, "admin", function(menu)
+		if not menu.user:hasPermission("admin.weather") then return end
 		menu:addOption("Weather", function(menu)
 			menu.user:openMenu("weather")
 		end)

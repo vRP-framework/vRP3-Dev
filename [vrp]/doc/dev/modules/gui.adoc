@@ -101,12 +101,20 @@ User:request(text, time)
 [source,lua]
 ----
 self.cfg
-self.menu_builders -- map of name => callbacks list
+self.menu_builders -- map of name => {owner=, fn=} entries
 
 -- register a menu builder function
+-- owner_ext: the calling extension's own "self" instance -- pass it so the
+--   builder can be traced back to its owner and removed if that extension
+--   stops (see unregisterMenuBuilders, called from vRP:unregisterExtension).
+--   Pass nil for a permanent builder that won't be cleaned up on stop/reload.
 -- name: menu type name
 -- builder(menu): callback to modify the menu
-GUI:registerMenuBuilder(name, builder)
+GUI:registerMenuBuilder(owner_ext, name, builder)
+
+-- remove every menu builder registered by a given extension name
+-- owner: extension name (string)
+GUI:unregisterMenuBuilders(owner)
 
 -- TUNNEL
 

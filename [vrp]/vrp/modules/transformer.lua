@@ -231,8 +231,11 @@ function Transformer:__construct()
   -- free large cfg table to reduce extension memory; individual transformers keep their own cfg
   self.cfg = nil
 
+  self._running = true
+
   -- task: transformers ticks (every 3 seconds)
   local function transformers_tick()
+    if not self._running then return end
     SetTimeout(3000,transformers_tick)
 
     for id,tr in pairs(self.active_transformers) do
@@ -243,6 +246,7 @@ function Transformer:__construct()
 
   -- task: transformers unit regeneration
   local function transformers_regen()
+    if not self._running then return end
     SetTimeout(60000,transformers_regen)
 
     for id,tr in pairs(self.transformers) do
@@ -312,6 +316,13 @@ end
 
 -- EVENT
 Transformer.event = {}
+
+-- called by vRPShared:unregisterExtension; stops the self-rescheduling
+-- tick/regen SetTimeout chains so they don't keep running against this
+-- now-unregistered instance after /vrpStop or a reload.
+function Transformer.event:unload()
+  self._running = false
+end
 
 function Transformer.event:playerSpawn(user, first_spawn)
   if first_spawn then

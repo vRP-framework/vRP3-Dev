@@ -57,21 +57,26 @@ function Logs:discordLog(webhook, data)
    -- Send to each webhook if a table of webhooks is passed
    if type(webhook) == "table" then
       for _, link in pairs(webhook) do
-         PerformHttpRequest(link, self.handleDiscordResponse, "POST", encoded_data, {["Content-Type"] = "application/json"})
+         PerformHttpRequest(link, function(statusCode, resultData, resultHeaders)
+            self:handleDiscordResponse(statusCode, resultData, resultHeaders)
+         end, "POST", encoded_data, {["Content-Type"] = "application/json"})
       end
       return true
    else
       -- Send to a single webhook
-      PerformHttpRequest(webhook, self.handleDiscordResponse, "POST", encoded_data, {["Content-Type"] = "application/json"})
+      PerformHttpRequest(webhook, function(statusCode, resultData, resultHeaders)
+         self:handleDiscordResponse(statusCode, resultData, resultHeaders)
+      end, "POST", encoded_data, {["Content-Type"] = "application/json"})
       return true
    end
 end
 
 -- Handles Discord responses and logs errors
-function Logs:handleDiscordResponse(err, text, headers)
-   if err and err ~= 204 then
-      Logs:error("Error sending to Discord: "..err)
-      return false, err
+-- statusCode: HTTP status code (Discord webhooks return 204 on success)
+function Logs:handleDiscordResponse(statusCode, text, headers)
+   if statusCode and statusCode ~= 204 then
+      self:error("Error sending to Discord: "..tostring(statusCode)..(text and text ~= "" and (" - "..text) or ""))
+      return false, statusCode
    end
    return true
 end

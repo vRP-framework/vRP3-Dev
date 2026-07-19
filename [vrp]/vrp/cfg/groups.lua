@@ -66,7 +66,11 @@ cfg.groups = {
 	"player.revive",
 	"player.spectate",
     "player.tptome",
-    "player.tpto"
+    "player.tpto",
+    "admin.debug",   -- /ai debug command
+    "admin.weather", -- /setWeather /setTime /freezeTime /blackout /speedupTime /slowTime, weather menu
+    "admin.loadout", -- /loadout
+    "admin.menu"     -- access to the Admin menu itself and its unlisted (movement/emotes/sounds) submenus
   },
   ["god"] = {
     "admin.god" -- reset survivals/health periodically

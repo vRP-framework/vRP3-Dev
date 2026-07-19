@@ -33,6 +33,7 @@ end
 local function menu_admin_movement(self)
   vRP.EXT.GUI:registerMenuBuilder(self, "admin.movement", function(menu)
 		local user = menu.user
+		if not user:hasPermission("admin.menu") then return end
 		menu.title = "Movement"
 		menu.css.header_color = "rgba(200,0,0,0.75)"
 		
@@ -67,6 +68,7 @@ end
 local function menu_admin_emotes(self)
   vRP.EXT.GUI:registerMenuBuilder(self, "admin.emotes", function(menu)
 		local user = menu.user
+		if not user:hasPermission("admin.menu") then return end
 		menu.title = "Emotes"
 		menu.css.header_color = "rgba(200,0,0,0.75)"
 		
@@ -165,8 +167,13 @@ local function menu_admin_users_user(self)		-- individual user options
 			if user:hasPermission("player.giveweapon") then
         menu:addOption("Give Weapon", function(menu)
           local weapon = user:prompt("give user a weapon by name no spaces", "")
-          if tuser then
-            vRP.EXT.Weapon.remote._giveWeapon(user.source, tuser.source, string.upper("weapon_"..weapon))
+          if tuser and weapon and weapon ~= "" then
+            local weaponName = string.upper("weapon_"..weapon)
+            if vRP.EXT.Weapon.weapons[weaponName] then
+              vRP.EXT.Weapon.remote._giveWeapon(user.source, tuser.source, weaponName)
+            else
+              vRP.EXT.Base.remote._notify(user.source, "Unknown or disabled weapon: "..weapon)
+            end
           end
         end)
       end
@@ -200,45 +207,49 @@ local function menu_admin(self)
     local user = menu.user
     menu.title = lang.admin.title()
     menu.css.header_color = "rgba(200,0,0,0.75)"
-    
-    if not user:hasPermission("player.kick") then
-      menu:addOption(lang.admin.call_admin.title(), function(menu)
-        local desc = user:prompt(lang.admin.call_admin.prompt(), "") or ""
-        local answered = false
-        local admins = {}
-        for id, user in pairs(vRP.users) do
-          if user:isReady() and user:hasPermission("admin.tickets") then
-            table.insert(admins, user)
-          end
-        end
 
-        for _, admin in ipairs(admins) do
-          async(function()
-            local ok = admin:request(lang.admin.call_admin.request({user.id, htmlEntities.encode(desc)}), 60)
-            if ok and not answered then
-              vRP.EXT.Base.remote._notify(user.source, lang.admin.call_admin.notify_taken())
-              vRP.EXT.Base.remote._teleport(admin.source, vRP.EXT.Base.remote.getPosition(user.source))
-              answered = true
-            elseif ok then
-              vRP.EXT.Base.remote._notify(admin.source, lang.admin.call_admin.notify_already_taken())
+    if not user:hasPermission("admin.menu") then
+      -- not staff: offer only the way to reach staff, nothing else
+      if user:hasPermission("player.calladmin") then
+        menu:addOption(lang.admin.call_admin.title(), function(menu)
+          local desc = user:prompt(lang.admin.call_admin.prompt(), "") or ""
+          local answered = false
+          local admins = {}
+          for id, user in pairs(vRP.users) do
+            if user:isReady() and user:hasPermission("admin.tickets") then
+              table.insert(admins, user)
             end
-          end)
-        end
-      end)
+          end
+
+          for _, admin in ipairs(admins) do
+            async(function()
+              local ok = admin:request(lang.admin.call_admin.request({user.id, htmlEntities.encode(desc)}), 60)
+              if ok and not answered then
+                vRP.EXT.Base.remote._notify(user.source, lang.admin.call_admin.notify_taken())
+                vRP.EXT.Base.remote._teleport(admin.source, vRP.EXT.Base.remote.getPosition(user.source))
+                answered = true
+              elseif ok then
+                vRP.EXT.Base.remote._notify(admin.source, lang.admin.call_admin.notify_already_taken())
+              end
+            end)
+          end
+        end)
+      end
+      return
     end
-    
+
     menu:addOption(lang.admin.users.title(), function(menu)
       menu.user:openMenu("admin.users")
     end)
-    
+
     menu:addOption("Movement", function(menu)
       menu.user:openMenu("admin.movement")
     end)
-    
+
     menu:addOption("Emotes", function(menu)
       menu.user:openMenu("admin.emotes")
     end)
-    
+
     menu:addOption(lang.admin.custom_sound.title(), function(menu)
       local content = user:prompt(lang.admin.custom_sound.prompt(), "")
       local args = {}

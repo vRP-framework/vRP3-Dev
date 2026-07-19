@@ -167,10 +167,12 @@ function vRPShared:registerExtension(extension, source)
 
       self:triggerEvent("extensionLoad", ext)
     else
-      self:error("An extension named "..class.name(extension).." is already registered.")
+      local existing_source = self.ext_sources[class.name(extension)]
+      local from = existing_source and (" (currently loaded from "..existing_source.rsc.."/"..existing_source.path..")") or ""
+      self:error("An extension named "..class.name(extension).." is already registered."..from.." Two resources/files are using the same extension name -- rename one of them.")
     end
   else
-    self:error("Not an Extension class.")
+    self:error("Not an Extension class: got "..tostring(extension)..". Expected a class created with class(\"Name\", vRP.Extension), not an instance of one -- check you didn't accidentally call it with () before passing it to registerExtension.")
   end
 end
 
