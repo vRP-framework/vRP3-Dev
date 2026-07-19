@@ -141,7 +141,7 @@ function Dispatch:registerDebugCommands()
     end
 
     self:log("Ending incident with input: " .. tostring(incidentId))
-    self:removeIncident(incidentId)
+    self:clearIncident(incidentId)
   end, false)
 
   -- DEBUG: remove later
