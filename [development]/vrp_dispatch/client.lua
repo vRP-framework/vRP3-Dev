@@ -1,16 +1,4 @@
-Tunnel = module("vrp", "lib/Tunnel")
-Proxy = module("vrp", "lib/Proxy")
-
-local cvRP = module("vrp", "client/vRP")
-vRP = cvRP()
-
-local pvRP = {}
-
-function pvRP.loadScript(resource, path)
-  module(resource, path)
-end
-
-Proxy.addInterface("vRP", pvRP)
+vRP = module("vrp", "client/bootstrap")
 
 local Dispatch = class("Dispatch", vRP.Extension)
 

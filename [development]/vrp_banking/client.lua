@@ -1,15 +1,6 @@
 --##########	VRP Main	##########--
--- init vRP server context
-Tunnel = module("vrp", "lib/Tunnel")
-Proxy = module("vrp", "lib/Proxy")
-
-local cvRP = module("vrp", "client/vRP")
-vRP = cvRP()
-
-local pvRP = {}
--- load script in vRP context
-pvRP.loadScript = module
-Proxy.addInterface("vRP", pvRP)
+-- init vRP client context
+vRP = module("vrp", "client/bootstrap")
 
 local cfg = module("vrp_banking", "cfg/cfg")
 local Banking = class("Banking", vRP.Extension)
