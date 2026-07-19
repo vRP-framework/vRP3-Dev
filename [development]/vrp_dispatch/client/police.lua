@@ -1,17 +1,3 @@
-Tunnel = module("vrp", "lib/Tunnel")
-Proxy = module("vrp", "lib/Proxy")
-
-local cvRP = module("vrp", "client/vRP")
-vRP = cvRP() -- instantiate vRP
-
-local pvRP = {}
--- load script in vRP context
-function pvRP.loadScript(resource, path)
-  module(resource, path)
-end
-
-Proxy.addInterface("vRP", pvRP)
-
 local Police = class("Police", vRP.Extension)
 local cfg = module("vrp_dispatch", "cfg/police")
 
