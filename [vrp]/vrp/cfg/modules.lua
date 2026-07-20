@@ -19,7 +19,8 @@ local modules = {
 	
 	-- Sub Modules
 	aptitude = true,
-	weapon = true, 
+	inventory = true, -- depends on aptitude (weight cap) and transformer (items processor)
+	weapon = true,
 	weather = true,
 	misc = true,
   command = true,

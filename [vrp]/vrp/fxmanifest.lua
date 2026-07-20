@@ -25,6 +25,7 @@ server_script {
 	
 	--Sub Modules
 	"modules/aptitude.lua",
+	"modules/inventory.lua", -- must load after transformer.lua (registers a processor) and group.lua (registers a permission function)
 	"modules/weapon.lua",
 	"modules/weather.lua",
 	"modules/misc.lua",	
