@@ -9,6 +9,44 @@ local PlayerState = class("PlayerState", vRP.Extension)
 
 -- PRIVATE METHODS
 
+-- cdata.state is client-writable via PlayerState.tunnel:update, and its
+-- weapons/components are replayed on every respawn via Weapon's unfiltered
+-- giveWeapons/giveComponents -- filter against Weapon's own whitelist here
+-- so a crafted state can't self-grant a disabled/unknown weapon.
+local function filterWeapons(weapons)
+  local wext = vRP.EXT.Weapon
+  if not (wext and wext.weapons) then return {} end
+
+  local filtered = {}
+  for h, w in pairs(weapons) do
+    if wext.weapons[h] then filtered[h] = w end
+  end
+  return filtered
+end
+
+local function filterComponents(components)
+  local wext = vRP.EXT.Weapon
+  if not (wext and wext.weapon_entries) then return {} end
+
+  local filtered = {}
+  for h, comps in pairs(components) do
+    local entry = wext.weapon_entries[h]
+    if entry and type(comps) == "table" then
+      local allowed = {}
+      for _, c in pairs(entry.Components or {}) do
+        if c.Enabled then allowed[c.HashKey] = true end
+      end
+
+      local list = {}
+      for _, c in ipairs(comps) do
+        if allowed[c] then list[#list+1] = c end
+      end
+      if #list > 0 then filtered[h] = list end
+    end
+  end
+  return filtered
+end
+
 -- menu: admin
 local function menu_admin(self)	
 	vRP.EXT.GUI:registerMenuBuilder(self, "admin", function(menu)
@@ -87,13 +125,13 @@ function PlayerState.event:playerSpawn(user, first_spawn)
   
   if user.cdata.state.weapons then -- Weapons
     if vRP.EXT and vRP.EXT.Weapon and vRP.EXT.Weapon.remote and vRP.EXT.Weapon.remote._giveWeapons then
-      vRP.EXT.Weapon.remote._giveWeapons(user.source,user.source,user.cdata.state.weapons or {},true)
+      vRP.EXT.Weapon.remote._giveWeapons(user.source,user.source,filterWeapons(user.cdata.state.weapons),true)
     end
   end
-  
+
   if user.cdata.state.components then -- Components
     if vRP.EXT and vRP.EXT.Weapon and vRP.EXT.Weapon.remote and vRP.EXT.Weapon.remote._giveComponents then
-      vRP.EXT.Weapon.remote._giveComponents(user.source,user.source,user.cdata.state.components or {},true)
+      vRP.EXT.Weapon.remote._giveComponents(user.source,user.source,filterComponents(user.cdata.state.components),true)
     end
   end
 
