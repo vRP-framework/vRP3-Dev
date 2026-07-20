@@ -24,7 +24,8 @@ local modules = {
 	misc = true,
   command = true,
 	logs = true, 				-- discord logs
-	vehicle = true				--leak
+	vehicle = true,				--leak
+	business = true
 }
 
 return modules

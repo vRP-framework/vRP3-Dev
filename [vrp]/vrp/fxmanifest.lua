@@ -29,8 +29,9 @@ server_script {
 	"modules/weather.lua",
 	"modules/misc.lua",	
 	"modules/commands.lua", 
-  "modules/log.lua",  
-	"modules/vehicle.lua"
+  "modules/log.lua",
+	"modules/vehicle.lua",
+	"modules/business.lua"
 }
 
 client_scripts {

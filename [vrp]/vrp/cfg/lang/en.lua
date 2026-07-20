@@ -336,6 +336,28 @@ local lang = {
       prompt_capital = "Initial capital (min {1})",
       created = "~g~Business created."
 
+    },
+
+    -- modules/business.lua: purchasable business locations (24/7-style
+    -- stores, etc). Unrelated to the fields above, which belong to the
+    -- unused legacy money-laundering business concept.
+    buy = {
+      title = "Purchase",
+      info = "Purchase this business for ${1}.",
+      confirm = "Purchase {1} for ${2}?",
+      already_owned = "~r~This business has already been purchased.",
+      purchased = "~g~You purchased {1}."
+    },
+    manage = {
+      title = "Manage",
+      info = "<em>{1}</em><br />Owned by you.<br />Purchased: {2}"
+    },
+    owned_by = "Owned by {1}.",
+    admin = {
+      revoke_title = "Revoke Ownership",
+      revoke_description = "Admin: revoke this business's ownership.",
+      revoke_confirm = "Revoke ownership of {1}?",
+      revoked = "~g~Ownership revoked."
     }
   },
   identity = {

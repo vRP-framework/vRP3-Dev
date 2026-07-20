@@ -70,7 +70,8 @@ cfg.groups = {
     "admin.debug",   -- /ai debug command
     "admin.weather", -- /setWeather /setTime /freezeTime /blackout /speedupTime /slowTime, weather menu
     "admin.loadout", -- /loadout
-    "admin.menu"     -- access to the Admin menu itself and its unlisted (movement/emotes/sounds) submenus
+    "admin.menu",    -- access to the Admin menu itself and its unlisted (movement/emotes/sounds) submenus
+    "admin.business" -- revoke business ownership, see modules/business.lua
   },
   ["god"] = {
     "admin.god" -- reset survivals/health periodically
