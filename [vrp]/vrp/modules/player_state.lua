@@ -159,11 +159,30 @@ end
 -- TUNNEL
 PlayerState.tunnel = {}
 
+-- known legitimate senders: client/player_state.lua's periodic update
+-- (position, heading, customization, health, weapons, components) and
+-- client/vehicle.lua (in_owned_vehicle). This is a server-side tunnel a
+-- client can trigger directly with any keys, so anything not on this list
+-- is dropped instead of being persisted into cdata.state -- otherwise a
+-- crafted key would silently become "trusted" the moment anything reads
+-- it back in the future.
+local ALLOWED_STATE_FIELDS = {
+  position = true,
+  heading = true,
+  health = true,
+  customization = true,
+  weapons = true,
+  components = true,
+  in_owned_vehicle = true,
+}
+
 function PlayerState.tunnel:update(state)
   local user = vRP.users_by_source[source]
   if user and user:isReady() then
     for k, v in pairs(state) do
-      user.cdata.state[k] = v
+      if ALLOWED_STATE_FIELDS[k] then
+        user.cdata.state[k] = v
+      end
     end
 
     vRP:triggerEvent("playerStateUpdate", user, state)
