@@ -12,6 +12,8 @@ local lang = {
     wearing_uniform = "~r~Be careful, you are wearing a uniform.",
     not_allowed = "~r~Not allowed.",
     must_wait = "~r~Must wait {1} seconds before being able to perform this action.",
+    yes = "Yes",
+    no = "No",
     menu = {
       title = "Menu"
     }
@@ -350,9 +352,67 @@ local lang = {
     },
     manage = {
       title = "Manage",
-      info = "<em>{1}</em><br />Owned by you.<br />Purchased: {2}"
+      info = "<em>{1}</em><br />Owned by you.<br />Purchased: {2}<br /><em>Balance: </em>${3}<br /><em>Next charge due: </em>{4}<br /><em>Last fee charged: </em>${5}<br /><em>Last revenue earned: </em>${6}",
+      deposit = {
+        title = "Deposit Capital",
+        description = "Add money from your wallet to this business's balance.",
+        prompt = "Amount to deposit:",
+        added = "~g~${1} ~s~added to the business balance."
+      },
+      staff = {
+        title = "Staff Roster",
+        entry_info = "<em>Role: </em>{1}<br /><em>Wage: </em>${2}<br /><em>Can manage: </em>{3}",
+        npc_label = "{1} (NPC)",
+        fire_confirm = "Fire this staff member?",
+        fired = "~g~Staff member fired.",
+        fired_notify = "~r~You were let go from {1}.",
+        fire = {
+          title = "Remove Position",
+          description = "Remove this staff position."
+        },
+        assign_player = {
+          title = "Assign Player",
+          description = "Offer this NPC position to a nearby player."
+        },
+        adjust_wage = {
+          title = "Adjust Wage",
+          description = "Change the wage for this position.",
+          prompt = "New wage per payroll cycle (currently ${1}):",
+          updated = "~g~Wage updated to ${1}.",
+          notify = "~g~Your wage at {1} was updated to ${2}."
+        },
+        bonus = {
+          title = "Give Bonus",
+          description = "Pay a one-time bonus from the business balance to this staff member's wallet.",
+          not_online = "~r~That staff member is not online.",
+          prompt = "Bonus amount:",
+          given = "~g~${1} bonus paid.",
+          received = "~g~You received a ${1} bonus from {2}."
+        },
+        hire = {
+          title = "Hire Staff",
+          description = "Hire a nearby player as staff for this business (or an NPC if nobody's around).",
+          already_staff = "~r~That player is already on staff here.",
+          pick_title = "Select Player",
+          pick_info = "{1}m away",
+          pick_npc = "Hire an NPC Instead",
+          pick_npc_description = "Fill this position with an NPC instead of a player.",
+          prompt_role = "Role/title for this hire (e.g. Barber, Cashier):",
+          prompt_wage = "Wage per payroll cycle for this hire:",
+          confirm_manage = "Grant this hire ({1}) management access (balance/deposit view) for this business?",
+          confirm_npc = "~y~No player nearby. Hire an NPC for the {1} position instead?",
+          offer = "You've been offered the {1} position at {3} for ${2}/payroll cycle. Accept?",
+          declined = "~r~The offer was declined.",
+          hired = "~g~Hired as {1}.",
+          hired_notify = "~g~You were hired as {1} at {2}."
+        }
+      }
     },
     owned_by = "Owned by {1}.",
+    notify = {
+      negative_balance = "~r~{1}'s balance is negative (${2}). Pay it off before the grace period ends or it will be repossessed.",
+      repossessed = "~r~{1} has been repossessed due to unpaid fees."
+    },
     admin = {
       revoke_title = "Revoke Ownership",
       revoke_description = "Admin: revoke this business's ownership.",

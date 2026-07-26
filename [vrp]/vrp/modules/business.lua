@@ -21,6 +21,51 @@ local function clear_owner(self, id)
   vRP:setSData("vRP:business:"..id, "")
 end
 
+-- effective daily/utility fee for a business: its own override field if
+-- set, else rate * effective price (same override precedence as the
+-- purchase price itself)
+local function get_daily_fee(self, bcfg)
+  return bcfg.daily_fee or ((bcfg.price or self.category_prices[bcfg.kind] or 0) * self.daily_fee_rate)
+end
+
+local function get_utility_fee(self, bcfg)
+  return bcfg.utility_fee or ((bcfg.price or self.category_prices[bcfg.kind] or 0) * self.utility_fee_rate)
+end
+
+-- simulated daily revenue for passive-income kinds (no inventory/product
+-- to sell, e.g. barber/tattoo) -- 0 for any other kind
+local function get_daily_revenue(self, bcfg)
+  if bcfg.daily_revenue then return bcfg.daily_revenue end
+  if not self.passive_kinds[bcfg.kind] then return 0 end
+  return (bcfg.price or self.category_prices[bcfg.kind] or 0) * self.daily_revenue_rate
+end
+
+-- fill in fee-tracking fields missing on records saved before this system
+-- existed (or freshly hydrated), without forcing an immediate save
+local function ensure_fee_fields(owner, now)
+  owner.balance = owner.balance or 0
+  owner.last_daily_charge = owner.last_daily_charge or owner.purchased_at or now
+  owner.last_utility_charge = owner.last_utility_charge or owner.purchased_at or now
+  owner.last_daily_fee = owner.last_daily_fee or 0
+  owner.last_daily_revenue = owner.last_daily_revenue or 0
+end
+
+-- staff roster helpers. owner.staff is an array of
+-- {cid, role (free-text flavor), wage, can_manage, hired_at}. Role is
+-- purely RP flavor text, not a permission -- can_manage is the actual
+-- delegated-access grant, set explicitly by the owner at hire time.
+local function find_staff(owner, cid)
+  for i, s in ipairs(owner.staff or {}) do
+    if s.cid == cid then return s, i end
+  end
+  return nil
+end
+
+local function staff_can_manage(owner, cid)
+  local s = find_staff(owner, cid)
+  return s ~= nil and s.can_manage == true
+end
+
 -- menu: business (single adaptive builder -- branches on live ownership
 -- state instead of separate buy/manage menu types, since ownership can
 -- change while the same player is still standing in the trigger area)
@@ -46,10 +91,269 @@ local function menu_business(self)
       return vRP.EXT.Base.remote._notify(user.source, lang.money.not_enough())
     end
 
-    self.owners[id] = { owner_cid = user.cid, purchased_at = os.time() }
+    local now = os.time()
+    self.owners[id] = {
+      owner_cid = user.cid, purchased_at = now,
+      balance = 0, last_daily_charge = now, last_utility_charge = now,
+    }
     save_owner(self, id)
 
     vRP.EXT.Base.remote._notify(user.source, lang.business.buy.purchased({bcfg.title}))
+    user:actualizeMenu()
+  end
+
+  local function m_deposit(menu, id)
+    local user = menu.user
+    local owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+
+    local input = user:prompt(lang.business.manage.deposit.prompt(), "")
+    local amount = tonumber(input)
+    if not amount or amount <= 0 or amount ~= amount then return end -- amount~=amount rejects NaN
+    amount = math.floor(amount)
+
+    if not user:tryPayment(amount) then
+      return vRP.EXT.Base.remote._notify(user.source, lang.money.not_enough())
+    end
+
+    ensure_fee_fields(owner, os.time())
+    owner.balance = owner.balance + amount
+    save_owner(self, id)
+
+    vRP.EXT.Base.remote._notify(user.source, lang.business.manage.deposit.added({amount}))
+    user:actualizeMenu()
+  end
+
+  -- shared by do_hire (new position) and do_assign (filling an existing
+  -- NPC slot) -- sends the offer to nuser and returns true/false
+  local function offer_position(nuser, role, wage, title)
+    return nuser:request(lang.business.manage.staff.hire.offer({role, wage, title}), 15)
+  end
+
+  -- nearby players excluding the owner themself, keyed by source -> distance
+  local function nearby_candidates(user)
+    local candidates = vRP.EXT.Base.remote.getNearestPlayers(user.source, 10) or {}
+    candidates[user.source] = nil
+    return candidates
+  end
+
+  -- create a new staff position. nuser nil = NPC hire.
+  local function do_hire(user, id, nuser)
+    local owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+
+    local has_target = nuser ~= nil
+    if has_target and find_staff(owner, nuser.cid) then
+      return vRP.EXT.Base.remote._notify(user.source, lang.business.manage.staff.hire.already_staff())
+    end
+
+    local role = user:prompt(lang.business.manage.staff.hire.prompt_role(), "")
+    if not role or role == "" then return end
+
+    local wage_input = user:prompt(lang.business.manage.staff.hire.prompt_wage(), "0")
+    local wage = tonumber(wage_input)
+    if not wage or wage < 0 or wage ~= wage then return end
+    wage = math.floor(wage)
+
+    local grant_manage = user:request(lang.business.manage.staff.hire.confirm_manage({role}), 15)
+
+    if has_target then
+      if not offer_position(nuser, role, wage, self.businesses[id].title) then
+        return vRP.EXT.Base.remote._notify(user.source, lang.business.manage.staff.hire.declined())
+      end
+    else
+      if not user:request(lang.business.manage.staff.hire.confirm_npc({role}), 15) then return end
+    end
+
+    -- re-check post-prompts: ownership/roster may have changed during the wait
+    owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+    if has_target and find_staff(owner, nuser.cid) then return end
+
+    owner.staff = owner.staff or {}
+    table.insert(owner.staff, {
+      cid = has_target and nuser.cid or nil, is_npc = not has_target,
+      role = role, wage = wage, can_manage = grant_manage and true or false, hired_at = os.time(),
+    })
+    save_owner(self, id)
+
+    vRP.EXT.Base.remote._notify(user.source, lang.business.manage.staff.hire.hired({role}))
+    if has_target then
+      vRP.EXT.Base.remote._notify(nuser.source, lang.business.manage.staff.hire.hired_notify({role, self.businesses[id].title}))
+    end
+    user:actualizeMenu()
+  end
+
+  -- swap a player into an existing NPC-filled position
+  local function do_assign(user, id, index, nuser)
+    local owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+    local s = owner.staff and owner.staff[index]
+    if not s or not s.is_npc then return end
+
+    if find_staff(owner, nuser.cid) then
+      return vRP.EXT.Base.remote._notify(user.source, lang.business.manage.staff.hire.already_staff())
+    end
+
+    if not offer_position(nuser, s.role, s.wage, self.businesses[id].title) then
+      return vRP.EXT.Base.remote._notify(user.source, lang.business.manage.staff.hire.declined())
+    end
+
+    -- re-check post-offer: slot/ownership/roster may have changed during the wait
+    owner = self.owners[id]
+    s = owner and owner.staff and owner.staff[index]
+    if not owner or owner.owner_cid ~= user.cid or not s or not s.is_npc then return end
+    if find_staff(owner, nuser.cid) then return end
+
+    s.is_npc = false
+    s.cid = nuser.cid
+    save_owner(self, id)
+
+    vRP.EXT.Base.remote._notify(user.source, lang.business.manage.staff.hire.hired({s.role}))
+    vRP.EXT.Base.remote._notify(nuser.source, lang.business.manage.staff.hire.hired_notify({s.role, self.businesses[id].title}))
+    user:actualizeMenu()
+  end
+
+  -- entry point: owner clicks "Hire Staff" -- opens a picker if any nearby
+  -- players exist, otherwise goes straight to the NPC-hire path
+  local function m_hire(menu, id)
+    local user = menu.user
+    local owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+
+    local candidates = nearby_candidates(user)
+    if next(candidates) == nil then
+      return do_hire(user, id, nil)
+    end
+
+    user:openMenu("business.staff.pick", {id = id, candidates = candidates})
+  end
+
+  -- entry point: owner clicks "Assign Player" on an NPC slot -- always a
+  -- picker (no NPC option here, there must be a real player to assign)
+  local function m_assign_player(menu, data)
+    local user = menu.user
+    local owner = self.owners[data.id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+    local s = owner.staff and owner.staff[data.index]
+    if not s or not s.is_npc then return end
+
+    local candidates = nearby_candidates(user)
+    if next(candidates) == nil then
+      return vRP.EXT.Base.remote._notify(user.source, lang.common.no_player_near())
+    end
+
+    user:openMenu("business.staff.pick", {id = data.id, index = data.index, assign = true, candidates = candidates})
+  end
+
+  -- picker selection: routes to do_hire or do_assign depending on how the
+  -- picker was opened. Re-fetches the user by cid rather than trusting the
+  -- candidate list's source, in case they disconnected since the list was built
+  local function m_pick_player(menu, data)
+    local user = menu.user
+    local nuser = vRP.users[data.cid]
+    if not nuser or not vRP.users_by_source[nuser.source] then
+      return vRP.EXT.Base.remote._notify(user.source, lang.common.no_player_near())
+    end
+
+    if data.assign then
+      do_assign(user, data.id, data.index, nuser)
+    else
+      do_hire(user, data.id, nuser)
+    end
+  end
+
+  local function m_pick_npc(menu, id)
+    do_hire(menu.user, id, nil)
+  end
+
+  local function m_adjust_wage(menu, data)
+    local user = menu.user
+    local owner = self.owners[data.id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+    local s = owner.staff and owner.staff[data.index]
+    if not s then return end
+
+    local input = user:prompt(lang.business.manage.staff.adjust_wage.prompt({s.wage}), tostring(s.wage))
+    local new_wage = tonumber(input)
+    if not new_wage or new_wage < 0 or new_wage ~= new_wage then return end
+    new_wage = math.floor(new_wage)
+
+    -- re-check post-prompt: roster may have changed during the wait
+    owner = self.owners[data.id]
+    s = owner and owner.staff and owner.staff[data.index]
+    if not owner or owner.owner_cid ~= user.cid or not s then return end
+
+    s.wage = new_wage
+    save_owner(self, data.id)
+
+    vRP.EXT.Base.remote._notify(user.source, lang.business.manage.staff.adjust_wage.updated({new_wage}))
+    if not s.is_npc then
+      local target = vRP.users[s.cid]
+      if target then
+        vRP.EXT.Base.remote._notify(target.source, lang.business.manage.staff.adjust_wage.notify({self.businesses[data.id].title, new_wage}))
+      end
+    end
+    user:actualizeMenu()
+  end
+
+  -- one-time bonus, drawn from the business balance into the staff
+  -- member's wallet -- player positions only (NPCs have no wallet), and
+  -- only while they're online (Money methods operate on a live user object)
+  local function m_bonus(menu, data)
+    local user = menu.user
+    local owner = self.owners[data.id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+    local s = owner.staff and owner.staff[data.index]
+    if not s or s.is_npc then return end
+
+    local target = vRP.users[s.cid]
+    if not target then
+      return vRP.EXT.Base.remote._notify(user.source, lang.business.manage.staff.bonus.not_online())
+    end
+
+    local input = user:prompt(lang.business.manage.staff.bonus.prompt(), "")
+    local amount = tonumber(input)
+    if not amount or amount <= 0 or amount ~= amount then return end
+    amount = math.floor(amount)
+
+    -- re-check post-prompt: roster/online-state may have changed during the wait
+    owner = self.owners[data.id]
+    s = owner and owner.staff and owner.staff[data.index]
+    target = s and not s.is_npc and vRP.users[s.cid]
+    if not owner or owner.owner_cid ~= user.cid or not s or not target then return end
+
+    ensure_fee_fields(owner, os.time())
+    owner.balance = owner.balance - amount
+    save_owner(self, data.id)
+    target:giveWallet(amount)
+
+    vRP.EXT.Base.remote._notify(user.source, lang.business.manage.staff.bonus.given({amount}))
+    vRP.EXT.Base.remote._notify(target.source, lang.business.manage.staff.bonus.received({amount, self.businesses[data.id].title}))
+    user:actualizeMenu()
+  end
+
+  local function m_fire(menu, data)
+    local user = menu.user
+    local owner = self.owners[data.id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+    if not (owner.staff and owner.staff[data.index]) then return end
+
+    if not user:request(lang.business.manage.staff.fire_confirm(), 15) then return end
+
+    -- re-check post-confirm: roster may have changed during the wait
+    owner = self.owners[data.id]
+    local s = owner and owner.staff and owner.staff[data.index]
+    if not owner or owner.owner_cid ~= user.cid or not s then return end
+
+    local fired_user = vRP.users[s.cid]
+    table.remove(owner.staff, data.index)
+    save_owner(self, data.id)
+
+    if fired_user then
+      vRP.EXT.Base.remote._notify(fired_user.source, lang.business.manage.staff.fired_notify({self.businesses[data.id].title}))
+    end
+    vRP.EXT.Base.remote._notify(user.source, lang.business.manage.staff.fired())
     user:actualizeMenu()
   end
 
@@ -78,10 +382,28 @@ local function menu_business(self)
     if not owner then
       local price = bcfg.price or self.category_prices[bcfg.kind]
       menu:addOption(lang.business.buy.title(), m_purchase, lang.business.buy.info({price}), id)
-    elseif owner.owner_cid == user.cid then
-      menu:addOption(lang.business.manage.title(), nil, lang.business.manage.info({bcfg.title, owner.purchased_at}))
+    elseif owner.owner_cid == user.cid or staff_can_manage(owner, user.cid) then
+      ensure_fee_fields(owner, os.time())
+
+      local next_daily = owner.last_daily_charge + self.day_length
+      local next_utility = owner.last_utility_charge + (self.utility_period_days * self.day_length)
+      local next_charge_at = math.min(next_daily, next_utility)
+
+      menu:addOption(lang.business.manage.title(), nil, lang.business.manage.info(
+        {bcfg.title, owner.purchased_at, math.floor(owner.balance), os.date("%Y-%m-%d %H:%M", next_charge_at),
+         math.floor(owner.last_daily_fee), math.floor(owner.last_daily_revenue)}))
+      menu:addOption(lang.business.manage.deposit.title(), m_deposit, lang.business.manage.deposit.description(), id)
       -- future: pricing/stock/income options for this business's `kind`
       -- get appended here without restructuring this builder
+
+      -- hiring/firing stays owner-exclusive -- delegated managers get the
+      -- balance/deposit view above, not roster control
+      if owner.owner_cid == user.cid then
+        menu:addOption(lang.business.manage.staff.hire.title(), m_hire, lang.business.manage.staff.hire.description(), id)
+        menu:addOption(lang.business.manage.staff.title(), function(menu)
+          menu.user:openMenu("business.staff", {id = id})
+        end)
+      end
     else
       local identity = vRP.EXT.Identity and vRP.EXT.Identity:getIdentity(owner.owner_cid)
       local name = (identity and (identity.firstname or "").." "..(identity.name or "")) or "someone"
@@ -90,6 +412,90 @@ local function menu_business(self)
 
     if owner and user:hasPermission("admin.business") then
       menu:addOption(lang.business.admin.revoke_title(), m_admin_revoke, lang.business.admin.revoke_description(), id)
+    end
+  end)
+
+  vRP.EXT.GUI:registerMenuBuilder(self, "business.staff", function(menu)
+    local id = menu.data.id
+    local owner = self.owners[id]
+    local user = menu.user
+
+    menu.title = lang.business.manage.staff.title()
+    menu.css.header_color = "rgba(0,180,0,0.75)"
+
+    if not owner or owner.owner_cid ~= user.cid then return end
+
+    for i, s in ipairs(owner.staff or {}) do
+      local name
+      if s.is_npc then
+        name = lang.business.manage.staff.npc_label({s.role})
+      else
+        local identity = vRP.EXT.Identity and vRP.EXT.Identity:getIdentity(s.cid)
+        name = (identity and (identity.firstname or "").." "..(identity.name or "")) or ("cid "..s.cid)
+      end
+
+      local info = lang.business.manage.staff.entry_info(
+        {s.role, s.wage, s.can_manage and lang.common.yes() or lang.common.no()})
+
+      menu:addOption(name, function(menu)
+        menu.user:openMenu("business.staff.entry", {id = id, index = i})
+      end, info)
+    end
+  end)
+
+  vRP.EXT.GUI:registerMenuBuilder(self, "business.staff.entry", function(menu)
+    local id = menu.data.id
+    local index = menu.data.index
+    local owner = self.owners[id]
+    local user = menu.user
+
+    if not owner or owner.owner_cid ~= user.cid then return end
+    local s = owner.staff and owner.staff[index]
+    if not s then return end
+
+    menu.title = s.role
+    menu.css.header_color = "rgba(0,180,0,0.75)"
+
+    if s.is_npc then
+      menu:addOption(lang.business.manage.staff.assign_player.title(), m_assign_player,
+        lang.business.manage.staff.assign_player.description(), {id = id, index = index})
+    end
+
+    menu:addOption(lang.business.manage.staff.adjust_wage.title(), m_adjust_wage,
+      lang.business.manage.staff.adjust_wage.description(), {id = id, index = index})
+
+    if not s.is_npc then
+      menu:addOption(lang.business.manage.staff.bonus.title(), m_bonus,
+        lang.business.manage.staff.bonus.description(), {id = id, index = index})
+    end
+
+    menu:addOption(lang.business.manage.staff.fire.title(), m_fire,
+      lang.business.manage.staff.fire.description(), {id = id, index = index})
+  end)
+
+  vRP.EXT.GUI:registerMenuBuilder(self, "business.staff.pick", function(menu)
+    local id = menu.data.id
+    local index = menu.data.index
+    local assign = menu.data.assign
+    local candidates = menu.data.candidates or {}
+    local user = menu.user
+
+    menu.title = lang.business.manage.staff.hire.pick_title()
+    menu.css.header_color = "rgba(0,180,0,0.75)"
+
+    for source, distance in pairs(candidates) do
+      local nuser = vRP.users_by_source[source]
+      if nuser and nuser.cid ~= user.cid then
+        local identity = vRP.EXT.Identity and vRP.EXT.Identity:getIdentity(nuser.cid)
+        local name = (identity and (identity.firstname or "").." "..(identity.name or "")) or ("cid "..nuser.cid)
+        menu:addOption(name, m_pick_player, lang.business.manage.staff.hire.pick_info({math.floor(distance)}),
+          {id = id, index = index, assign = assign, cid = nuser.cid})
+      end
+    end
+
+    if not assign then
+      menu:addOption(lang.business.manage.staff.hire.pick_npc(), m_pick_npc,
+        lang.business.manage.staff.hire.pick_npc_description(), id)
     end
   end)
 end
@@ -104,6 +510,14 @@ function Business:__construct()
   self.category_prices = self.cfg.category_prices or {}
   self.area_radius = self.cfg.area_radius or 1.5
   self.area_height = self.cfg.area_height or 2.0
+  self.daily_fee_rate = self.cfg.daily_fee_rate or 0.003
+  self.utility_fee_rate = self.cfg.utility_fee_rate or 0.005
+  self.utility_period_days = self.cfg.utility_period_days or 7
+  self.grace_period_days = self.cfg.grace_period_days or 3
+  self.fee_sweep_interval = self.cfg.fee_sweep_interval or 3600
+  self.daily_revenue_rate = self.cfg.daily_revenue_rate or 0.004
+  self.passive_kinds = self.cfg.passive_kinds or {}
+  self.day_length = self.cfg.day_length or 86400
   self.cfg = nil
 
   self.owners = {} -- id -> {owner_cid=, purchased_at=}
@@ -121,6 +535,18 @@ function Business:__construct()
   -- this may run before the DB is ready, so failures here are non-fatal --
   -- playerSpawn below retries.
   pcall(function() self:hydrateOwners() end)
+
+  -- periodic fee sweep: same guarded-thread shape as group.lua's count
+  -- display, stopped via event:unload so /vrpReload or /vrpStop doesn't
+  -- leave a duplicate loop running against a dead instance.
+  self._sweep_running = true
+  Citizen.CreateThread(function()
+    while self._sweep_running do
+      Citizen.Wait(self.fee_sweep_interval * 1000)
+      if not self._sweep_running then break end
+      pcall(function() self:runFeeSweep() end)
+    end
+  end)
 end
 
 -- hydrate self.owners from persistent server data; idempotent, safe to
@@ -141,9 +567,84 @@ function Business:hydrateOwners()
   self._owners_hydrated = true
 end
 
+-- walk all owned businesses, lazily billing elapsed daily/utility fee
+-- cycles (by real elapsed time, not a fixed wall-clock tick) against each
+-- business's own balance, notifying the owner if online and negative, and
+-- repossessing (clear_owner -- which also wipes any accrued debt) once the
+-- grace period has elapsed. Called periodically off self._sweep_running.
+function Business:runFeeSweep()
+  local now = os.time()
+  local day = self.day_length
+  local utility_period = self.utility_period_days * day
+  local grace_period = self.grace_period_days * day
+
+  for id, owner in pairs(self.owners) do
+    local bcfg = self.businesses[id]
+    if bcfg then
+      ensure_fee_fields(owner, now)
+      local changed = false
+
+      local daily_cycles = math.floor((now - owner.last_daily_charge) / day)
+      if daily_cycles > 0 then
+        local revenue = daily_cycles * get_daily_revenue(self, bcfg)
+        local fee = daily_cycles * get_daily_fee(self, bcfg)
+        owner.balance = owner.balance + revenue - fee
+        owner.last_daily_revenue = revenue
+        owner.last_daily_fee = fee
+        owner.last_daily_charge = owner.last_daily_charge + daily_cycles * day
+        changed = true
+      end
+
+      local utility_cycles = math.floor((now - owner.last_utility_charge) / utility_period)
+      if utility_cycles > 0 then
+        owner.balance = owner.balance - utility_cycles * get_utility_fee(self, bcfg)
+        owner.last_utility_charge = owner.last_utility_charge + utility_cycles * utility_period
+        changed = true
+      end
+
+      local user = vRP.users[owner.owner_cid]
+      local repossessed = false
+
+      if owner.balance < 0 then
+        if not owner.negative_since then
+          owner.negative_since = now
+          changed = true
+        end
+
+        if now - owner.negative_since >= grace_period then
+          clear_owner(self, id)
+          repossessed = true
+          if user then
+            vRP.EXT.Base.remote._notify(user.source, lang.business.notify.repossessed({bcfg.title}))
+          end
+        elseif user then
+          vRP.EXT.Base.remote._notify(user.source, lang.business.notify.negative_balance({bcfg.title, math.floor(owner.balance)}))
+        end
+      elseif owner.negative_since then
+        owner.negative_since = nil
+        changed = true
+      end
+
+      if changed and not repossessed then save_owner(self, id) end
+
+      -- push a live refresh to the owner if they're online -- otherwise the
+      -- balance/next-charge/last-billing info in an already-open manage menu
+      -- stays stale until they close and reopen it
+      if user and (changed or repossessed) then user:actualizeMenu() end
+    end
+  end
+end
+
 -- EVENT
 
 Business.event = {}
+
+-- called by vRPShared:unregisterExtension; stops the fee-sweep thread so
+-- it doesn't keep running against this now-unregistered instance after a
+-- /vrpReload or /vrpStop (same pattern as group.lua's count display).
+function Business.event:unload()
+  self._sweep_running = false
+end
 
 function Business.event:playerSpawn(user, first_spawn)
   if not self._owners_hydrated then pcall(function() self:hydrateOwners() end) end

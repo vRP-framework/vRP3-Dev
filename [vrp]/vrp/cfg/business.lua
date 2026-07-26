@@ -13,7 +13,30 @@ cfg.category_prices = {
 	gear = 50000,
 	melee_weapons = 25000,
 	handguns = 70000,
+	barber = 20000,
+	tattoo = 18000,
 }
+
+-- recurring maintenance/utility fees, drawn from each business's own capital
+-- balance (not the owner's wallet/bank). Default fee = rate * the business's
+-- effective price (its own `price` override or category_prices[kind]); a
+-- business entry can also set `daily_fee`/`utility_fee` directly to bypass
+-- the rate calculation entirely. Billed lazily by elapsed real time in
+-- Business:runFeeSweep, not on a fixed wall-clock tick.
+cfg.daily_fee_rate = 0.003
+cfg.utility_fee_rate = 0.005
+cfg.utility_period_days = 7 -- how often the utility fee is charged
+cfg.grace_period_days = 3 -- how long a negative balance is tolerated before repossession
+cfg.fee_sweep_interval = 3600 -- seconds between sweep passes (billing itself is elapsed-time based, this just controls how often it's checked)
+cfg.day_length = 86400 -- seconds treated as one "day" for daily fee/revenue cycles; utility_period_days/grace_period_days are also multiples of this
+
+-- passive-income business kinds: these have nothing to sell (no inventory
+-- dependency), so their revenue is simulated/time-based instead of coming
+-- from real transactions. Billed into balance alongside the daily fee in the
+-- same sweep pass. Same rate*effective-price / per-business-override shape
+-- as the fees above (a business entry can set `daily_revenue` directly).
+cfg.daily_revenue_rate = 0.004
+cfg.passive_kinds = { barber = true, tattoo = true }
 
 -- key = unique business id, also the persistence key suffix ("vRP:business:"<id>)
 -- kind: category tag, looked up in cfg.category_prices for the default price;
@@ -149,6 +172,56 @@ cfg.businesses = {
 		kind = "handguns", title = "Handgun Shop",
 		pos = vec3(844.299, -1033.26, 28.1949),
 		_config = { map_entity = {"PoI", {blip_id = 110, blip_color = 1, marker_id = 1, scale = {1.0,1.0,1.0}, color = {255,0,0,100}}} },
+	},
+
+	-- barber/tattoo: passive-income proof of concept, no inventory
+	-- dependency (see cfg.passive_kinds above). Barber positions are
+	-- user-verified in-game locations. Tattoo positions are best-effort
+	-- placeholders, not yet verified -- walk to each and adjust `pos`.
+	["barber_1"] = {
+		kind = "barber", title = "Barber Shop (Vespucci)",
+		pos = vec3(-813.71356201172, -184.06265258789, 37.56893157959),
+		_config = { map_entity = {"PoI", {blip_id = 71, blip_color = 5, marker_id = 1, scale = {1.0,1.0,1.0}, color = {255,255,255,100}}} },
+	},
+	["barber_2"] = {
+		kind = "barber", title = "Barber Shop (Vinewood)",
+		pos = vec3(136.97842407227, -1707.8671875, 29.291620254517),
+		_config = { map_entity = {"PoI", {blip_id = 71, blip_color = 5, marker_id = 1, scale = {1.0,1.0,1.0}, color = {255,255,255,100}}} },
+	},
+	["barber_3"] = {
+		kind = "barber", title = "Barber Shop (La Mesa)",
+		pos = vec3(-1282.8363037109, -1116.9685058594, 6.9901127815247),
+		_config = { map_entity = {"PoI", {blip_id = 71, blip_color = 5, marker_id = 1, scale = {1.0,1.0,1.0}, color = {255,255,255,100}}} },
+	},
+	["barber_4"] = {
+		kind = "barber", title = "Barber Shop (Paleto Bay)",
+		pos = vec3(1931.7169189453, 3730.3142089844, 32.844432830811),
+		_config = { map_entity = {"PoI", {blip_id = 71, blip_color = 5, marker_id = 1, scale = {1.0,1.0,1.0}, color = {255,255,255,100}}} },
+	},
+	["barber_5"] = {
+		kind = "barber", title = "Barber Shop (Great Ocean Hwy)",
+		pos = vec3(1212.4298095703, -472.55453491211, 66.2080078125),
+		_config = { map_entity = {"PoI", {blip_id = 71, blip_color = 5, marker_id = 1, scale = {1.0,1.0,1.0}, color = {255,255,255,100}}} },
+	},
+	["barber_6"] = {
+		kind = "barber", title = "Barber Shop (Rockford Hills)",
+		pos = vec3(-32.703586578369, -152.55470275879, 57.076503753662),
+		_config = { map_entity = {"PoI", {blip_id = 71, blip_color = 5, marker_id = 1, scale = {1.0,1.0,1.0}, color = {255,255,255,100}}} },
+	},
+	["barber_7"] = {
+		kind = "barber", title = "Barber Shop (Grapeseed)",
+		pos = vec3(-278.02655029297, 6228.3115234375, 31.695518493652),
+		_config = { map_entity = {"PoI", {blip_id = 71, blip_color = 5, marker_id = 1, scale = {1.0,1.0,1.0}, color = {255,255,255,100}}} },
+	},
+	["tattoo_1"] = {
+		kind = "tattoo", title = "Tattoo Parlor (Downtown)",
+		pos = vec3(315.68, 180.72, 103.19),
+		_config = { map_entity = {"PoI", {blip_id = 75, blip_color = 27, marker_id = 1, scale = {1.0,1.0,1.0}, color = {255,0,255,100}}} },
+	},
+	["tattoo_2"] = {
+		kind = "tattoo", title = "Tattoo Parlor (Vespucci)",
+		pos = vec3(-1153.79, -1424.51, 4.96),
+		_config = { map_entity = {"PoI", {blip_id = 75, blip_color = 27, marker_id = 1, scale = {1.0,1.0,1.0}, color = {255,0,255,100}}} },
 	},
 }
 
