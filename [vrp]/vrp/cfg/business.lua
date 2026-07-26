@@ -3,6 +3,14 @@ local cfg = {}
 cfg.area_radius = 1.5
 cfg.area_height = 2.0
 
+-- blip colour override for an already-owned business, replacing its normal
+-- category colour so an owned location reads differently from an available
+-- one at a glance on the map. 4 matches the existing neutral/civic colour
+-- cfg/identity.lua's city_hall blip already uses. Snapshot-only (see
+-- Business.event:playerSpawn) -- not pushed live to already-connected
+-- players when a business changes hands elsewhere.
+cfg.owned_blip_color = 4
+
 -- flat purchase price per category; a business entry's own `price` field
 -- (if set) overrides this. Tune these numbers directly here, no code change.
 cfg.category_prices = {
@@ -90,6 +98,37 @@ cfg.day_length = 2880
 -- just controls how often it's checked) -- kept well under day_length so a
 -- full in-game day/night cycle doesn't pass between checks unnoticed
 cfg.fee_sweep_interval = 300
+
+-- Business Realtor: a secondary location (separate from each business's own
+-- marker) listing every currently-unowned business for purchase, plus
+-- voluntary sell-back/transfer options for businesses the visiting player
+-- already owns. Buying here uses the exact same purchase logic as buying
+-- on-site -- this menu is purely a discovery/convenience layer, not a
+-- separate purchase system. Real user-verified location.
+cfg.realtor_pos = vec3(-115.6263885498, -604.62652587891, 36.280670166016)
+cfg.realtor_map_entity = {"PoI", {blip_id = 475, blip_color = 2, marker_id = 1, scale = {1.0,1.0,1.0}, color = {0,255,0,100}}}
+
+-- display names for the "Buy Business" by-type submenu at the realtor --
+-- any kind not listed here just falls back to its raw internal kind string
+cfg.kind_names = {
+	food = "Food Stores",
+	tools = "Tools Stores",
+	chemicals = "Chemical Suppliers",
+	drugstore = "Drugstores",
+	gear = "Gear Shops",
+	melee_weapons = "Melee Weapons Shops",
+	handguns = "Handgun Shops",
+	barber = "Barber Shops",
+	tattoo = "Tattoo Parlors",
+}
+
+-- fraction of a business's effective price (its own `price` override or
+-- category_prices[kind]) paid out when voluntarily selling it back at the
+-- realtor -- any remaining positive balance in the business is paid out on
+-- top of this (it's the owner's own unwithdrawn earnings, not the game's to
+-- keep). Distinct from repossession, which wipes everything for neglect;
+-- this is a deliberate, compensated exit.
+cfg.sellback_rate = 0.5
 
 -- every kind gets a simulated baseline daily revenue (ambient/NPC-driven
 -- average sales), billed into balance alongside the daily fee in the same

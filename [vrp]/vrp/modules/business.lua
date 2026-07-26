@@ -851,6 +851,200 @@ local function menu_business(self)
       end
     end
   end)
+
+  -- voluntary sell-back at the realtor: owner-only, distinct from
+  -- repossession (which wipes everything for neglect). Pays out
+  -- sellback_rate * effective price plus any remaining positive balance
+  -- (the owner's own unwithdrawn earnings, not the game's to keep).
+  local function m_sell(menu, id)
+    local user = menu.user
+    local owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+    local bcfg = self.businesses[id]
+
+    local price = bcfg.price or self.category_prices[bcfg.kind] or 0
+    local sellback = math.floor(price * self.sellback_rate)
+    local preview_payout = sellback + math.max(0, math.floor(owner.balance or 0))
+
+    if not user:request(lang.business.realtor.sell.confirm({bcfg.title, preview_payout}), 15) then return end
+
+    -- re-check post-confirm: ownership/balance may have changed during the wait
+    owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+
+    local payout = sellback + math.max(0, math.floor(owner.balance or 0))
+    clear_owner(self, id)
+    user:giveWallet(payout)
+
+    vRP.EXT.Base.remote._notify(user.source, lang.business.realtor.sell.sold({bcfg.title, payout}))
+    user:actualizeMenu()
+  end
+
+  -- gives full ownership to nuser as-is (staff, balance, payroll settings
+  -- all carry over unchanged -- this is a handover, not a sale/reset, and
+  -- distinct from Sell Back which pays the current owner out and clears
+  -- the business back to unowned)
+  local function do_transfer(user, id, nuser)
+    local owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+    local bcfg = self.businesses[id]
+
+    if not nuser:request(lang.business.realtor.transfer.offer({bcfg.title}), 15) then
+      return vRP.EXT.Base.remote._notify(user.source, lang.business.realtor.transfer.declined())
+    end
+
+    -- re-check post-offer: ownership may have changed during the wait
+    owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+
+    owner.owner_cid = nuser.cid
+    save_owner(self, id)
+
+    vRP.EXT.Base.remote._notify(user.source, lang.business.realtor.transfer.given({bcfg.title}))
+    vRP.EXT.Base.remote._notify(nuser.source, lang.business.realtor.transfer.received({bcfg.title}))
+    user:actualizeMenu()
+  end
+
+  -- entry point: owner picks "Transfer Business" -- needs a nearby player
+  -- to hand it to (unlike hiring, there's no NPC fallback -- transferring
+  -- ownership to an NPC doesn't mean anything)
+  local function m_transfer_business(menu, id)
+    local user = menu.user
+    local owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+
+    local candidates = nearby_candidates(user)
+    if next(candidates) == nil then
+      return vRP.EXT.Base.remote._notify(user.source, lang.common.no_player_near())
+    end
+
+    user:openMenu("business.transfer.pick", {id = id, candidates = candidates})
+  end
+
+  vRP.EXT.GUI:registerMenuBuilder(self, "business.transfer.pick", function(menu)
+    local id = menu.data.id
+    local candidates = menu.data.candidates or {}
+    local user = menu.user
+
+    menu.title = lang.business.realtor.transfer.pick_title()
+    menu.css.header_color = "rgba(0,180,0,0.75)"
+
+    for source, distance in pairs(candidates) do
+      local nuser = vRP.users_by_source[source]
+      if nuser and nuser.cid ~= user.cid then
+        local identity = vRP.EXT.Identity and vRP.EXT.Identity:getIdentity(nuser.cid)
+        local name = (identity and (identity.firstname or "").." "..(identity.name or "")) or ("cid "..nuser.cid)
+        menu:addOption(name, function(menu)
+          local u = menu.user
+          local n = vRP.users[nuser.cid]
+          if not n or not vRP.users_by_source[n.source] then
+            return vRP.EXT.Base.remote._notify(u.source, lang.common.no_player_near())
+          end
+          do_transfer(u, id, n)
+        end, lang.business.manage.staff.hire.pick_info({math.floor(distance)}))
+      end
+    end
+  end)
+
+  -- true if the player owns at least one business (used to decide whether
+  -- Sell/Transfer show up at all at the realtor)
+  local function owns_any(user)
+    for id, owner in pairs(self.owners) do
+      if self.businesses[id] and owner.owner_cid == user.cid then return true end
+    end
+    return false
+  end
+
+  -- Business Realtor: top-level entry point. "Buy Business" always shows;
+  -- "Sell"/"Transfer" only show once the player actually owns something,
+  -- so there's nothing to click into when there's nothing to sell/transfer
+  vRP.EXT.GUI:registerMenuBuilder(self, "business.realtor", function(menu)
+    local user = menu.user
+
+    menu.title = lang.business.realtor.title()
+    menu.css.header_color = "rgba(0,180,0,0.75)"
+
+    menu:addOption(lang.business.realtor.buy.title(), function(menu)
+      menu.user:openMenu("business.realtor.buy")
+    end, lang.business.realtor.buy.description())
+
+    if owns_any(user) then
+      menu:addOption(lang.business.realtor.sell.menu_title(), function(menu)
+        menu.user:openMenu("business.realtor.sell")
+      end, lang.business.realtor.sell.menu_description())
+      menu:addOption(lang.business.realtor.transfer.menu_title(), function(menu)
+        menu.user:openMenu("business.realtor.transfer")
+      end, lang.business.realtor.transfer.menu_description())
+    end
+  end)
+
+  -- "Buy Business": one option per kind that has at least one currently-
+  -- unowned business, instead of one giant flat list of every business
+  vRP.EXT.GUI:registerMenuBuilder(self, "business.realtor.buy", function(menu)
+    menu.title = lang.business.realtor.buy.title()
+    menu.css.header_color = "rgba(0,180,0,0.75)"
+
+    local kind_counts = {}
+    for id, bcfg in pairs(self.businesses) do
+      if not self.owners[id] then
+        kind_counts[bcfg.kind] = (kind_counts[bcfg.kind] or 0) + 1
+      end
+    end
+
+    for kind, count in pairs(kind_counts) do
+      menu:addOption(self.kind_names[kind] or kind, function(menu)
+        menu.user:openMenu("business.realtor.buy.kind", {kind = kind})
+      end, lang.business.realtor.buy.kind_description({count}))
+    end
+  end)
+
+  -- per-kind business list -- purchase reuses the same m_purchase used at
+  -- each business's own marker, it isn't proximity-gated internally
+  vRP.EXT.GUI:registerMenuBuilder(self, "business.realtor.buy.kind", function(menu)
+    local kind = menu.data.kind
+
+    menu.title = self.kind_names[kind] or kind
+    menu.css.header_color = "rgba(0,180,0,0.75)"
+
+    for id, bcfg in pairs(self.businesses) do
+      if bcfg.kind == kind and not self.owners[id] then
+        local price = bcfg.price or self.category_prices[bcfg.kind]
+        menu:addOption(bcfg.title, m_purchase, lang.business.buy.info({price}), id)
+      end
+    end
+  end)
+
+  -- "Sell Business": every business the visiting player owns
+  vRP.EXT.GUI:registerMenuBuilder(self, "business.realtor.sell", function(menu)
+    local user = menu.user
+
+    menu.title = lang.business.realtor.sell.menu_title()
+    menu.css.header_color = "rgba(0,180,0,0.75)"
+
+    for id, owner in pairs(self.owners) do
+      local bcfg = self.businesses[id]
+      if bcfg and owner.owner_cid == user.cid then
+        local price = bcfg.price or self.category_prices[bcfg.kind] or 0
+        local payout = math.floor(price * self.sellback_rate) + math.max(0, math.floor(owner.balance or 0))
+        menu:addOption(bcfg.title, m_sell, lang.business.realtor.sell.description({payout}), id)
+      end
+    end
+  end)
+
+  -- "Transfer Business": every business the visiting player owns
+  vRP.EXT.GUI:registerMenuBuilder(self, "business.realtor.transfer", function(menu)
+    local user = menu.user
+
+    menu.title = lang.business.realtor.transfer.menu_title()
+    menu.css.header_color = "rgba(0,180,0,0.75)"
+
+    for id, owner in pairs(self.owners) do
+      local bcfg = self.businesses[id]
+      if bcfg and owner.owner_cid == user.cid then
+        menu:addOption(bcfg.title, m_transfer_business, lang.business.realtor.transfer.description(), id)
+      end
+    end
+  end)
 end
 
 -- METHODS
@@ -863,6 +1057,7 @@ function Business:__construct()
   self.category_prices = self.cfg.category_prices or {}
   self.area_radius = self.cfg.area_radius or 1.5
   self.area_height = self.cfg.area_height or 2.0
+  self.owned_blip_color = self.cfg.owned_blip_color or 4
   self.daily_fee_rate = self.cfg.daily_fee_rate or 0.003
   self.utility_fee_rate = self.cfg.utility_fee_rate or 0.005
   self.daily_fee_rate_by_kind = self.cfg.daily_fee_rate_by_kind or {}
@@ -875,6 +1070,10 @@ function Business:__construct()
   self.daily_revenue_rate = self.cfg.daily_revenue_rate or 0.004
   self.day_length = self.cfg.day_length or 2880
   self.payroll_period_days = self.cfg.payroll_period_days or 7
+  self.realtor_pos = self.cfg.realtor_pos
+  self.realtor_map_entity = self.cfg.realtor_map_entity
+  self.kind_names = self.cfg.kind_names or {}
+  self.sellback_rate = self.cfg.sellback_rate or 0.5
   self.cfg = nil
 
   self.owners = {} -- id -> {owner_cid=, purchased_at=}
@@ -1084,9 +1283,39 @@ function Business.event:playerSpawn(user, first_spawn)
       local ment = clone(bcfg._config.map_entity)
       ment[2].title = bcfg.title
       ment[2].pos = {x, y, z-1}
+
+      -- ownership indicator: a one-time snapshot at spawn/connect, not a
+      -- live-updating push -- confirmed with the user that an already-
+      -- connected player seeing a stale blip until their next spawn is fine
+      if self.owners[id] then
+        ment[2].blip_color = self.owned_blip_color
+        ment[2].title = ment[2].title.." "..lang.business.owned_blip_suffix()
+      end
+
       vRP.EXT.Map.remote._addEntity(user.source, ment[1], ment[2])
 
       user:setArea("vRP:business:"..id, x, y, z, radius, height, enter, leave)
+    end
+
+    -- Business Realtor: single secondary discovery/sell-back location,
+    -- separate from each business's own marker
+    if self.realtor_pos then
+      local rx, ry, rz = table.unpack(self.realtor_pos)
+
+      local rmenu
+      local function renter(user)
+        rmenu = user:openMenu("business.realtor")
+      end
+      local function rleave(user)
+        if rmenu then user:closeMenu(rmenu) end
+      end
+
+      local rment = clone(self.realtor_map_entity)
+      rment[2].title = lang.business.realtor.title()
+      rment[2].pos = {rx, ry, rz-1}
+      vRP.EXT.Map.remote._addEntity(user.source, rment[1], rment[2])
+
+      user:setArea("vRP:business:realtor", rx, ry, rz, self.area_radius, self.area_height, renter, rleave)
     end
   end
 end

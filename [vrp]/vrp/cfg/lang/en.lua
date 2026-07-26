@@ -435,9 +435,35 @@ local lang = {
       }
     },
     owned_by = "Owned by {1}.",
+    owned_blip_suffix = "(Owned)",
     mine = {
       title = "My Businesses",
       description = "Check balance and process payroll for businesses you own or manage, from anywhere."
+    },
+    realtor = {
+      title = "Business Realtor",
+      buy = {
+        title = "Buy Business",
+        description = "Browse available businesses by type.",
+        kind_description = "{1} available."
+      },
+      sell = {
+        menu_title = "Sell Business",
+        menu_description = "Sell one of your businesses back.",
+        description = "Sell this business back for ${1} (base sellback + any remaining balance).",
+        confirm = "Sell {1} for ${2}? This cannot be undone.",
+        sold = "~g~You sold {1} for ${2}."
+      },
+      transfer = {
+        menu_title = "Transfer Business",
+        menu_description = "Give one of your businesses to a nearby player.",
+        description = "Give this business to a nearby player, staff/balance/settings included as-is.",
+        pick_title = "Select Recipient",
+        offer = "You've been offered ownership of {1}. Accept?",
+        declined = "~r~The offer was declined.",
+        given = "~g~You transferred {1} to another player.",
+        received = "~g~You are now the owner of {1}."
+      }
     },
     notify = {
       negative_balance = "~r~{1}'s balance is negative (${2}). Pay it off before the grace period ends or it will be repossessed.",
