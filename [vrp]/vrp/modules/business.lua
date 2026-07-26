@@ -151,16 +151,26 @@ end
 
 -- owner's profit take for this processing pass, per their stored
 -- fixed-amount-or-percentage preference (0 if not yet configured -- payroll
--- never guesses a withdrawal on the owner's behalf). Percent mode is a share
--- of this period's profit (see pay_wages), not the full running balance --
--- clamped to 0 so a loss-making period can't produce a negative "withdrawal".
--- Fixed mode is unaffected by period profit, same as before.
+-- never guesses a withdrawal on the owner's behalf).
+--
+-- SECURITY: both modes are capped to this period's real profit (revenue
+-- minus fees minus wages, see pay_wages) -- never more than what the
+-- business actually earned. Fixed mode used to be uncapped (just
+-- owner.payroll_value, no relation to real earnings at all), which combined
+-- with negative_since resetting to nil on any non-negative balance made
+-- unlimited money creation possible: set an absurd fixed withdrawal, drain
+-- it every cycle, top up $1 right before the grace period expired to reset
+-- the repossession timer, repeat forever. Percent mode was already
+-- correctly capped; fixed mode now matches it. A loss-making period (or an
+-- already-negative balance) yields 0 either way -- payroll never digs a
+-- business deeper into the red, only pays out real profit that exists.
 local function get_payroll_withdraw(owner, period_profit)
   if not owner.payroll_mode then return 0 end
+  local available = math.max(0, period_profit)
   if owner.payroll_mode == "percent" then
-    return math.floor(math.max(0, period_profit) * (owner.payroll_value or 0) / 100)
+    return math.floor(available * (owner.payroll_value or 0) / 100)
   else
-    return math.floor(owner.payroll_value or 0)
+    return math.floor(math.min(owner.payroll_value or 0, available))
   end
 end
 
@@ -492,6 +502,20 @@ local function menu_business(self)
     if not owner or owner.owner_cid ~= user.cid or not s or not target then return end
 
     ensure_fee_fields(owner, os.time())
+
+    -- SECURITY: capped to the current non-negative balance, unlike fees/
+    -- wages (which legitimately push balance negative -- that's how the
+    -- neglect-to-repossession mechanic works at all). A bonus is 100%
+    -- owner-discretionary, not an unavoidable obligation, so there's no
+    -- reason it should be able to manufacture a negative balance from a
+    -- positive one -- combined with negative_since resetting on any
+    -- non-negative balance, an uncapped bonus was an unlimited money-creation
+    -- exploit (hire an alt/friend, bonus them an absurd amount, top up $1
+    -- occasionally to dodge the repossession timer, repeat forever).
+    if amount > owner.balance then
+      return vRP.EXT.Base.remote._notify(user.source, lang.business.manage.staff.bonus.insufficient_balance({math.floor(owner.balance)}))
+    end
+
     owner.balance = owner.balance - amount
     save_owner(self, data.id)
     target:giveWallet(amount)

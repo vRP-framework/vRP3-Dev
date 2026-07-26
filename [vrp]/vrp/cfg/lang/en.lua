@@ -411,6 +411,7 @@ local lang = {
           description = "Pay a one-time bonus from the business balance to this staff member's wallet.",
           not_online = "~r~That staff member is not online.",
           prompt = "Bonus amount:",
+          insufficient_balance = "~r~Bonus exceeds the business's current balance (${1}).",
           given = "~g~${1} bonus paid.",
           received = "~g~You received a ${1} bonus from {2}."
         },
