@@ -21,23 +21,44 @@ local function clear_owner(self, id)
   vRP:setSData("vRP:business:"..id, "")
 end
 
+-- +/- cfg.revenue_fee_variance_pct fluctuation around a computed fee/revenue
+-- amount, so profit doesn't read as a dead-flat number every cycle. Applied
+-- once per get_daily_fee/get_utility_fee/get_daily_revenue call, so if a
+-- sweep pass catches up multiple elapsed cycles at once (e.g. after
+-- downtime), that whole batch shares one roll rather than one per day --
+-- an accepted simplification, matching how cycles are already batched
+-- elsewhere in this module.
+local function apply_variance(self, amount)
+  local variance = self.revenue_fee_variance_pct or 0
+  if variance <= 0 or amount == 0 then return amount end
+  local roll = 1 + (math.random() * 2 - 1) * (variance / 100)
+  return amount * roll
+end
+
 -- effective daily/utility fee for a business: its own override field if
 -- set, else rate * effective price (same override precedence as the
--- purchase price itself)
+-- purchase price itself). Rate is the per-kind override if one exists,
+-- else the flat global rate.
 local function get_daily_fee(self, bcfg)
-  return bcfg.daily_fee or ((bcfg.price or self.category_prices[bcfg.kind] or 0) * self.daily_fee_rate)
+  local rate = self.daily_fee_rate_by_kind[bcfg.kind] or self.daily_fee_rate
+  local base = bcfg.daily_fee or ((bcfg.price or self.category_prices[bcfg.kind] or 0) * rate)
+  return apply_variance(self, base)
 end
 
 local function get_utility_fee(self, bcfg)
-  return bcfg.utility_fee or ((bcfg.price or self.category_prices[bcfg.kind] or 0) * self.utility_fee_rate)
+  local rate = self.utility_fee_rate_by_kind[bcfg.kind] or self.utility_fee_rate
+  local base = bcfg.utility_fee or ((bcfg.price or self.category_prices[bcfg.kind] or 0) * rate)
+  return apply_variance(self, base)
 end
 
--- simulated daily revenue for passive-income kinds (no inventory/product
--- to sell, e.g. barber/tattoo) -- 0 for any other kind
+-- simulated baseline daily revenue for every kind (ambient/NPC-driven
+-- average sales) -- inventory-backed kinds will eventually add real
+-- player-purchase revenue on top of this once a point-of-sale system
+-- exists (see runFeeSweep), not replace it
 local function get_daily_revenue(self, bcfg)
-  if bcfg.daily_revenue then return bcfg.daily_revenue end
-  if not self.passive_kinds[bcfg.kind] then return 0 end
-  return (bcfg.price or self.category_prices[bcfg.kind] or 0) * self.daily_revenue_rate
+  if bcfg.daily_revenue then return apply_variance(self, bcfg.daily_revenue) end
+  local rate = self.daily_revenue_rate_by_kind[bcfg.kind] or self.daily_revenue_rate
+  return apply_variance(self, (bcfg.price or self.category_prices[bcfg.kind] or 0) * rate)
 end
 
 -- fill in fee-tracking fields missing on records saved before this system
@@ -48,6 +69,138 @@ local function ensure_fee_fields(owner, now)
   owner.last_utility_charge = owner.last_utility_charge or owner.purchased_at or now
   owner.last_daily_fee = owner.last_daily_fee or 0
   owner.last_daily_revenue = owner.last_daily_revenue or 0
+  owner.last_utility_fee = owner.last_utility_fee or 0
+  owner.last_payroll = owner.last_payroll or owner.purchased_at or now
+  owner.last_payroll_paid = owner.last_payroll_paid or 0
+  owner.last_profit_withdrawn = owner.last_profit_withdrawn or 0
+  owner.last_period_profit = owner.last_period_profit or 0
+  owner.pending_profit = owner.pending_profit or 0
+  owner.period_revenue = owner.period_revenue or 0
+  owner.period_fees = owner.period_fees or 0
+end
+
+-- sum of all staff wages (player + NPC alike -- NPC wages are still a real
+-- expense, they just have nobody to receive the money)
+local function get_total_wage(owner)
+  local total = 0
+  for _, s in ipairs(owner.staff or {}) do total = total + (s.wage or 0) end
+  return total
+end
+
+-- an NPC filling a can_manage position is what makes payroll automatic --
+-- reuses the existing delegated-access flag rather than matching on the
+-- free-text role name, since role is pure RP flavor text elsewhere
+local function has_npc_manager(owner)
+  for _, s in ipairs(owner.staff or {}) do
+    if s.is_npc and s.can_manage then return true end
+  end
+  return false
+end
+
+-- whole payroll cycles elapsed since the last processing
+local function payroll_cycles(self, owner, now)
+  return math.floor((now - owner.last_payroll) / (self.payroll_period_days * self.day_length))
+end
+
+-- pays out `cycles` worth of staff wages from the business balance, crediting
+-- online player-staff directly and accruing pending_wage for offline ones
+-- (paid on their next login, see playerSpawn below). Same math regardless of
+-- who/what triggers it (manual owner/manager click, or the automatic
+-- NPC-manager sweep path) -- only the cadence differs.
+--
+-- also closes out this payroll period's profit accounting: period_revenue/
+-- period_fees accumulate daily/utility sweep activity since the last time
+-- payroll ran (see runFeeSweep), so "period_profit" here is what this
+-- specific day/week cycle actually earned after its own fees and wages --
+-- not a share of the whole historical balance. Resets both accumulators for
+-- the next period. Returns total_wage, period_profit.
+local function pay_wages(self, id, owner, cycles)
+  if cycles <= 0 then return 0, 0 end
+
+  local total_wage = cycles * get_total_wage(owner)
+  owner.balance = owner.balance - total_wage
+
+  for _, s in ipairs(owner.staff or {}) do
+    if not s.is_npc then
+      local due = cycles * (s.wage or 0) + (s.pending_wage or 0)
+      local target = vRP.users[s.cid]
+      if target then
+        target:giveWallet(due)
+        vRP.EXT.Base.remote._notify(target.source, lang.business.manage.payroll.process.wage_paid({due, self.businesses[id].title}))
+        s.pending_wage = 0
+      else
+        s.pending_wage = due
+      end
+    end
+  end
+
+  owner.last_payroll_paid = total_wage
+
+  -- snapshot the gross period profit (before wages) since period_revenue/
+  -- period_fees reset right below -- without this, the live "Weekly Profit"
+  -- figure would just read $0 the moment payroll processes, with no way to
+  -- see what the period actually generated before wages/withdrawal came out
+  local gross_period_profit = (owner.period_revenue or 0) - (owner.period_fees or 0)
+  owner.last_period_profit = gross_period_profit
+  local period_profit = gross_period_profit - total_wage
+  owner.period_revenue = 0
+  owner.period_fees = 0
+
+  return total_wage, period_profit
+end
+
+-- owner's profit take for this processing pass, per their stored
+-- fixed-amount-or-percentage preference (0 if not yet configured -- payroll
+-- never guesses a withdrawal on the owner's behalf). Percent mode is a share
+-- of this period's profit (see pay_wages), not the full running balance --
+-- clamped to 0 so a loss-making period can't produce a negative "withdrawal".
+-- Fixed mode is unaffected by period profit, same as before.
+local function get_payroll_withdraw(owner, period_profit)
+  if not owner.payroll_mode then return 0 end
+  if owner.payroll_mode == "percent" then
+    return math.floor(math.max(0, period_profit) * (owner.payroll_value or 0) / 100)
+  else
+    return math.floor(owner.payroll_value or 0)
+  end
+end
+
+-- prompts the owner for their payroll withdrawal preference (fixed $ or a
+-- % of profit) and saves it. Shared by the explicit "Payroll Settings"
+-- action and the inline first-time setup offered from "Process Payroll".
+-- Returns true if a preference was saved.
+local function configure_payroll(self, user, id)
+  local owner = self.owners[id]
+  if not owner or owner.owner_cid ~= user.cid then return false end
+
+  local use_percent = user:request(lang.business.manage.payroll.settings.confirm_percent(), 15)
+
+  -- re-check post-prompt: ownership may have changed during the wait
+  owner = self.owners[id]
+  if not owner or owner.owner_cid ~= user.cid then return false end
+
+  local value
+  if use_percent then
+    local input = user:prompt(lang.business.manage.payroll.settings.prompt_percent(), tostring(owner.payroll_value or 50))
+    value = tonumber(input)
+    if not value or value <= 0 or value > 100 or value ~= value then return false end
+  else
+    local input = user:prompt(lang.business.manage.payroll.settings.prompt_fixed(), tostring(owner.payroll_value or 0))
+    value = tonumber(input)
+    if not value or value < 0 or value ~= value then return false end
+    value = math.floor(value)
+  end
+
+  -- re-check post-prompt again
+  owner = self.owners[id]
+  if not owner or owner.owner_cid ~= user.cid then return false end
+
+  owner.payroll_mode = use_percent and "percent" or "fixed"
+  owner.payroll_value = value
+  save_owner(self, id)
+
+  vRP.EXT.Base.remote._notify(user.source, lang.business.manage.payroll.settings.updated(
+    {owner.payroll_mode == "percent" and (owner.payroll_value.."%%") or ("$"..owner.payroll_value)}))
+  return true
 end
 
 -- staff roster helpers. owner.staff is an array of
@@ -64,6 +217,21 @@ end
 local function staff_can_manage(owner, cid)
   local s = find_staff(owner, cid)
   return s ~= nil and s.can_manage == true
+end
+
+-- display name for the owner, from the perspective of `viewer_cid` -- "You"
+-- if they are the owner (e.g. a delegated manager viewing who actually owns
+-- the business), else the owner's identity name
+local function owner_display_name(owner, viewer_cid)
+  if owner.owner_cid == viewer_cid then return lang.common.you() end
+  local identity = vRP.EXT.Identity and vRP.EXT.Identity:getIdentity(owner.owner_cid)
+  return (identity and (identity.firstname or "").." "..(identity.name or "")) or "someone"
+end
+
+-- "+$20"/"-$20" style signed display for a profit figure
+local function format_signed_money(amount)
+  amount = math.floor(amount)
+  if amount >= 0 then return "+$"..amount else return "-$"..math.abs(amount) end
 end
 
 -- menu: business (single adaptive builder -- branches on live ownership
@@ -357,6 +525,73 @@ local function menu_business(self)
     user:actualizeMenu()
   end
 
+  local function m_payroll_settings(menu, id)
+    local user = menu.user
+    local owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+
+    configure_payroll(self, user, id)
+    user:actualizeMenu()
+  end
+
+  -- pays out accrued staff wages, then (owner only) offers to withdraw the
+  -- remaining profit per the owner's stored fixed-amount-or-percentage
+  -- preference -- same math the automatic NPC-manager sweep path uses,
+  -- just manually triggered here instead of on a schedule
+  local function m_process_payroll(menu, id)
+    local user = menu.user
+    local owner = self.owners[id]
+    if not owner or (owner.owner_cid ~= user.cid and not staff_can_manage(owner, user.cid)) then return end
+
+    local now = os.time()
+    ensure_fee_fields(owner, now)
+    local cycles = payroll_cycles(self, owner, now)
+    if cycles <= 0 then
+      return vRP.EXT.Base.remote._notify(user.source, lang.business.manage.payroll.process.none_due())
+    end
+
+    local total_wage, period_profit = pay_wages(self, id, owner, cycles)
+    owner.last_payroll = owner.last_payroll + cycles * (self.payroll_period_days * self.day_length)
+    save_owner(self, id)
+
+    vRP.EXT.Base.remote._notify(user.source, lang.business.manage.payroll.process.wages_paid({total_wage}))
+    user:actualizeMenu()
+
+    -- profit withdrawal stays owner-exclusive, same boundary as hire/fire
+    -- and Payroll Settings -- a delegated manager only ever pays wages here
+    if user.cid ~= owner.owner_cid then return end
+
+    if not owner.payroll_mode then
+      if not user:request(lang.business.manage.payroll.settings.setup_now(), 15) then return end
+      if not configure_payroll(self, user, id) then return end
+    end
+
+    owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid or not owner.payroll_mode then return end
+
+    local withdraw = get_payroll_withdraw(owner, period_profit)
+    if withdraw <= 0 then return end
+
+    local next_daily = owner.last_daily_charge + self.day_length
+    local next_utility = owner.last_utility_charge + (self.utility_period_days * self.day_length)
+    local next_charge_at = math.min(next_daily, next_utility)
+
+    if not user:request(lang.business.manage.payroll.process.confirm_withdraw(
+      {withdraw, math.floor(owner.balance), os.date("%Y-%m-%d %H:%M", next_charge_at)}), 15) then return end
+
+    -- re-check post-confirm: ownership/balance may have changed during the wait
+    owner = self.owners[id]
+    if not owner or owner.owner_cid ~= user.cid then return end
+
+    owner.balance = owner.balance - withdraw
+    owner.last_profit_withdrawn = withdraw
+    save_owner(self, id)
+    user:giveWallet(withdraw)
+
+    vRP.EXT.Base.remote._notify(user.source, lang.business.manage.payroll.process.withdrawn({withdraw}))
+    user:actualizeMenu()
+  end
+
   local function m_admin_revoke(menu, id)
     local user = menu.user
     if not user:hasPermission("admin.business") then return end
@@ -385,29 +620,51 @@ local function menu_business(self)
     elseif owner.owner_cid == user.cid or staff_can_manage(owner, user.cid) then
       ensure_fee_fields(owner, os.time())
 
-      local next_daily = owner.last_daily_charge + self.day_length
-      local next_utility = owner.last_utility_charge + (self.utility_period_days * self.day_length)
-      local next_charge_at = math.min(next_daily, next_utility)
+      local next_payroll_at = owner.last_payroll + (self.payroll_period_days * self.day_length)
 
+      local payroll_display
+      if not owner.payroll_mode then
+        payroll_display = lang.business.manage.payroll.not_configured()
+      elseif owner.payroll_mode == "percent" then
+        payroll_display = owner.payroll_value.."%%"
+      else
+        payroll_display = "$"..owner.payroll_value
+      end
+
+      -- daily figures are the real last-billed cycle; "weekly" is the real
+      -- period_revenue/period_fees accumulated since the last payroll
+      -- processing (same numbers Process Payroll's percentage withdrawal is
+      -- based on -- not a daily*7 guess, so this always includes any real
+      -- utility-fee hit that landed during the window and matches exactly
+      -- what a percentage payout would actually pay out right now)
+      local daily_profit = owner.last_daily_revenue - owner.last_daily_fee
+      local period_profit_so_far = (owner.period_revenue or 0) - (owner.period_fees or 0)
+
+      -- public info (business + who owns it) followed by the owner/manager-
+      -- only financial breakdown
       menu:addOption(lang.business.manage.title(), nil, lang.business.manage.info(
-        {bcfg.title, owner.purchased_at, math.floor(owner.balance), os.date("%Y-%m-%d %H:%M", next_charge_at),
-         math.floor(owner.last_daily_fee), math.floor(owner.last_daily_revenue)}))
+        {bcfg.title, owner_display_name(owner, user.cid), owner.purchased_at,
+         math.floor(owner.balance), format_signed_money(daily_profit), format_signed_money(period_profit_so_far),
+         "-$"..math.floor(owner.last_daily_fee), "-$"..math.floor(owner.period_fees or 0),
+         os.date("%Y-%m-%d %H:%M", next_payroll_at), format_signed_money(owner.last_period_profit),
+         math.floor(owner.last_payroll_paid), math.floor(owner.last_profit_withdrawn), payroll_display}))
       menu:addOption(lang.business.manage.deposit.title(), m_deposit, lang.business.manage.deposit.description(), id)
+      menu:addOption(lang.business.manage.payroll.process.title(), m_process_payroll, lang.business.manage.payroll.process.description(), id)
       -- future: pricing/stock/income options for this business's `kind`
       -- get appended here without restructuring this builder
 
-      -- hiring/firing stays owner-exclusive -- delegated managers get the
-      -- balance/deposit view above, not roster control
+      -- hiring/firing/payroll settings stay owner-exclusive -- delegated
+      -- managers get the balance/deposit/payroll-processing view above,
+      -- not roster or withdrawal-preference control
       if owner.owner_cid == user.cid then
         menu:addOption(lang.business.manage.staff.hire.title(), m_hire, lang.business.manage.staff.hire.description(), id)
         menu:addOption(lang.business.manage.staff.title(), function(menu)
           menu.user:openMenu("business.staff", {id = id})
         end)
+        menu:addOption(lang.business.manage.payroll.settings.title(), m_payroll_settings, lang.business.manage.payroll.settings.description(), id)
       end
     else
-      local identity = vRP.EXT.Identity and vRP.EXT.Identity:getIdentity(owner.owner_cid)
-      local name = (identity and (identity.firstname or "").." "..(identity.name or "")) or "someone"
-      menu:addOption(lang.business.owned_by({name}), nil, "")
+      menu:addOption(lang.business.owned_by({owner_display_name(owner, user.cid)}), nil, "")
     end
 
     if owner and user:hasPermission("admin.business") then
@@ -512,12 +769,16 @@ function Business:__construct()
   self.area_height = self.cfg.area_height or 2.0
   self.daily_fee_rate = self.cfg.daily_fee_rate or 0.003
   self.utility_fee_rate = self.cfg.utility_fee_rate or 0.005
+  self.daily_fee_rate_by_kind = self.cfg.daily_fee_rate_by_kind or {}
+  self.utility_fee_rate_by_kind = self.cfg.utility_fee_rate_by_kind or {}
+  self.daily_revenue_rate_by_kind = self.cfg.daily_revenue_rate_by_kind or {}
+  self.revenue_fee_variance_pct = self.cfg.revenue_fee_variance_pct or 0
   self.utility_period_days = self.cfg.utility_period_days or 7
   self.grace_period_days = self.cfg.grace_period_days or 3
   self.fee_sweep_interval = self.cfg.fee_sweep_interval or 3600
   self.daily_revenue_rate = self.cfg.daily_revenue_rate or 0.004
-  self.passive_kinds = self.cfg.passive_kinds or {}
   self.day_length = self.cfg.day_length or 86400
+  self.payroll_period_days = self.cfg.payroll_period_days or 7
   self.cfg = nil
 
   self.owners = {} -- id -> {owner_cid=, purchased_at=}
@@ -591,13 +852,18 @@ function Business:runFeeSweep()
         owner.balance = owner.balance + revenue - fee
         owner.last_daily_revenue = revenue
         owner.last_daily_fee = fee
+        owner.period_revenue = (owner.period_revenue or 0) + revenue
+        owner.period_fees = (owner.period_fees or 0) + fee
         owner.last_daily_charge = owner.last_daily_charge + daily_cycles * day
         changed = true
       end
 
       local utility_cycles = math.floor((now - owner.last_utility_charge) / utility_period)
       if utility_cycles > 0 then
-        owner.balance = owner.balance - utility_cycles * get_utility_fee(self, bcfg)
+        local utility_fee = utility_cycles * get_utility_fee(self, bcfg)
+        owner.balance = owner.balance - utility_fee
+        owner.last_utility_fee = utility_fee
+        owner.period_fees = (owner.period_fees or 0) + utility_fee
         owner.last_utility_charge = owner.last_utility_charge + utility_cycles * utility_period
         changed = true
       end
@@ -625,6 +891,34 @@ function Business:runFeeSweep()
         changed = true
       end
 
+      -- automatic payroll: only runs for businesses with an NPC manager on
+      -- staff (player/manual businesses require someone to click "Process
+      -- Payroll" themselves). Wages are always paid on schedule regardless;
+      -- the owner's profit withdrawal only auto-runs once they've configured
+      -- a fixed/percent preference -- never guessed on their behalf.
+      if not repossessed and has_npc_manager(owner) then
+        local pcycles = payroll_cycles(self, owner, now)
+        if pcycles > 0 then
+          local _, period_profit = pay_wages(self, id, owner, pcycles)
+          owner.last_payroll = owner.last_payroll + pcycles * (self.payroll_period_days * self.day_length)
+          changed = true
+
+          if owner.payroll_mode then
+            local withdraw = get_payroll_withdraw(owner, period_profit)
+            if withdraw > 0 then
+              owner.balance = owner.balance - withdraw
+              owner.last_profit_withdrawn = withdraw
+              if user then
+                user:giveWallet(withdraw)
+                vRP.EXT.Base.remote._notify(user.source, lang.business.manage.payroll.process.auto_withdrawn({bcfg.title, withdraw}))
+              else
+                owner.pending_profit = owner.pending_profit + withdraw
+              end
+            end
+          end
+        end
+      end
+
       if changed and not repossessed then save_owner(self, id) end
 
       -- push a live refresh to the owner if they're online -- otherwise the
@@ -649,6 +943,35 @@ end
 function Business.event:playerSpawn(user, first_spawn)
   if not self._owners_hydrated then pcall(function() self:hydrateOwners() end) end
   if first_spawn then
+    -- pay out any wage/profit that accrued while this player was offline
+    -- (automatic NPC-manager payroll can't credit a live wallet if nobody's
+    -- connected, so it accrues here instead and is settled on next login)
+    for id, owner in pairs(self.owners) do
+      local bcfg = self.businesses[id]
+      if bcfg then
+        local paid_out = false
+
+        if owner.owner_cid == user.cid and owner.pending_profit and owner.pending_profit > 0 then
+          local amount = owner.pending_profit
+          owner.pending_profit = 0
+          user:giveWallet(amount)
+          vRP.EXT.Base.remote._notify(user.source, lang.business.manage.payroll.process.pending_profit_paid({amount, bcfg.title}))
+          paid_out = true
+        end
+
+        local s = find_staff(owner, user.cid)
+        if s and not s.is_npc and s.pending_wage and s.pending_wage > 0 then
+          local amount = s.pending_wage
+          s.pending_wage = 0
+          user:giveWallet(amount)
+          vRP.EXT.Base.remote._notify(user.source, lang.business.manage.payroll.process.pending_wage_paid({amount, bcfg.title}))
+          paid_out = true
+        end
+
+        if paid_out then save_owner(self, id) end
+      end
+    end
+
     for id, bcfg in pairs(self.businesses) do
       local x, y, z, radius, height = table.unpack(bcfg.pos)
       if radius == nil then radius = self.area_radius end

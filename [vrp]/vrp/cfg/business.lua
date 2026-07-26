@@ -25,17 +25,70 @@ cfg.category_prices = {
 -- Business:runFeeSweep, not on a fixed wall-clock tick.
 cfg.daily_fee_rate = 0.003
 cfg.utility_fee_rate = 0.005
+
+-- per-kind rate overrides -- any kind not listed here just falls back to the
+-- flat daily_fee_rate/utility_fee_rate/daily_revenue_rate above. Rough
+-- real-world-informed starting points reflecting typical overhead/margin
+-- differences between business types (not hard research) -- retune freely,
+-- no code change needed.
+cfg.daily_fee_rate_by_kind = {
+	food = 0.0035,      -- thin-margin, high-volume retail: modest overhead
+	tools = 0.0030,
+	chemicals = 0.0040, -- specialized/regulated handling costs more to run
+	drugstore = 0.0030,
+	gear = 0.0030,
+	melee_weapons = 0.0025,
+	handguns = 0.0045,  -- regulated retail: licensing/security overhead
+	barber = 0.0020,    -- low-overhead service shop
+	tattoo = 0.0020,
+}
+cfg.utility_fee_rate_by_kind = {
+	chemicals = 0.0060,
+	handguns = 0.0065,  -- regulated retail: heavier utility/compliance cost
+}
+cfg.daily_revenue_rate_by_kind = {
+	-- baseline simulated ambient/NPC-driven revenue for every kind, so an
+	-- inventory-backed store isn't a pure expense sink while waiting on the
+	-- not-yet-built real point-of-sale system -- rough real-world-margin
+	-- ballpark per category, not hard research, retune freely
+	food = 0.006,          -- thin-margin but high-volume retail
+	tools = 0.009,
+	chemicals = 0.007,
+	drugstore = 0.009,
+	gear = 0.010,
+	melee_weapons = 0.008,
+	handguns = 0.006,      -- regulated retail: thinner net margin despite high price
+	barber = 0.008,        -- real-world barbershop net margins run ~15-20%
+	tattoo = 0.012,         -- tattoo parlors typically run fatter margins (low material cost)
+}
+
+-- +/- day-to-day fluctuation applied to every computed fee/revenue amount
+-- (e.g. 15 = each cycle rolls somewhere in the +/-15% band around the base
+-- rate) so profit doesn't read as a dead-flat number every single cycle.
+-- Set to 0 to disable and go back to fully static amounts.
+cfg.revenue_fee_variance_pct = 15
+
 cfg.utility_period_days = 7 -- how often the utility fee is charged
-cfg.grace_period_days = 3 -- how long a negative balance is tolerated before repossession
+cfg.grace_period_days = 30 -- how long a negative balance is tolerated before repossession
 cfg.fee_sweep_interval = 3600 -- seconds between sweep passes (billing itself is elapsed-time based, this just controls how often it's checked)
+cfg.payroll_period_days = 7 -- how often accrued staff wages become due (matches the "per payroll cycle" wage wording)
 cfg.day_length = 86400 -- seconds treated as one "day" for daily fee/revenue cycles; utility_period_days/grace_period_days are also multiples of this
 
--- passive-income business kinds: these have nothing to sell (no inventory
--- dependency), so their revenue is simulated/time-based instead of coming
--- from real transactions. Billed into balance alongside the daily fee in the
--- same sweep pass. Same rate*effective-price / per-business-override shape
--- as the fees above (a business entry can set `daily_revenue` directly).
-cfg.daily_revenue_rate = 0.004
+-- every kind gets a simulated baseline daily revenue (ambient/NPC-driven
+-- average sales), billed into balance alongside the daily fee in the same
+-- sweep pass -- real player-purchase revenue for inventory-backed kinds is
+-- future work (no point-of-sale system exists yet) and would stack on top
+-- of this baseline once built, not replace it, since baseline-only revenue
+-- from actual player traffic alone would be too sparse to keep a business
+-- afloat. Same rate*effective-price / per-business-override shape as the
+-- fees above (a business entry can set `daily_revenue` directly).
+cfg.daily_revenue_rate = 0.010
+
+-- passive-income kinds: these have nothing to sell (no inventory
+-- dependency) -- they'll never get a real player-purchase revenue stream on
+-- top of the baseline above, unlike the inventory-backed kinds once selling
+-- is built. Kept for that documentation purpose (and possible future
+-- staffing/roadmap use), no longer gates whether baseline revenue applies.
 cfg.passive_kinds = { barber = true, tattoo = true }
 
 -- key = unique business id, also the persistence key suffix ("vRP:business:"<id>)

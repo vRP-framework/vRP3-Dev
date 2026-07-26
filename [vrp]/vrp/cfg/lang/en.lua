@@ -14,6 +14,7 @@ local lang = {
     must_wait = "~r~Must wait {1} seconds before being able to perform this action.",
     yes = "Yes",
     no = "No",
+    you = "You",
     menu = {
       title = "Menu"
     }
@@ -352,12 +353,36 @@ local lang = {
     },
     manage = {
       title = "Manage",
-      info = "<em>{1}</em><br />Owned by you.<br />Purchased: {2}<br /><em>Balance: </em>${3}<br /><em>Next charge due: </em>{4}<br /><em>Last fee charged: </em>${5}<br /><em>Last revenue earned: </em>${6}",
+      info = "<em>{1}</em><br /><em>Owner: </em>{2}<br />Purchased: {3}<br /><br /><em>Balance: </em>${4}<br /><br /><em>Profit</em><br />Daily/Weekly: {5}/{6}<br /><br /><em>Fees</em><br />Daily/Weekly: {7}/{8}<br /><br /><em>Payroll</em><br />Next Due: {9}<br />Profit Before Payroll: {10}<br />Wages Paid: ${11}<br />Owner Profit: ${12}<br />Withdrawal Setting: {13}",
       deposit = {
         title = "Deposit Capital",
         description = "Add money from your wallet to this business's balance.",
         prompt = "Amount to deposit:",
         added = "~g~${1} ~s~added to the business balance."
+      },
+      payroll = {
+        not_configured = "Not configured",
+        process = {
+          title = "Process Payroll",
+          description = "Pay out accrued staff wages, then withdraw available profit.",
+          none_due = "~y~No payroll is due yet.",
+          wages_paid = "~g~${1} in staff wages paid from the business balance.",
+          wage_paid = "~g~You were paid ${1} in wages from {2}.",
+          confirm_withdraw = "Withdraw ${1} in profit? (Balance after wages: ${2}, next charge due {3})",
+          withdrawn = "~g~${1} withdrawn to your wallet.",
+          auto_withdrawn = "~g~Your NPC manager at {1} auto-withdrew ${2} in profit to your wallet.",
+          pending_profit_paid = "~g~${1} in accrued profit from {2} paid to your wallet.",
+          pending_wage_paid = "~g~${1} in accrued wages from {2} paid to your wallet."
+        },
+        settings = {
+          title = "Payroll Settings",
+          description = "Set how you take your profit each payroll: a fixed amount or a percentage.",
+          confirm_percent = "Use a percentage of profit instead of a fixed amount?",
+          prompt_percent = "Percentage of profit to withdraw each payroll (1-100):",
+          prompt_fixed = "Fixed amount to withdraw each payroll:",
+          setup_now = "Payroll withdrawal isn't configured yet. Set it up now?",
+          updated = "~g~Payroll withdrawal set to {1}."
+        }
       },
       staff = {
         title = "Staff Roster",
