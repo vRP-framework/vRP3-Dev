@@ -77,6 +77,18 @@ local function ensure_fee_fields(owner, now)
   owner.pending_profit = owner.pending_profit or 0
   owner.period_revenue = owner.period_revenue or 0
   owner.period_fees = owner.period_fees or 0
+  owner.last_player_revenue = owner.last_player_revenue or 0
+  owner.ext = owner.ext or {} -- addon-owned per-business data, see Business:creditSale
+end
+
+-- calls every registered ownership listener with (id, old_cid, new_cid),
+-- one of them nil (purchase: old nil; sell/repossession/revoke: new nil).
+-- pcall'd per-listener so a buggy addon can't break core purchase/transfer/
+-- sell/repossession flow.
+local function fire_ownership_listeners(self, id, old_cid, new_cid)
+  for _, fn in ipairs(self.ownership_listeners) do
+    pcall(fn, id, old_cid, new_cid)
+  end
 end
 
 -- sum of all staff wages (player + NPC alike -- NPC wages are still a real
@@ -275,6 +287,7 @@ local function menu_business(self)
       balance = 0, last_daily_charge = now, last_utility_charge = now,
     }
     save_owner(self, id)
+    fire_ownership_listeners(self, id, nil, user.cid)
 
     vRP.EXT.Base.remote._notify(user.source, lang.business.buy.purchased({bcfg.title}))
     user:actualizeMenu()
@@ -624,7 +637,13 @@ local function menu_business(self)
 
     if not user:request(lang.business.admin.revoke_confirm({bcfg.title}), 15) then return end
 
+    -- re-check post-confirm: business may have changed hands during the wait
+    local owner = self.owners[id]
+    if not owner then return end
+    local old_cid = owner.owner_cid
+
     clear_owner(self, id)
+    fire_ownership_listeners(self, id, old_cid, nil)
     vRP.EXT.Base.remote._notify(user.source, lang.business.admin.revoked())
     user:actualizeMenu()
   end
@@ -667,8 +686,6 @@ local function menu_business(self)
        math.floor(owner.last_payroll_paid), math.floor(owner.last_profit_withdrawn), payroll_display}))
     menu:addOption(lang.business.manage.deposit.title(), m_deposit, lang.business.manage.deposit.description(), id)
     menu:addOption(lang.business.manage.payroll.process.title(), m_process_payroll, lang.business.manage.payroll.process.description(), id)
-    -- future: pricing/stock/income options for this business's `kind`
-    -- get appended here without restructuring this function
 
     -- payroll withdrawal preference stays owner-exclusive -- delegated
     -- managers get the balance/deposit/payroll-processing view above, not
@@ -874,6 +891,7 @@ local function menu_business(self)
 
     local payout = sellback + math.max(0, math.floor(owner.balance or 0))
     clear_owner(self, id)
+    fire_ownership_listeners(self, id, user.cid, nil)
     user:giveWallet(payout)
 
     vRP.EXT.Base.remote._notify(user.source, lang.business.realtor.sell.sold({bcfg.title, payout}))
@@ -897,8 +915,10 @@ local function menu_business(self)
     owner = self.owners[id]
     if not owner or owner.owner_cid ~= user.cid then return end
 
+    local old_cid = owner.owner_cid
     owner.owner_cid = nuser.cid
     save_owner(self, id)
+    fire_ownership_listeners(self, id, old_cid, nuser.cid)
 
     vRP.EXT.Base.remote._notify(user.source, lang.business.realtor.transfer.given({bcfg.title}))
     vRP.EXT.Base.remote._notify(nuser.source, lang.business.realtor.transfer.received({bcfg.title}))
@@ -1079,6 +1099,13 @@ function Business:__construct()
   self.owners = {} -- id -> {owner_cid=, purchased_at=}
   self._owners_hydrated = false
 
+  -- addon extension points (see Business:registerOwnershipListener below) --
+  -- live on the instance like Transformer.processors/Group's permission
+  -- functions, so they're wiped on a /vrpReload Business the same way those
+  -- are; an addon resource registering here needs restarting alongside
+  -- Business if it's reloaded
+  self.ownership_listeners = {} -- list of fn(id, old_cid, new_cid)
+
   -- registered immediately (no I/O) rather than lazily on playerSpawn --
   -- a hot-reload (/vrpReload Business) re-runs this constructor but does
   -- NOT refire playerSpawn for already-connected players, so a lazy
@@ -1103,6 +1130,100 @@ function Business:__construct()
       pcall(function() self:runFeeSweep() end)
     end
   end)
+end
+
+-- EXTENSION POINTS -- for future per-kind store addons (separate FiveM
+-- resources depending on vrp, e.g. real clothing/24-7 selling) to plug
+-- into core without modifying business.lua. See the roadmap memory for the
+-- full design writeup.
+
+-- registers a new business location at runtime, so an addon resource can
+-- add its own kind/locations and get purchase, ownership, staff hiring,
+-- payroll, and realtor buy/sell/transfer listing entirely for free from
+-- core -- no separate purchase logic needed in the addon at all, and a
+-- single call per business is enough (see kind_name below, no separate
+-- setKindName call needed for the common case). bcfg has the exact same
+-- shape as a cfg/business.lua entry: {kind, title, pos, price?, daily_fee?,
+-- utility_fee?, daily_revenue?, _config = {map_entity = {...}}}, plus one
+-- addon-only optional field:
+-- - kind_name: display name for bcfg.kind in the realtor's buy-by-type menu
+--   (e.g. "Clothing Stores"). Harmless/idempotent to repeat on every
+--   business of the same kind -- last one registered just wins, and they
+--   should all agree anyway since it's one name per kind, not per business.
+-- id must be unique (also used as the persistence key suffix,
+-- "vRP:business:"<id>).
+-- Call this at the addon's own __construct time (before players first
+-- spawn) -- area triggers/blips are set up once per player in playerSpawn,
+-- reading straight from self.businesses, so anything registered here
+-- before that just gets picked up automatically like any other business.
+function Business:registerBusiness(id, bcfg)
+  if self.businesses[id] then
+    vRP:log("warning: business id \""..id.."\" already registered, overwriting")
+  end
+  self.businesses[id] = bcfg
+
+  if bcfg.kind_name then
+    self.kind_names[bcfg.kind] = bcfg.kind_name
+  end
+end
+
+-- standalone companions to registerBusiness, only needed for the less
+-- common case: renaming a kind after the fact, or wanting a shared default
+-- price for a kind instead of setting `price` on every business entry
+function Business:setCategoryPrice(kind, price)
+  self.category_prices[kind] = price
+end
+
+function Business:setKindName(kind, name)
+  self.kind_names[kind] = name
+end
+
+-- register a listener called on every ownership change (purchase, sell,
+-- transfer, repossession, admin revoke) as fn(id, old_cid, new_cid) -- one
+-- of old_cid/new_cid is nil (purchase: old nil; everything else: new nil).
+-- Use this to init/reset an addon's own owner.ext.<addon_id> data on handover.
+function Business:registerOwnershipListener(fn)
+  table.insert(self.ownership_listeners, fn)
+end
+
+-- returns the owner record for a business id, or nil if unowned. Addons
+-- should read/write their own data under owner.ext.<addon_id> rather than
+-- adding top-level fields, to avoid colliding with core or other addons.
+function Business:getOwner(id)
+  return self.owners[id]
+end
+
+-- returns the business's static config entry (kind, title, pos, price, etc.)
+function Business:getBusinessConfig(id)
+  return self.businesses[id]
+end
+
+-- true if cid is the owner or a can_manage staff member of business id
+function Business:isOwnerOrManager(id, cid)
+  local owner = self.owners[id]
+  return owner ~= nil and (owner.owner_cid == cid or staff_can_manage(owner, cid))
+end
+
+-- credits a real sale to a business: adds `amount` to both balance and
+-- period_revenue (so it counts toward payroll profit the same way
+-- simulated baseline revenue already does), tracked separately as
+-- last_player_revenue so it can be shown distinctly from simulated income.
+-- This is the plumbing for real point-of-sale addons -- core itself never
+-- calls this (no point-of-sale system exists in core, deliberately).
+function Business:creditSale(id, amount)
+  local owner = self.owners[id]
+  if not owner or not amount or amount <= 0 then return false end
+
+  ensure_fee_fields(owner, os.time())
+  owner.balance = owner.balance + amount
+  owner.period_revenue = owner.period_revenue + amount
+  owner.last_player_revenue = amount
+  save_owner(self, id)
+
+  local user = vRP.users[owner.owner_cid]
+  if user then user:actualizeMenu() end
+
+  return true
 end
 
 -- hydrate self.owners from persistent server data; idempotent, safe to
@@ -1174,6 +1295,7 @@ function Business:runFeeSweep()
 
         if now - owner.negative_since >= grace_period then
           clear_owner(self, id)
+          fire_ownership_listeners(self, id, owner.owner_cid, nil)
           repossessed = true
           if user then
             vRP.EXT.Base.remote._notify(user.source, lang.business.notify.repossessed({bcfg.title}))
