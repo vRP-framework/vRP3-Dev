@@ -70,9 +70,26 @@ cfg.revenue_fee_variance_pct = 15
 
 cfg.utility_period_days = 7 -- how often the utility fee is charged
 cfg.grace_period_days = 30 -- how long a negative balance is tolerated before repossession
-cfg.fee_sweep_interval = 3600 -- seconds between sweep passes (billing itself is elapsed-time based, this just controls how often it's checked)
 cfg.payroll_period_days = 7 -- how often accrued staff wages become due (matches the "per payroll cycle" wage wording)
-cfg.day_length = 86400 -- seconds treated as one "day" for daily fee/revenue cycles; utility_period_days/grace_period_days are also multiples of this
+
+-- real seconds treated as one in-game "day" for daily/utility/payroll/grace
+-- cycles (utility_period_days/grace_period_days/payroll_period_days above
+-- are all multiples of this) -- deliberately an IN-GAME day, not a real
+-- calendar day, so "7 days" of fees/payroll actually elapses over 7
+-- day/night cycles for someone playing regularly, not 7 real-life days.
+-- Default (2880s = 48 real minutes) matches FXServer/GTA's standard
+-- in-game day length at the default clock speed (SetMillisecondsPerGameMinute
+-- 2000, same default `client/weather.lua`'s Weather.normal uses). If this
+-- server's day/night cycle speed is permanently changed from that default,
+-- update this to match -- it is not read from the live clock automatically
+-- (client/weather.lua's freeze/speed/slow are per-admin-session client-side
+-- toggles with no persistent server-side authority to read from).
+cfg.day_length = 2880
+
+-- seconds between sweep passes (billing itself is elapsed-time based, this
+-- just controls how often it's checked) -- kept well under day_length so a
+-- full in-game day/night cycle doesn't pass between checks unnoticed
+cfg.fee_sweep_interval = 300
 
 -- every kind gets a simulated baseline daily revenue (ambient/NPC-driven
 -- average sales), billed into balance alongside the daily fee in the same
@@ -95,6 +112,12 @@ cfg.passive_kinds = { barber = true, tattoo = true }
 -- kind: category tag, looked up in cfg.category_prices for the default price;
 --       also usable later to find "all food stores" etc. without touching
 --       this table's shape.
+--
+-- purchasing intentionally stays marker-only (walking up to the location),
+-- not available from the remote "My Businesses" phone menu -- each store
+-- kind's actual pricing/stock/selling logic is planned as its own separate
+-- addon/script plugged into this framework later, so purchase flow for
+-- those store types will most likely live there instead of in core.
 cfg.businesses = {
 	["food_1"] = {
 		kind = "food", title = "Food Store #1",

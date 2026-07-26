@@ -605,6 +605,55 @@ local function menu_business(self)
     user:actualizeMenu()
   end
 
+  -- balance/payroll financial section, shared between the in-person
+  -- "business" menu (walking up to the marker) and the remote
+  -- "business.remote" menu (My Businesses, reachable from anywhere via the
+  -- main/phone menu). Staff roster/hiring and admin actions stay
+  -- location-only, added by the caller instead of here.
+  local function add_financial_options(menu, id, bcfg, owner, user)
+    ensure_fee_fields(owner, os.time())
+
+    local next_payroll_at = owner.last_payroll + (self.payroll_period_days * self.day_length)
+
+    local payroll_display
+    if not owner.payroll_mode then
+      payroll_display = lang.business.manage.payroll.not_configured()
+    elseif owner.payroll_mode == "percent" then
+      payroll_display = owner.payroll_value.."%%"
+    else
+      payroll_display = "$"..owner.payroll_value
+    end
+
+    -- daily figures are the real last-billed cycle; "weekly" is the real
+    -- period_revenue/period_fees accumulated since the last payroll
+    -- processing (same numbers Process Payroll's percentage withdrawal is
+    -- based on -- not a daily*7 guess, so this always includes any real
+    -- utility-fee hit that landed during the window and matches exactly
+    -- what a percentage payout would actually pay out right now)
+    local daily_profit = owner.last_daily_revenue - owner.last_daily_fee
+    local period_profit_so_far = (owner.period_revenue or 0) - (owner.period_fees or 0)
+
+    -- public info (business + who owns it) followed by the owner/manager-
+    -- only financial breakdown
+    menu:addOption(lang.business.manage.title(), nil, lang.business.manage.info(
+      {bcfg.title, owner_display_name(owner, user.cid), owner.purchased_at,
+       math.floor(owner.balance), format_signed_money(daily_profit), format_signed_money(period_profit_so_far),
+       "-$"..math.floor(owner.last_daily_fee), "-$"..math.floor(owner.period_fees or 0),
+       os.date("%Y-%m-%d %H:%M", next_payroll_at), format_signed_money(owner.last_period_profit),
+       math.floor(owner.last_payroll_paid), math.floor(owner.last_profit_withdrawn), payroll_display}))
+    menu:addOption(lang.business.manage.deposit.title(), m_deposit, lang.business.manage.deposit.description(), id)
+    menu:addOption(lang.business.manage.payroll.process.title(), m_process_payroll, lang.business.manage.payroll.process.description(), id)
+    -- future: pricing/stock/income options for this business's `kind`
+    -- get appended here without restructuring this function
+
+    -- payroll withdrawal preference stays owner-exclusive -- delegated
+    -- managers get the balance/deposit/payroll-processing view above, not
+    -- withdrawal-preference control
+    if owner.owner_cid == user.cid then
+      menu:addOption(lang.business.manage.payroll.settings.title(), m_payroll_settings, lang.business.manage.payroll.settings.description(), id)
+    end
+  end
+
   vRP.EXT.GUI:registerMenuBuilder(self, "business", function(menu)
     local id = menu.data.id
     local bcfg = self.businesses[id]
@@ -618,50 +667,17 @@ local function menu_business(self)
       local price = bcfg.price or self.category_prices[bcfg.kind]
       menu:addOption(lang.business.buy.title(), m_purchase, lang.business.buy.info({price}), id)
     elseif owner.owner_cid == user.cid or staff_can_manage(owner, user.cid) then
-      ensure_fee_fields(owner, os.time())
+      add_financial_options(menu, id, bcfg, owner, user)
 
-      local next_payroll_at = owner.last_payroll + (self.payroll_period_days * self.day_length)
-
-      local payroll_display
-      if not owner.payroll_mode then
-        payroll_display = lang.business.manage.payroll.not_configured()
-      elseif owner.payroll_mode == "percent" then
-        payroll_display = owner.payroll_value.."%%"
-      else
-        payroll_display = "$"..owner.payroll_value
-      end
-
-      -- daily figures are the real last-billed cycle; "weekly" is the real
-      -- period_revenue/period_fees accumulated since the last payroll
-      -- processing (same numbers Process Payroll's percentage withdrawal is
-      -- based on -- not a daily*7 guess, so this always includes any real
-      -- utility-fee hit that landed during the window and matches exactly
-      -- what a percentage payout would actually pay out right now)
-      local daily_profit = owner.last_daily_revenue - owner.last_daily_fee
-      local period_profit_so_far = (owner.period_revenue or 0) - (owner.period_fees or 0)
-
-      -- public info (business + who owns it) followed by the owner/manager-
-      -- only financial breakdown
-      menu:addOption(lang.business.manage.title(), nil, lang.business.manage.info(
-        {bcfg.title, owner_display_name(owner, user.cid), owner.purchased_at,
-         math.floor(owner.balance), format_signed_money(daily_profit), format_signed_money(period_profit_so_far),
-         "-$"..math.floor(owner.last_daily_fee), "-$"..math.floor(owner.period_fees or 0),
-         os.date("%Y-%m-%d %H:%M", next_payroll_at), format_signed_money(owner.last_period_profit),
-         math.floor(owner.last_payroll_paid), math.floor(owner.last_profit_withdrawn), payroll_display}))
-      menu:addOption(lang.business.manage.deposit.title(), m_deposit, lang.business.manage.deposit.description(), id)
-      menu:addOption(lang.business.manage.payroll.process.title(), m_process_payroll, lang.business.manage.payroll.process.description(), id)
-      -- future: pricing/stock/income options for this business's `kind`
-      -- get appended here without restructuring this builder
-
-      -- hiring/firing/payroll settings stay owner-exclusive -- delegated
-      -- managers get the balance/deposit/payroll-processing view above,
-      -- not roster or withdrawal-preference control
+      -- hiring/firing stays owner-exclusive and location-gated -- delegated
+      -- managers get the financial view above, not roster control. Same
+      -- info/payroll actions are also reachable remotely, see
+      -- "business.remote" (My Businesses, on the main/phone menu) below.
       if owner.owner_cid == user.cid then
         menu:addOption(lang.business.manage.staff.hire.title(), m_hire, lang.business.manage.staff.hire.description(), id)
         menu:addOption(lang.business.manage.staff.title(), function(menu)
           menu.user:openMenu("business.staff", {id = id})
         end)
-        menu:addOption(lang.business.manage.payroll.settings.title(), m_payroll_settings, lang.business.manage.payroll.settings.description(), id)
       end
     else
       menu:addOption(lang.business.owned_by({owner_display_name(owner, user.cid)}), nil, "")
@@ -755,6 +771,62 @@ local function menu_business(self)
         lang.business.manage.staff.hire.pick_npc_description(), id)
     end
   end)
+
+  -- remote/phone equivalent of the in-person financial view -- reachable
+  -- from anywhere via "business.mine" below, no need to walk to the
+  -- marker. Same balance/deposit/payroll actions as "business", minus the
+  -- location-only staff/hiring controls. Purchasing a business intentionally
+  -- stays marker-only (see cfg/business.lua) -- this is never a "browse and
+  -- buy" menu, only businesses already owned/managed ever show up here.
+  vRP.EXT.GUI:registerMenuBuilder(self, "business.remote", function(menu)
+    local id = menu.data.id
+    local bcfg = self.businesses[id]
+    local owner = self.owners[id]
+    local user = menu.user
+
+    if not bcfg or not owner or (owner.owner_cid ~= user.cid and not staff_can_manage(owner, user.cid)) then
+      return
+    end
+
+    menu.title = bcfg.title
+    menu.css.header_color = "rgba(0,180,0,0.75)"
+
+    add_financial_options(menu, id, bcfg, owner, user)
+  end)
+
+  -- "My Businesses": lists every business this player owns or manages,
+  -- each opening the remote financial view above
+  vRP.EXT.GUI:registerMenuBuilder(self, "business.mine", function(menu)
+    local user = menu.user
+
+    menu.title = lang.business.mine.title()
+    menu.css.header_color = "rgba(0,180,0,0.75)"
+
+    for id, owner in pairs(self.owners) do
+      local bcfg = self.businesses[id]
+      if bcfg and (owner.owner_cid == user.cid or staff_can_manage(owner, user.cid)) then
+        menu:addOption(bcfg.title, function(menu)
+          menu.user:openMenu("business.remote", {id = id})
+        end)
+      end
+    end
+  end)
+
+  -- only shows the "My Businesses" entry point if the player actually owns
+  -- or manages at least one business, so it doesn't clutter the main/phone
+  -- menu for everyone else
+  vRP.EXT.GUI:registerMenuBuilder(self, "main", function(menu)
+    local user = menu.user
+
+    for id, owner in pairs(self.owners) do
+      if self.businesses[id] and (owner.owner_cid == user.cid or staff_can_manage(owner, user.cid)) then
+        menu:addOption(lang.business.mine.title(), function(menu)
+          menu.user:openMenu("business.mine")
+        end, lang.business.mine.description())
+        break
+      end
+    end
+  end)
 end
 
 -- METHODS
@@ -775,9 +847,9 @@ function Business:__construct()
   self.revenue_fee_variance_pct = self.cfg.revenue_fee_variance_pct or 0
   self.utility_period_days = self.cfg.utility_period_days or 7
   self.grace_period_days = self.cfg.grace_period_days or 3
-  self.fee_sweep_interval = self.cfg.fee_sweep_interval or 3600
+  self.fee_sweep_interval = self.cfg.fee_sweep_interval or 300
   self.daily_revenue_rate = self.cfg.daily_revenue_rate or 0.004
-  self.day_length = self.cfg.day_length or 86400
+  self.day_length = self.cfg.day_length or 2880
   self.payroll_period_days = self.cfg.payroll_period_days or 7
   self.cfg = nil
 

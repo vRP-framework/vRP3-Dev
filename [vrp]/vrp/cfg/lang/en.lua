@@ -434,6 +434,10 @@ local lang = {
       }
     },
     owned_by = "Owned by {1}.",
+    mine = {
+      title = "My Businesses",
+      description = "Check balance and process payroll for businesses you own or manage, from anywhere."
+    },
     notify = {
       negative_balance = "~r~{1}'s balance is negative (${2}). Pay it off before the grace period ends or it will be repossessed.",
       repossessed = "~r~{1} has been repossessed due to unpaid fees."
