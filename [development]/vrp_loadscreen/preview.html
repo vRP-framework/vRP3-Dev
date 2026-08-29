@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>vrp_loadscreen -- crop preview (dev tool, not shipped)</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px;
+    background: #111318;
+    color: #e8e6e1;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p.hint { color: #9a9691; font-size: 13px; margin: 0 0 18px; }
+
+  .ratio-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .ratio-bar button {
+    background: #1c1f26;
+    border: 1px solid #333844;
+    color: #e8e6e1;
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .ratio-bar button.active {
+    border-color: #ff7a1a;
+    color: #ff7a1a;
+  }
+  .ratio-bar .custom {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #9a9691;
+  }
+  .ratio-bar input {
+    width: 56px;
+    background: #1c1f26;
+    border: 1px solid #333844;
+    color: #e8e6e1;
+    padding: 6px 8px;
+    border-radius: 6px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 18px;
+  }
+
+  .card { }
+  .frame {
+    width: 100%;
+    background: #000 center / cover no-repeat;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #262a33;
+    position: relative;
+  }
+  .frame video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .label {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #9a9691;
+    display: flex;
+    justify-content: space-between;
+  }
+  .label b { color: #e8e6e1; font-weight: 600; }
+
+  section { margin-bottom: 36px; }
+  section h2 { font-size: 15px; margin: 0 0 4px; }
+
+  .live-frame {
+    width: 960px;
+    max-width: 100%;
+    aspect-ratio: 16/9;
+    border: 1px solid #333844;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .live-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+  .live-actions {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+  }
+  .live-actions a { color: #ff7a1a; }
+  .live-actions button {
+    background: #1c1f26;
+    border: 1px solid #333844;
+    color: #e8e6e1;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+  <h1>vrp_loadscreen -- crop preview</h1>
+
+  <section>
+    <h2>Live boot screen preview</h2>
+    <p class="hint">
+      This is the actual html/index.html running as-is (same CSS/JS as in-game) --
+      not a re-creation, so it stays accurate as style.css changes. It boots, fades
+      into the slideshow, and starts tips/music same as a real connect. Progress bar
+      stays at 0% here since that's driven by FiveM's own loading-screen events
+      (startInitFunctionOrder / initFunctionInvoking / startDataFileEntries /
+      performMapLoadFunction), which only fire in-game. After about a minute the
+      safety-net timer will kick it into "Initializing..." anyway, but it'll never
+      actually close here since vRP itself never confirms ready outside the game.
+    </p>
+    <div class="live-frame">
+      <iframe id="liveFrame" src="html/index.html"></iframe>
+    </div>
+    <div class="live-actions">
+      <button id="reloadFrame">restart boot sequence</button>
+      <a href="html/index.html" target="_blank">open full size in a new tab (accurate vmin sizing)</a>
+    </div>
+  </section>
+
+  <section>
+  <h2>Crop check -- all backgrounds &amp; boot video</h2>
+  <p class="hint">
+    Every tile below is cropped exactly like the real loading screen (<code>cover</code>).
+    Pick a screen ratio and see which images/video lose their subject at the edges --
+    note the filenames of anything that looks wrong and regenerate just those.
+    This file isn't shipped by fxmanifest.lua, it's a local dev tool only.
+  </p>
+
+  <div class="ratio-bar" id="ratioBar">
+    <button data-ratio="16/9" class="active">16:9 (1920x1080)</button>
+    <button data-ratio="21/9">21:9 ultrawide</button>
+    <button data-ratio="32/9">32:9 super-ultrawide</button>
+    <button data-ratio="9/16">9:16 (vertical)</button>
+    <div class="custom">
+      custom
+      <input type="number" id="customW" value="16" min="1">
+      :
+      <input type="number" id="customH" value="9" min="1">
+      <button id="customApply">apply</button>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <script>
+    var IMAGE_COUNT = 12;
+    var IMAGE_PATH = 'html/img/bg/';
+    var VIDEO_PATH = 'html/video/boot.mp4';
+
+    var grid = document.getElementById('grid');
+
+    function addCard(label, isVideo) {
+      var card = document.createElement('div');
+      card.className = 'card';
+
+      var frame = document.createElement('div');
+      frame.className = 'frame';
+      frame.style.aspectRatio = '16/9';
+
+      if (isVideo) {
+        var video = document.createElement('video');
+        video.src = VIDEO_PATH;
+        video.muted = true;
+        video.loop = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        frame.appendChild(video);
+      } else {
+        frame.style.backgroundImage = 'url("' + IMAGE_PATH + label + '")';
+      }
+
+      var lbl = document.createElement('div');
+      lbl.className = 'label';
+      lbl.innerHTML = '<b>' + label + '</b><span>' + (isVideo ? 'boot video' : 'background') + '</span>';
+
+      card.appendChild(frame);
+      card.appendChild(lbl);
+      grid.appendChild(card);
+    }
+
+    addCard('boot.mp4', true);
+    for (var i = 1; i <= IMAGE_COUNT; i++) addCard(i + '.jpg', false);
+
+    function setRatio(ratio) {
+      document.querySelectorAll('.frame').forEach(function (f) {
+        f.style.aspectRatio = ratio;
+      });
+    }
+
+    document.getElementById('ratioBar').addEventListener('click', function (ev) {
+      var btn = ev.target.closest('button[data-ratio]');
+      if (!btn) return;
+      document.querySelectorAll('.ratio-bar button[data-ratio]').forEach(function (b) {
+        b.classList.remove('active');
+      });
+      btn.classList.add('active');
+      setRatio(btn.dataset.ratio);
+    });
+
+    document.getElementById('customApply').addEventListener('click', function () {
+      var w = document.getElementById('customW').value || 16;
+      var h = document.getElementById('customH').value || 9;
+      document.querySelectorAll('.ratio-bar button[data-ratio]').forEach(function (b) {
+        b.classList.remove('active');
+      });
+      setRatio(w + '/' + h);
+    });
+
+    document.getElementById('reloadFrame').addEventListener('click', function () {
+      var frame = document.getElementById('liveFrame');
+      frame.src = frame.src;
+    });
+  </script>
+  </section>
+</body>
+</html>

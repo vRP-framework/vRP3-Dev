@@ -1,0 +1,379 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg-1);
+  user-select: none;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Theme tokens                                                           */
+/* ---------------------------------------------------------------------- */
+
+:root[data-theme="heist"] {
+  --bg-1: #0a0c0f;
+  --bg-2: #15181d;
+  --panel: rgba(255, 255, 255, 0.04);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --text: #e8e6e1;
+  --text-dim: #9a9691;
+  --accent: #ff7a1a;
+  --accent-soft: rgba(255, 122, 26, 0.25);
+  --font-heading: 'Segoe UI', Arial, sans-serif;
+  --heading-tracking: 0.14em;
+  --tint-color: #ff7a1a;
+  --tint-opacity: 0.22;
+  --bg-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 3px),
+    radial-gradient(ellipse at 50% 30%, var(--bg-2) 0%, var(--bg-1) 70%);
+}
+
+:root[data-theme="vice"] {
+  --bg-1: #1a0b2e;
+  --bg-2: #3a0f4a;
+  --panel: rgba(255, 255, 255, 0.06);
+  --panel-border: rgba(255, 255, 255, 0.12);
+  --text: #fbe9ff;
+  --text-dim: #caa0d9;
+  --accent: #00e5ff;
+  --accent-soft: rgba(0, 229, 255, 0.28);
+  --font-heading: 'Segoe UI', Arial, sans-serif;
+  --heading-tracking: 0.08em;
+  --tint-color: #ff2e63;
+  --tint-opacity: 0.32;
+  --bg-image:
+    linear-gradient(0deg, rgba(255,46,99,0.55) 0%, rgba(255,46,99,0.0) 45%),
+    repeating-linear-gradient(180deg, rgba(0,229,255,0.09) 0px, rgba(0,229,255,0.09) 1px, transparent 1px, transparent 34px),
+    linear-gradient(180deg, var(--bg-1) 0%, #2a0e46 55%, #57134f 100%);
+}
+
+:root[data-theme="modern"] {
+  --bg-1: #0b1120;
+  --bg-2: #131c31;
+  --panel: rgba(255, 255, 255, 0.035);
+  --panel-border: rgba(255, 255, 255, 0.09);
+  --text: #eef2f8;
+  --text-dim: #8996ab;
+  --accent: #2dd4bf;
+  --accent-soft: rgba(45, 212, 191, 0.22);
+  --font-heading: 'Segoe UI', Arial, sans-serif;
+  --heading-tracking: 0.02em;
+  --tint-color: #0b1120;
+  --tint-opacity: 0.45;
+  --bg-image:
+    radial-gradient(ellipse at 50% 20%, var(--bg-2) 0%, var(--bg-1) 65%);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Background / chrome                                                    */
+/* ---------------------------------------------------------------------- */
+
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  background-image: var(--bg-image);
+  background-color: var(--bg-1);
+  transition: background-color 0.5s ease;
+}
+
+/* Solid black backdrop specifically for .bg-slide's masked edges to fade
+   into -- sits between .bg-layer and .bg-slide so the fade reads as true
+   black regardless of theme (the per-theme gradients aren't literally
+   black, e.g. vice's purple). */
+.bg-frame {
+  position: fixed;
+  inset: 0;
+  background: #000;
+}
+
+/* Two stacked layers that crossfade between a randomly-selected subset of
+   html/img/bg/*.jpg. Narrower than the viewport with faded left/right
+   edges (rather than edge-to-edge cover) so it reads as a framed photo
+   over black instead of a flat, cropped background. */
+.bg-slide {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 85vw;
+  transform: translateX(-50%);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1.5s ease;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+}
+.bg-slide.visible { opacity: 1; }
+
+/* One shared image pool across all 3 themes -- this colored wash is what
+   makes the same photos still read as "heist" vs "vice" vs "modern" per
+   theme. */
+.bg-tint {
+  position: fixed;
+  inset: 0;
+  background: var(--tint-color);
+  opacity: var(--tint-opacity);
+  mix-blend-mode: multiply;
+  transition: background-color 0.5s ease, opacity 0.5s ease;
+}
+
+.boot-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+.boot-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+.boot-screen.hidden { display: none; }
+
+.boot-video {
+  /* Forced 16:9 by cropping (cover), not letterboxing (contain) -- contain
+     was invisible here since the leftover margin and .boot-screen's
+     backdrop are both solid black, so the still-ultrawide (7:3) picture
+     just floated in the middle with no visible 16:9 shape at all. cover
+     crops boot.mp4's left/right edges down to an actual 16:9 frame that
+     fills the screen -- ~24% trimmed total (~12% each side), a normal
+     amount for fitting wide footage into a narrower frame. */
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 55%, transparent 40%, rgba(0,0,0,0.55) 100%);
+}
+
+.fade-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.65s ease;
+  z-index: 50;
+}
+.fade-overlay.active { opacity: 1; }
+
+/* ---------------------------------------------------------------------- */
+/* HUD layout                                                             */
+/* ---------------------------------------------------------------------- */
+
+.hud {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 9vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6vh;
+  padding: 0 6vw;
+  text-align: center;
+}
+
+/* Pinned to the true bottom edge of the screen, separate from the tip
+   line above -- modeled on the reference loading screen's bottom-anchored
+   #loading bar, adapted to this HUD's own panel/progress styling instead
+   of hardcoded colors. */
+.loading-bar-row {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 3vh;
+  display: flex;
+  justify-content: center;
+  padding: 0 6vw;
+}
+
+.brand {
+  position: fixed;
+  top: 6vh;
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+
+.brand-name {
+  font-family: var(--font-heading);
+  font-size: clamp(28px, 4vw, 56px);
+  font-weight: 700;
+  letter-spacing: var(--heading-tracking);
+  text-transform: uppercase;
+  color: var(--text);
+  text-shadow: 0 0 24px var(--accent-soft);
+}
+
+/* Plain rotating tip text -- no box, sits where the old "Connecting..."
+   line used to be. */
+.tip-line {
+  max-width: 640px;
+  min-height: 1.4em;
+  font-size: 14px;
+  color: var(--text-dim);
+  text-align: center;
+  transition: opacity 0.3s ease;
+}
+.tip-line.fading { opacity: 0; }
+
+/* Glass side panels -- rules (left) and keybinds (right), each
+   independently rotating through a list. Vertically centered, fixed to
+   the screen edges so they stay clear of the bottom-center HUD stack. */
+.side-panel {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(300px, 24vw);
+  max-height: 46vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  z-index: 5;
+}
+.side-panel-left { left: 4vw; }
+.side-panel-right { right: 4vw; }
+
+.side-panel-label {
+  flex: none;
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.side-panel-text {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+  transition: opacity 0.3s ease;
+  /* Keybind slides join multiple lines with \n (see script.js chunk()) --
+     pre-line renders those as real line breaks. No effect on the single-
+     line rules panel content. */
+  white-space: pre-line;
+}
+.side-panel-text.fading { opacity: 0; }
+
+.progress-block {
+  width: min(520px, 70vw);
+}
+
+.progress-top-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.progress-wrap {
+  width: 100%;
+  height: 6px;
+  border-radius: 4px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--text));
+  box-shadow: 0 0 12px var(--accent-soft);
+  transition: width 0.25s ease-out;
+}
+
+.progress-bar.indeterminate {
+  width: 100% !important;
+  animation: pulse-bar 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse-bar {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Controls                                                                */
+/* ---------------------------------------------------------------------- */
+
+.mute-btn {
+  position: fixed;
+  top: 4vh;
+  right: 4vw;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 10;
+}
+.mute-btn.muted { color: var(--text-dim); }
+
+.theme-switcher {
+  position: fixed;
+  bottom: 4vh;
+  right: 4vw;
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+}
+
+.swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.25);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.swatch:hover { transform: scale(1.15); }
+.swatch.active { border-color: #fff; }
+
+.swatch-heist  { background: linear-gradient(135deg, #0a0c0f, #ff7a1a); }
+.swatch-vice   { background: linear-gradient(135deg, #1a0b2e, #ff2e63, #00e5ff); }
+.swatch-modern { background: linear-gradient(135deg, #0b1120, #2dd4bf); }

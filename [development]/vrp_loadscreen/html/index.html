@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="heist">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loading</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="bg-layer"></div>
+  <div class="bg-frame"></div>
+  <div class="bg-slide" id="bgSlideA"></div>
+  <div class="bg-slide" id="bgSlideB"></div>
+  <div class="bg-tint"></div>
+  <div class="vignette"></div>
+
+  <div class="boot-screen" id="bootScreen">
+    <video class="boot-video" id="bootVideo" src="video/boot.mp4" autoplay muted playsinline></video>
+    <audio id="bootAudio" src="video/boot.mp4" preload="auto"></audio>
+  </div>
+
+  <button class="mute-btn" id="muteBtn" title="Toggle music" type="button">
+    <span id="muteIcon">&#9834;</span>
+  </button>
+
+  <div class="theme-switcher" id="themeSwitcher">
+    <button class="swatch swatch-heist"  data-theme-choice="heist"  title="Heist"  type="button"></button>
+    <button class="swatch swatch-vice"   data-theme-choice="vice"   title="Vice"   type="button"></button>
+    <button class="swatch swatch-modern" data-theme-choice="modern" title="Modern" type="button"></button>
+  </div>
+
+  <aside class="side-panel side-panel-left" id="rulesPanel">
+    <span class="side-panel-label">Rules</span>
+    <span class="side-panel-text" id="ruleText"></span>
+  </aside>
+
+  <aside class="side-panel side-panel-right" id="keysPanel">
+    <span class="side-panel-label">Keys</span>
+    <span class="side-panel-text" id="keyText"></span>
+  </aside>
+
+  <main class="hud">
+    <header class="brand">
+      <span class="brand-name" id="serverName">Server Name</span>
+    </header>
+
+    <div class="tip-line" id="tipText"></div>
+  </main>
+
+  <div class="loading-bar-row">
+    <div class="progress-block">
+      <div class="progress-top-row">
+        <span id="playerCount">-- / -- online</span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar indeterminate" id="progressBar"></div>
+      </div>
+      <div class="progress-meta">
+        <span id="statusText">Connecting&hellip;</span>
+        <span id="progressPct">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <audio id="bgAudio" src="audio/theme.mp3" loop preload="auto"></audio>
+
+  <div class="fade-overlay" id="fadeOverlay"></div>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
